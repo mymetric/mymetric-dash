@@ -76,6 +76,25 @@ st.markdown(
 # Exibe a tabela sem numeração
 st.title("Visão Geral")
 
+# Calcula o total de "Receita Paga"
+pedidos = df["Pedidos"].sum()
+total_receita_paga = df["Receita Paga"].sum()
+total_receita_capturada = df["Receita"].sum()
+
+
+# Exibe o valor de "Receita Paga" como um número grande
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Receita Paga", f"R$ {total_receita_paga:,.2f}")
+
+with col2:
+    st.metric("Pedidos", f"{pedidos}")
+
+with col3:
+    st.metric("Receita Capturada", f"R$ {total_receita_capturada:,.2f}")
+
+
 # Exibe a tabela de dados sem numeração
 st.data_editor(df, hide_index=1, use_container_width=1)
 
