@@ -1,151 +1,81 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+from google.oauth2 import service_account
+from google.cloud import bigquery
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+st.set_page_config(page_title="My App", page_icon=":bar_chart:", layout="wide")
+
+# Cria o cliente da API
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+client = bigquery.Client(credentials=credentials)
+
+# Função para executar a query
+@st.cache_data(ttl=600)
+def run_query(query):
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return rows
+
+# Filtro de datas interativo
+st.sidebar.header("Filtro de Datas")
+
+today = pd.to_datetime("today").date()
+
+start_date = st.sidebar.date_input("Data Inicial", today)
+end_date = st.sidebar.date_input("Data Final", today)
+
+# Converte as datas para string no formato 'YYYY-MM-DD' para a query
+start_date_str = start_date.strftime('%Y-%m-%d')
+end_date_str = end_date.strftime('%Y-%m-%d')
+
+table = st.query_params["table"]
+
+# Query para buscar os dados com filtro de datas
+query = f"""
+SELECT
+    source Origem,
+    medium `Mídia`, 
+    COUNTIF(event_name = 'session') `Sessões`,
+    COUNT(DISTINCT transaction_id) Pedidos,
+    SUM(value) Receita,
+    SUM(CASE WHEN status = 'paid' THEN value ELSE 0 END) `Receita Paga`
+FROM `mymetric-hub-shopify.dbt_join.{table}_events_long`
+WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+GROUP BY source, medium
+ORDER BY Pedidos DESC
+"""
+
+# Executa a query
+rows = run_query(query)
+
+# Converte os dados em DataFrame para fácil manipulação
+df = pd.DataFrame(rows)
+
+
+
+
+
+
+
+# Logo URL
+logo_url = "https://i.imgur.com/G5JAC2n.png"
+
+# Display the header with the logo
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center; justify-content:center; padding:10px;">
+        <img src="{logo_url}" alt="Logo" style="width:300px; height:90px; object-fit: cover;">
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Exibe a tabela sem numeração
+st.title("Visão Geral")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Exibe a tabela de dados sem numeração
+st.data_editor(df, hide_index=1, use_container_width=1)
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
-
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
