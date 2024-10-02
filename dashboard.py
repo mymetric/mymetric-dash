@@ -20,6 +20,9 @@ def show_dashboard(client):
     start_date = seven_days_ago
     end_date = today
 
+    with st.sidebar:
+        st.markdown(f"## {st.session_state.username.upper()}")
+
     # Filtro de datas interativo
     with st.sidebar.expander("Seleção de Datas", expanded=True):
         # Botões de datas predefinidas
