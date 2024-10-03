@@ -21,7 +21,7 @@ def display_metrics(df):
         st.metric("Tx Conversão", f"{tx_conv:.2f}%")
 
     with col4:
-        st.metric("Receita Capturada", f"R$ {total_receita_capturada:,.2f}%")
+        st.metric("Receita Capturada", f"R$ {total_receita_capturada:,.2f}")
 
     with col5:
         st.metric("Receita Paga", f"R$ {total_receita_paga:,.2f}")
