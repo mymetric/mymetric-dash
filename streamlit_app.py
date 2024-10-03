@@ -4,6 +4,7 @@ from google.oauth2 import service_account
 from google.cloud import bigquery
 import dashboard  # Importa o arquivo de dashboard
 from users import users  # Importa o dicionário de usuários e senhas
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
 
@@ -30,6 +31,18 @@ client = bigquery.Client(credentials=credentials)
 def check_password():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+        st.session_state.login_time = None
+
+    session_duration_days = 7  # Definir a duração da sessão em dias
+
+    # Verifica se a sessão já expirou
+    if st.session_state.authenticated:
+        session_expiration_time = st.session_state.login_time + timedelta(days=session_duration_days)
+        if datetime.now() > session_expiration_time:
+            st.session_state.authenticated = False
+            st.sidebar.warning("Sua sessão expirou. Faça login novamente.")
+            st.session_state.login_time = None
+            st.experimental_rerun()  # Recarrega a página após expiração
 
     if not st.session_state.authenticated:
         # Formulário de login
@@ -42,6 +55,7 @@ def check_password():
             if username in users and users[username] == password:
                 st.session_state.authenticated = True
                 st.session_state.username = username
+                st.session_state.login_time = datetime.now()  # Armazena o tempo do login
                 st.rerun()  # Recarrega a página após login
             else:
                 st.sidebar.error("Usuário ou senha incorretos")
@@ -52,6 +66,7 @@ def check_password():
 def logout():
     st.session_state.authenticated = False
     st.session_state.username = None
+    st.session_state.login_time = None
 
 # Executa a função de autenticação
 if check_password():
