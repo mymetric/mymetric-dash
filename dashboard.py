@@ -59,7 +59,8 @@ def show_dashboard(client):
             source `Origem`,
             medium `Mídia`,
             campaign `Campanha`,
-            page_location `Página de Entrada`
+            page_location `Página de Entrada`,
+            page_params `Parâmetros de URL`
         FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
         WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
         ORDER BY created_at DESC
