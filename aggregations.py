@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from google.cloud import bigquery
 
 def display_aggregations(df):
     # Agrega os dados por Origem e Mídia
