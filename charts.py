@@ -4,7 +4,7 @@ import streamlit as st
 
 def display_charts(df):
     df['Data'] = pd.to_datetime(df['Data']).dt.date  # Converte para apenas a data (sem horas)
-    df_grouped = df.groupby('Data').agg({'Sessões': 'sum', 'Pedidos': 'sum'}).reset_index()
+    df_grouped = df.groupby('Data').agg({'Sessões': 'sum', 'Receita Paga': 'sum'}).reset_index()
 
     # Cria o gráfico de Sessões e Pedidos com eixo Y secundário usando Altair
     line_sessions = alt.Chart(df_grouped).mark_line(color='#56E39F', point=alt.OverlayMarkDef(color="#56E39F")).encode(
@@ -18,8 +18,8 @@ def display_charts(df):
 
     line_pedidos = alt.Chart(df_grouped).mark_line(color='#5BC0EB', point=alt.OverlayMarkDef(color="#5BC0EB")).encode(
         x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Pedidos:Q', axis=alt.Axis(title='Pedidos', titleColor='#5BC0EB')),
-        tooltip=['Data', 'Pedidos']
+        y=alt.Y('Receita Paga:Q', axis=alt.Axis(title='Receita Paga', titleColor='#5BC0EB')),
+        tooltip=['Data', 'Receita Paga']
     )
 
     # Adiciona interatividade de zoom e pan
