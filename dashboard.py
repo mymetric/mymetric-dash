@@ -39,28 +39,34 @@ def show_dashboard(client):
     df = run_query(client, query)
     df_filtered = traffic_filters(df)
 
-    display_metrics(df_filtered)
-    display_charts(df_filtered)
-    display_aggregations(df_filtered)
+    tab1, tab2 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos"])
 
-    query = f"""
-    SELECT
-        created_at `Horário`,
-        transaction_id `ID da Transação`,
-        first_name `Primeiro Nome`,
-        status `Status`,
-        value `Receita`,
-        source `Origem`,
-        medium `Mídia`,
-        campaign `Campanha`,
-        page_location `Página de Entrada`
-    FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
-    WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
-    ORDER BY created_at DESC
-    LIMIT 2000
-    """
+    with tab1:
 
-    df2 = run_query(client, query)
+        display_metrics(df_filtered)
+        display_charts(df_filtered)
+        display_aggregations(df_filtered)
 
-    st.header("Últimos Pedidos")
-    st.data_editor(df2, hide_index=1, use_container_width=1)
+    with tab2:
+
+        query = f"""
+        SELECT
+            created_at `Horário`,
+            transaction_id `ID da Transação`,
+            first_name `Primeiro Nome`,
+            status `Status`,
+            value `Receita`,
+            source `Origem`,
+            medium `Mídia`,
+            campaign `Campanha`,
+            page_location `Página de Entrada`
+        FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
+        WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+        ORDER BY created_at DESC
+        LIMIT 2000
+        """
+
+        df2 = run_query(client, query)
+
+        st.header("Últimos Pedidos")
+        st.data_editor(df2, hide_index=1, use_container_width=1)
