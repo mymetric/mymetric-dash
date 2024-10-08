@@ -4,7 +4,7 @@ from google.cloud import bigquery
 
 def display_aggregations(df):
     # Agrega os dados por Origem e Mídia
-    aggregated_df = df.groupby(['Origem', 'Mídia']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    aggregated_df = df.groupby(['Origem', 'Mídia']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Pagos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
 
     st.header("Origem e Mídia")

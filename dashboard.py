@@ -28,6 +28,7 @@ def show_dashboard(client):
         page_location `Página de Entrada`,
         COUNTIF(event_name = 'session') `Sessões`,
         COUNT(DISTINCT transaction_id) Pedidos,
+        COUNT(DISTINCT CASE WHEN status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
         SUM(value) Receita,
         SUM(CASE WHEN status = 'paid' THEN value ELSE 0 END) `Receita Paga`
     FROM `mymetric-hub-shopify.dbt_join.{table}_events_long`
