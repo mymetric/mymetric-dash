@@ -63,6 +63,7 @@ def show_dashboard(client):
     """
     df3 = run_query(client, query)
     tx_cookies = df3["Taxa Perda de Cookies Hoje"].sum()
+    tx_cookies = tx_cookies*100
 
 
 
