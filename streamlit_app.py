@@ -15,7 +15,7 @@ logo_url = "https://i.imgur.com/G5JAC2n.png"
 st.markdown(
     f"""
     <div style="display:flex; align-items:center; justify-content:center; padding:10px;">
-        <img src="{logo_url}" alt="Logo" style="width:300px; height:90px; object-fit: cover;">
+        <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
     </div>
     """,
     unsafe_allow_html=True
