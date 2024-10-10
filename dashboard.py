@@ -31,10 +31,15 @@ def show_dashboard(client, username):
         campaign Campanha,
         page_location `Página de Entrada`,
         COUNTIF(event_name = 'session') `Sessões`,
-        COUNT(DISTINCT transaction_id) Pedidos,
-        COUNT(DISTINCT CASE WHEN status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-        SUM(value) Receita,
-        SUM(CASE WHEN status = 'paid' THEN value ELSE 0 END) `Receita Paga`
+        
+        COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) Pedidos,
+        SUM(DISTINCT CASE WHEN event_name = 'purchase' then value end) Receita,
+
+        COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
+        SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) `Receita Paga`,
+
+        COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`,
+
     FROM `mymetric-hub-shopify.dbt_join.{table}_events_long`
     WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
     GROUP BY ALL
@@ -61,7 +66,7 @@ def show_dashboard(client, username):
 
     query3 = f"""
     SELECT
-        round(sum(case when source = "not captured" then 1 else 0 end)/count(*), 4) `Taxa Perda de Cookies Hoje`
+        round(count(distinct case when source = "not captured" then transaction_id end)/count(*), 4) `Taxa Perda de Cookies Hoje`
     FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
     WHERE date(created_at) = current_date("America/Sao_Paulo")
     GROUP BY ALL
