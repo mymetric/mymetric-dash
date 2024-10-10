@@ -32,28 +32,8 @@ def date_filters(today, yesterday, seven_days_ago, thirty_days_ago):
 
     return start_date, end_date
 
-def traffic_filters(df):
-    origem_options = ["Selecionar Todos"] + df['Origem'].unique().tolist()
-    midia_options = ["Selecionar Todos"] + df['Mídia'].unique().tolist()
-    campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
-    pagina_de_entrada_options = ["Selecionar Todos"] + df['Página de Entrada'].unique().tolist()
-
-    with st.sidebar.expander("Fontes de Tráfego", expanded=False):
-        origem_selected = st.multiselect('Origem', origem_options, default=["Selecionar Todos"])
-        midia_selected = st.multiselect('Mídia', midia_options, default=["Selecionar Todos"])
-        campanha_selected = st.multiselect('Campanha', campanha_options, default=["Selecionar Todos"])
-        pagina_de_entrada_selected = st.multiselect('Página de Entrada', pagina_de_entrada_options, default=["Selecionar Todos"])
-
-    # Aplicar os filtros
-    if "Selecionar Todos" in origem_selected:
-        origem_selected = df['Origem'].unique().tolist()
-    if "Selecionar Todos" in midia_selected:
-        midia_selected = df['Mídia'].unique().tolist()
-    if "Selecionar Todos" in campanha_selected:
-        campanha_selected = df['Campanha'].unique().tolist()
-    if "Selecionar Todos" in pagina_de_entrada_selected:
-        pagina_de_entrada_selected = df['Página de Entrada'].unique().tolist()
-
+def traffic_filters(df, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected):
+    
     df = df[df['Origem'].isin(origem_selected)]
     df = df[df['Mídia'].isin(midia_selected)]
     df = df[df['Campanha'].isin(campanha_selected)]

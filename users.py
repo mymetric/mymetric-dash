@@ -6,6 +6,7 @@
 # senha: asfGjHFzzAIwao8
 
 users = {
+    "mymetric": "Lz3JROp7OJEvYGZ",
     "gringa": "zK2dyTlo7WC7Wrb",
     "oculosshop": "LhMbxYNUPEBTGrt",
     "evoke": "asfGjHFzzAIwao8",

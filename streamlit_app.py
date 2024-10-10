@@ -70,8 +70,17 @@ def logout():
 
 # Executa a função de autenticação
 if check_password():
-    # O usuário está autenticado, carregue o dashboard
-    dashboard.show_dashboard(client)
+    
+    # Verifica se o usuário é 'mymetric' (usuário mestre)
+    if st.session_state.username == "mymetric":
+        # Gera um dropdown para escolher outros usuários
+        selected_user = st.sidebar.selectbox("Escolha um usuário", options=[user for user in users.keys() if user != "mymetric"])
+        st.sidebar.write(f"Selecionado: {selected_user}")
+        # Exibe o dashboard como se o usuário selecionado estivesse autenticado
+        dashboard.show_dashboard(client, selected_user)
+    else:
+        # Exibe o dashboard para o usuário autenticado
+        dashboard.show_dashboard(client, st.session_state.username)
 
     # Adiciona o botão de logout na barra lateral
     if st.sidebar.button("Logout"):
