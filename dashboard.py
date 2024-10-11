@@ -123,6 +123,27 @@ def show_dashboard(client, username):
         display_aggregations(df_filtered)
 
     with tab2:
+        # Criar colunas para os filtros
+        col1, col2 = st.columns(2)
+
+        # Adiciona o campo de entrada para filtrar pelo ID da Transação na primeira coluna
+        with col1:
+            id_transacao_input = st.text_input("ID da Transação")
+
+        # Adiciona o campo de seleção para o Status na segunda coluna
+        with col2:
+            status_selected = st.multiselect("Status", options=df2['Status'].unique())
+
+        # Aplica os filtros anteriores
         df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
+
+        # Filtra pelo ID da Transação, se o valor estiver preenchido
+        if id_transacao_input:
+            df_filtered2 = df_filtered2[df_filtered2['ID da Transação'].astype(str).str.contains(id_transacao_input, na=False)]
+
+        # Filtra pelo Status se algum status for selecionado
+        if status_selected:
+            df_filtered2 = df_filtered2[df_filtered2['Status'].isin(status_selected)]
+
         st.header("Últimos Pedidos")
-        st.data_editor(df_filtered2, hide_index=1, use_container_width=1)
+        st.data_editor(df_filtered2, hide_index=True, use_container_width=True)
