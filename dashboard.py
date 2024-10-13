@@ -38,7 +38,7 @@ def show_dashboard(client, username):
         COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
         SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) `Receita Paga`,
 
-        COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos PC`
+        COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
 
     FROM `mymetric-hub-shopify.dbt_join.{table}_events_long`
     WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
