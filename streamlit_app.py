@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
 
 # Logo URL
-logo_url = "https://i.imgur.com/G5JAC2n.png"
+logo_url = "https://i.imgur.com/cPslqoR.png"
 
 # Display the header with the logo
 st.markdown(
