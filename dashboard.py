@@ -53,9 +53,13 @@ def show_dashboard(client, username):
         first_name `Primeiro Nome`,
         status `Status`,
         value `Receita`,
+        source_name `Canal`,
         source `Origem`,
         medium `Mídia`,
         campaign `Campanha`,
+        fs_source `Origem Primeiro Clique`,
+        fs_medium `Mídia Primeiro Clique`,
+        fs_campaign `Campanha Primeiro Clique`,
         page_location `Página de Entrada`,
         page_params `Parâmetros de URL`
     FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
@@ -124,7 +128,7 @@ def show_dashboard(client, username):
 
     with tab2:
         # Criar colunas para os filtros
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         # Adiciona o campo de entrada para filtrar pelo ID da Transação na primeira coluna
         with col1:
@@ -133,6 +137,10 @@ def show_dashboard(client, username):
         # Adiciona o campo de seleção para o Status na segunda coluna
         with col2:
             status_selected = st.multiselect("Status", options=df2['Status'].unique())
+
+        # Adiciona o campo de seleção para o Canal na terceira coluna
+        with col3:
+            canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
 
         # Aplica os filtros anteriores
         df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
@@ -145,5 +153,10 @@ def show_dashboard(client, username):
         if status_selected:
             df_filtered2 = df_filtered2[df_filtered2['Status'].isin(status_selected)]
 
+        # Filtra pelo Canal se algum canal for selecionado
+        if canal_selected:
+            df_filtered2 = df_filtered2[df_filtered2['Canal'].isin(canal_selected)]
+
+        # Exibe os dados filtrados
         st.header("Últimos Pedidos")
         st.data_editor(df_filtered2, hide_index=True, use_container_width=True)
