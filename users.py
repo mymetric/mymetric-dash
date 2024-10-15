@@ -5,13 +5,37 @@
 # usuário: evoke
 # senha: asfGjHFzzAIwao8
 
-users = {
-    "mymetric": "Lz3JROp7OJEvYGZ",
-    "gringa": "zK2dyTlo7WC7Wrb",
-    "oculosshop": "LhMbxYNUPEBTGrt",
-    "evoke": "asfGjHFzzAIwao8",
-    "hotbuttered": "o4LPD5CW25vQA5c",
-    "universomaschio": "IMAsGYPAx3iUObX",
-    "manclub": "Ipv8PYjvUJtzohY",
-    "holysoup": "i7FvKpUW2u4iha6"
-}
+users = [
+    {
+        "name": "evoke",
+        "password": "asfGjHFzzAIwao8"
+    },
+    {
+        "name": "gringa",
+        "password": "zK2dyTlo7WC7Wrb"
+    },
+    {
+        "name": "holysoup",
+        "password": "i7FvKpUW2u4iha6"
+    },
+    {
+        "name": "hotbuttered",
+        "password": "o4LPD5CW25vQA5c"
+    },
+    {
+        "name": "manclub",
+        "password": "Ipv8PYjvUJtzohY"
+    },
+    {
+        "name": "mymetric",
+        "password": "Lz3JROp7OJEvYGZ"
+    },
+    {
+        "name": "oculosshop",
+        "password": "LhMbxYNUPEBTGrt"
+    },
+    {
+        "name": "universomaschio",
+        "password": "IMAsGYPAx3iUObX"
+    }
+]

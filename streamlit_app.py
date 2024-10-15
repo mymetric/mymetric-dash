@@ -3,7 +3,7 @@ import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
 import dashboard  # Importa o arquivo de dashboard
-from users import users  # Importa o dicionário de usuários e senhas
+from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
@@ -52,11 +52,14 @@ def check_password():
 
         # Verifica se o nome de usuário e senha estão corretos
         if st.sidebar.button("Entrar"):
-            if username in users and users[username] == password:
-                st.session_state.authenticated = True
-                st.session_state.username = username
-                st.session_state.login_time = datetime.now()  # Armazena o tempo do login
-                st.rerun()  # Recarrega a página após login
+            # Loop through the users list to check credentials
+            for user in users:
+                if user["name"] == username and user["password"] == password:
+                    st.session_state.authenticated = True
+                    st.session_state.username = username
+                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login
+                    st.rerun()  # Recarrega a página após login
+                    break
             else:
                 st.sidebar.error("Usuário ou senha incorretos")
     
@@ -74,7 +77,8 @@ if check_password():
     # Verifica se o usuário é 'mymetric' (usuário mestre)
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
-        selected_user = st.sidebar.selectbox("Escolha um usuário", options=[user for user in users.keys() if user != "mymetric"])
+        user_names = [user["name"] for user in users if user["name"] != "mymetric"]
+        selected_user = st.sidebar.selectbox("Escolha um usuário", options=user_names)
         st.sidebar.write(f"Selecionado: {selected_user}")
         # Exibe o dashboard como se o usuário selecionado estivesse autenticado
         dashboard.show_dashboard(client, selected_user)
