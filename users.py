@@ -37,5 +37,9 @@ users = [
     {
         "name": "universomaschio",
         "password": "IMAsGYPAx3iUObX"
+    },
+    {
+        "name": "botineiros",
+        "password": "OWsTlP1vYWEiLPG"
     }
 ]
