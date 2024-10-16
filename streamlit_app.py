@@ -54,7 +54,7 @@ def check_password():
         if st.sidebar.button("Entrar"):
             # Loop through the users list to check credentials
             for user in users:
-                if user["name"] == username and user["password"] == password:
+                if user["slug"] == username and user["password"] == password:
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login
@@ -77,7 +77,7 @@ if check_password():
     # Verifica se o usuário é 'mymetric' (usuário mestre)
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
-        user_names = [user["name"] for user in users if user["name"] != "mymetric"]
+        user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
         selected_user = st.sidebar.selectbox("Escolha um usuário", options=user_names)
         st.sidebar.write(f"Selecionado: {selected_user}")
         # Exibe o dashboard como se o usuário selecionado estivesse autenticado
