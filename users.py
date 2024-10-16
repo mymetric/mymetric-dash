@@ -5,41 +5,14 @@
 # usuário: evoke
 # senha: asfGjHFzzAIwao8
 
-users = [
-    {
-        "name": "evoke",
-        "password": "asfGjHFzzAIwao8"
-    },
-    {
-        "name": "gringa",
-        "password": "zK2dyTlo7WC7Wrb"
-    },
-    {
-        "name": "holysoup",
-        "password": "i7FvKpUW2u4iha6"
-    },
-    {
-        "name": "hotbuttered",
-        "password": "o4LPD5CW25vQA5c"
-    },
-    {
-        "name": "manclub",
-        "password": "Ipv8PYjvUJtzohY"
-    },
-    {
-        "name": "mymetric",
-        "password": "Lz3JROp7OJEvYGZ"
-    },
-    {
-        "name": "oculosshop",
-        "password": "LhMbxYNUPEBTGrt"
-    },
-    {
-        "name": "universomaschio",
-        "password": "IMAsGYPAx3iUObX"
-    },
-    {
-        "name": "botineiros",
-        "password": "OWsTlP1vYWEiLPG"
-    }
-]
+import pandas as pd
+import streamlit as st
+
+# URL do CSV
+csv_url = st.secrets["general"]["csv_url"]
+
+# Lê o CSV da URL
+df_google_sheet = pd.read_csv(csv_url)
+
+# Converte o DataFrame em uma lista de dicionários
+users = df_google_sheet.to_dict(orient='records')
