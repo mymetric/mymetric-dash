@@ -5,6 +5,7 @@ from google.cloud import bigquery
 def display_aggregations(df):
     # Agrega os dados por Origem e Mídia
     aggregated_df = df.groupby(['Origem', 'Mídia']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Pedidos Pagos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
 
     st.header("Origem e Mídia")
@@ -13,6 +14,7 @@ def display_aggregations(df):
 
     # Agrega os dados por Campanha
     campaigns = df.groupby(['Campanha']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    campaigns['% Receita'] = ((campaigns['Receita'] / campaigns['Receita'].sum()) * 100).round(2).astype(str) + '%'
     campaigns = campaigns.sort_values(by='Pedidos', ascending=False)
 
     st.header("Campanhas")
@@ -20,6 +22,7 @@ def display_aggregations(df):
 
     # Agrega os dados por Página de Entrada
     pagina_de_entrada = df.groupby(['Página de Entrada']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    pagina_de_entrada['% Receita'] = ((pagina_de_entrada['Receita'] / pagina_de_entrada['Receita'].sum()) * 100).round(2).astype(str) + '%'
     pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
 
     st.header("Página de Entrada")

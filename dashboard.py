@@ -70,7 +70,8 @@ def show_dashboard(client, username):
 
     query3 = f"""
     SELECT
-        round(count(distinct case when source = "not captured" then transaction_id end)/count(*), 4) `Taxa Perda de Cookies Hoje`
+        round(count(distinct case when source = "not captured" then transaction_id end)/
+        (case when count(*) = 0 then 1 end), 4) `Taxa Perda de Cookies Hoje`
     FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
     WHERE date(created_at) = current_date("America/Sao_Paulo")
     GROUP BY ALL
