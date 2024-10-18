@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import requests
 
 # URL do webhook do Discord (substitua pela URL do seu webhook)
-discord_webhook_url = "https://discord.com/api/webhooks/your_webhook_id/your_webhook_token"
+discord_webhook_url = "https://discord.com/api/webhooks/1296840635776766003/FwqBXh2mKVhqS2jnQmmP15RweElgco4v_eFp3kq4inxIrOYRPzNgRddcUjz2y_pwi2ep"
 
 # Função para enviar mensagem no Discord
 def send_discord_message(username):
