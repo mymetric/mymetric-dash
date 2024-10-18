@@ -46,28 +46,6 @@ def show_dashboard(client, username):
     ORDER BY Pedidos DESC
     """
     
-    query2 = f"""
-    SELECT
-        created_at `Horário`,
-        transaction_id `ID da Transação`,
-        first_name `Primeiro Nome`,
-        status `Status`,
-        value `Receita`,
-        source_name `Canal`,
-        source `Origem`,
-        medium `Mídia`,
-        campaign `Campanha`,
-        fs_source `Origem Primeiro Clique`,
-        fs_medium `Mídia Primeiro Clique`,
-        fs_campaign `Campanha Primeiro Clique`,
-        page_location `Página de Entrada`,
-        page_params `Parâmetros de URL`
-    FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
-    WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
-    ORDER BY created_at DESC
-    LIMIT 2000
-    """
-
     query3 = f"""
     SELECT
         round(count(distinct case when source = "not captured" then transaction_id end)/
@@ -84,12 +62,10 @@ def show_dashboard(client, username):
     # Usar ThreadPoolExecutor para rodar as queries em paralelo
     with ThreadPoolExecutor() as executor:
         future_query1 = executor.submit(execute_query, query1)
-        future_query2 = executor.submit(execute_query, query2)
         future_query3 = executor.submit(execute_query, query3)
 
         # Obter os resultados das queries
         df = future_query1.result()
-        df2 = future_query2.result()
         df3 = future_query3.result()
 
     # Processar o resultado da terceira query
@@ -128,6 +104,32 @@ def show_dashboard(client, username):
         display_aggregations(df_filtered)
 
     with tab2:
+        # Executa a query2 quando a aba "Últimos Pedidos" é aberta
+        query2 = f"""
+        SELECT
+            created_at `Horário`,
+            transaction_id `ID da Transação`,
+            first_name `Primeiro Nome`,
+            status `Status`,
+            value `Receita`,
+            source_name `Canal`,
+            source `Origem`,
+            medium `Mídia`,
+            campaign `Campanha`,
+            fs_source `Origem Primeiro Clique`,
+            fs_medium `Mídia Primeiro Clique`,
+            fs_campaign `Campanha Primeiro Clique`,
+            page_location `Página de Entrada`,
+            page_params `Parâmetros de URL`
+        FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
+        WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
+        ORDER BY created_at DESC
+        LIMIT 2000
+        """
+
+        # Executa a query2
+        df2 = execute_query(query2)
+
         # Criar colunas para os filtros
         col1, col2, col3 = st.columns(3)
 
