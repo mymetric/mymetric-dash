@@ -92,10 +92,23 @@ def show_dashboard(client, username):
         campanha_selected = df['Campanha'].unique().tolist()
     if "Selecionar Todos" in pagina_de_entrada_selected:
         pagina_de_entrada_selected = df['Página de Entrada'].unique().tolist()
-    
-    
 
-    tab1, tab2 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos"])
+    # Query for WhatsApp widget data
+    query_whatsapp = f"""
+    SELECT
+        received_at `Data Cadastro`,
+        name `Nome`,
+        phone `Telefone`,
+        email `E-mail`
+    FROM `mymetric-hub-shopify.dbt_granular.{table}_whatsapp_widget`
+    ORDER BY received_at DESC
+    """
+    df_whatsapp = execute_query(query_whatsapp)
+
+    if not df_whatsapp.empty:
+        tab1, tab2, tab3 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos", "📱 WhatsApp Leads"])
+    else:
+        tab1, tab2 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos"])
 
     with tab1:
         df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
@@ -163,3 +176,18 @@ def show_dashboard(client, username):
         # Exibe os dados filtrados
         st.header("Últimos Pedidos")
         st.data_editor(df_filtered2, hide_index=True, use_container_width=True)
+
+    if not df_whatsapp.empty:
+        with tab3:
+            # Display WhatsApp Leads table
+            st.header("WhatsApp Leads")
+            st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
+
+            # Export button for WhatsApp data
+            csv = df_whatsapp.to_csv(index=False)
+            st.download_button(
+                label="Exportar para CSV",
+                data=csv,
+                file_name='whatsapp_leads.csv',
+                mime='text/csv'
+            )
