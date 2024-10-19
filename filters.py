@@ -8,7 +8,7 @@ def date_filters(today, yesterday, seven_days_ago, thirty_days_ago):
     # Filtro de datas interativo
     with st.sidebar.expander("Datas Fáceis", expanded=True):
         # Variáveis para definir os valores das datas
-        start_date = seven_days_ago
+        start_date = thirty_days_ago
         end_date = today
 
         # Botões de datas predefinidas

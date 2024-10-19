@@ -6,39 +6,45 @@ def display_charts(df):
     df['Data'] = pd.to_datetime(df['Data']).dt.date  # Converte para apenas a data (sem horas)
     df_grouped = df.groupby('Data').agg({'Sessões': 'sum', 'Receita Paga': 'sum'}).reset_index()
 
-    # Cria o gráfico de Sessões e Pedidos com eixo Y secundário usando Altair
-    line_sessions = alt.Chart(df_grouped).mark_line(color='#56E39F', point=alt.OverlayMarkDef(color="#56E39F")).encode(
+    # Cria o gráfico de Sessões com a cor #D1B1C8
+    line_sessions = alt.Chart(df_grouped).mark_line(color='#D1B1C8', strokeWidth=3).encode(
         x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Sessões:Q', axis=alt.Axis(title='Sessões', titleColor='#56E39F')),
+        y=alt.Y('Sessões:Q', axis=alt.Axis(title='Sessões')),
         tooltip=['Data', 'Sessões']
-    ).properties(
-        width=600,
-        title='Sessões e Pedidos por Dia' 
     )
 
-    line_pedidos = alt.Chart(df_grouped).mark_line(color='#5BC0EB', point=alt.OverlayMarkDef(color="#5BC0EB")).encode(
+    # Cria o gráfico de Receita Paga com a cor #C5EBC3 e barras estilosas
+    bar_receita = alt.Chart(df_grouped).mark_bar(color='#C5EBC3', size=25).encode(
         x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Receita Paga:Q', axis=alt.Axis(title='Receita Paga', titleColor='#5BC0EB')),
+        y=alt.Y('Receita Paga:Q', axis=alt.Axis(title='Receita Paga')),
         tooltip=['Data', 'Receita Paga']
     )
 
     # Adiciona interatividade de zoom e pan
     zoom_pan = alt.selection_interval(bind='scales')
 
-    # Combine as duas linhas com dois eixos Y e interatividade
+    # Combine os dois gráficos (linha e barras) com dois eixos Y e interatividade
     combined_chart = alt.layer(
         line_sessions,
-        line_pedidos
+        bar_receita
     ).resolve_scale(
         y='independent'  # Escalas independentes para as duas métricas
     ).add_selection(
         zoom_pan  # Adiciona a interação de zoom e pan
     ).properties(
+        width=700,
+        height=400,
         title=alt.TitleParams(
-            text='Sessões e Pedidos por Dia',
-            fontSize=16,
+            text='Sessões e Receita por Dia',
+            fontSize=18,
             anchor='middle'
         )
+    ).configure_axis(
+        grid=False,  # Adiciona grades discretas
+        labelFontSize=12,
+        titleFontSize=14
+    ).configure_view(
+        strokeWidth=0  # Remove a borda ao redor do gráfico
     )
 
     # Exibe o gráfico no Streamlit

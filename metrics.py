@@ -12,28 +12,40 @@ def display_metrics(df, tx_cookies):
 
     col1, col2, col3, col4 = st.columns(4)
 
+    def big_number_box(data, label):
+        st.markdown(f"""
+            <div style="background-color:#C5EBC3;padding:20px;border-radius:10px;text-align:center;margin:5px">
+                <p style="color:#666;line-height:1">{label}</h3>
+                <p style="color:#666;line-height:1;font-size:40px;margin:0;">{data}</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
     with col1:
-        st.metric("Pedidos", f"{pedidos}")
+        
+        big_number_box(f"{pedidos}", "Pedidos Capturados")
     
     with col2:
-        st.metric("Pedidos Pagos", f"{pedidos_pagos}")
+        big_number_box(f"{pedidos_pagos}", "Pedidos Pagos")
+        
 
     with col3:
-        st.metric("Receita Capturada", f"R$ {total_receita_capturada:,.2f}")
+        big_number_box(f"R$ {total_receita_capturada:,.2f}", "Receita Capturada")
 
     with col4:
-        st.metric("Receita Paga", f"R$ {total_receita_paga:,.2f}")
+        big_number_box(f"R$ {total_receita_paga:,.2f}", "Receita Paga")
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Sessões", f"{sessoes:,}")
+        big_number_box(f"{sessoes:,}", "Sessões")
 
     with col2:
-        st.metric("Tx Conversão", f"{tx_conv:.2f}%")
+        big_number_box(f"{tx_conv:.2f}%", "Tx Conversão")
 
     with col3:
-        st.metric("Tx Perda de Cookies Hoje", f"{tx_cookies:.2f}%")
+        big_number_box(f"{tx_cookies:.2f}%", "Tx Perda de Cookies Hoje")
 
     with col4:
         st.metric("", "")
+    
+    st.markdown("---")
