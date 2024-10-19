@@ -7,6 +7,7 @@ def display_metrics(df, tx_cookies):
     tx_conv = (df["Pedidos"].sum()/df["Sessões"].sum())*100
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
+    percentual_pago = (total_receita_paga / total_receita_capturada) * 100
 
     st.header("Big Numbers")
 
@@ -46,6 +47,6 @@ def display_metrics(df, tx_cookies):
         big_number_box(f"{tx_cookies:.2f}%", "Tx Perda de Cookies Hoje")
 
     with col4:
-        st.metric("", "")
+        big_number_box(f"{round(percentual_pago,2)}%", "% Pago")
     
     st.markdown("---")
