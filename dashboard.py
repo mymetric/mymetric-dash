@@ -20,6 +20,8 @@ def show_dashboard(client, username):
     # Converte as datas para string no formato 'YYYY-MM-DD' para a query
     start_date_str = start_date.strftime('%Y-%m-%d')
     end_date_str = end_date.strftime('%Y-%m-%d')
+    start_date_str_b = start_date.strftime('%Y%m%d')
+    end_date_str_b = end_date.strftime('%Y%m%d')
 
     table = username
 
@@ -45,7 +47,7 @@ def show_dashboard(client, username):
     GROUP BY ALL
     ORDER BY Pedidos DESC
     """
-    
+
     query3 = f"""
     SELECT
         round(count(distinct case when source = "not captured" then transaction_id end)/
@@ -55,18 +57,39 @@ def show_dashboard(client, username):
     GROUP BY ALL
     """
     
+    # Adiciona a nova query responsiva ao filtro de data
+    query_ads = f"""
+    SELECT
+      sum(spend) `Investimento Meta Ads`
+    FROM
+      `mymetric-hub-shopify.meta_ads.{table}_*`
+    WHERE
+      _table_suffix BETWEEN '{start_date_str_b}' AND '{end_date_str_b}'
+    """
+    
     # Função auxiliar para rodar as queries
     def execute_query(query):
         return run_query(client, query)
+    
+    # Função auxiliar para rodar query com tratamento de exceção
+    def execute_query_safe(query):
+        try:
+            return run_query(client, query)
+        except Exception as e:
+            # Captura o erro, registra o log (opcional) e retorna um DataFrame vazio
+            st.error(f"Erro ao executar a query: {e}")
+            return pd.DataFrame()
 
     # Usar ThreadPoolExecutor para rodar as queries em paralelo
     with ThreadPoolExecutor() as executor:
         future_query1 = executor.submit(execute_query, query1)
         future_query3 = executor.submit(execute_query, query3)
+        future_query_ads = executor.submit(execute_query_safe, query_ads)
 
         # Obter os resultados das queries
         df = future_query1.result()
         df3 = future_query3.result()
+        df_meta = future_query_ads.result()
 
     # Processar o resultado da terceira query
     tx_cookies = df3["Taxa Perda de Cookies Hoje"].sum()
@@ -112,7 +135,7 @@ def show_dashboard(client, username):
 
     with tab1:
         df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
-        display_metrics(df_filtered, tx_cookies)
+        display_metrics(df_filtered, tx_cookies, df_meta)
         display_charts(df_filtered)
         display_aggregations(df_filtered)
 

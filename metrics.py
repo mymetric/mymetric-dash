@@ -1,6 +1,6 @@
 import streamlit as st
 
-def display_metrics(df, tx_cookies):
+def display_metrics(df, tx_cookies, df_meta):
     sessoes = df["Sessões"].sum()
     pedidos = df["Pedidos"].sum()
     pedidos_pagos = df["Pedidos Pagos"].sum()
@@ -49,4 +49,11 @@ def display_metrics(df, tx_cookies):
     with col4:
         big_number_box(f"{round(percentual_pago,2)}%", "% Pago")
     
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        # Exibe os dados da query_ads se houver resultado
+        if not df_meta.empty and df_meta['Investimento Meta Ads'].sum() > 0:
+            big_number_box(f"R$ {round(df_meta['Investimento Meta Ads'].sum(),2):,}", "Investimento Meta Ads")
+
     st.markdown("---")
