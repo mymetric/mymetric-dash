@@ -35,7 +35,7 @@ def show_dashboard(client, username):
         COUNTIF(event_name = 'session') `Sessões`,
         
         COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
-        SUM(DISTINCT CASE WHEN event_name = 'purchase' then value end) `Receita`,
+        SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
 
         COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
         SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) `Receita Paga`,
@@ -100,7 +100,7 @@ def show_dashboard(client, username):
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
     pagina_de_entrada_options = ["Selecionar Todos"] + df['Página de Entrada'].unique().tolist()
 
-    with st.sidebar.expander("Fontes de Tráfego", expanded=False):
+    with st.sidebar.expander("Fontes de Tráfego", expanded=True):
         origem_selected = st.multiselect('Origem', origem_options, default=["Selecionar Todos"])
         midia_selected = st.multiselect('Mídia', midia_options, default=["Selecionar Todos"])
         campanha_selected = st.multiselect('Campanha', campanha_options, default=["Selecionar Todos"])
@@ -134,6 +134,7 @@ def show_dashboard(client, username):
         tab1, tab2 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos"])
 
     with tab1:
+
         df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
         display_metrics(df_filtered, tx_cookies, df_meta)
         display_charts(df_filtered)
