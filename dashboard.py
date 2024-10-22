@@ -32,14 +32,13 @@ def show_dashboard(client, username):
         medium `Mídia`, 
         campaign Campanha,
         page_location `Página de Entrada`,
+        content `Conteúdo`,
+
         COUNTIF(event_name = 'session') `Sessões`,
-        
         COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
         SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
-
         COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
         SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) `Receita Paga`,
-
         COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
 
     FROM `mymetric-hub-shopify.dbt_join.{table}_events_long`
@@ -98,12 +97,14 @@ def show_dashboard(client, username):
     origem_options = ["Selecionar Todos"] + df['Origem'].unique().tolist()
     midia_options = ["Selecionar Todos"] + df['Mídia'].unique().tolist()
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
+    conteudo_options = ["Selecionar Todos"] + df['Conteúdo'].unique().tolist()
     pagina_de_entrada_options = ["Selecionar Todos"] + df['Página de Entrada'].unique().tolist()
 
     with st.sidebar.expander("Fontes de Tráfego", expanded=True):
         origem_selected = st.multiselect('Origem', origem_options, default=["Selecionar Todos"])
         midia_selected = st.multiselect('Mídia', midia_options, default=["Selecionar Todos"])
         campanha_selected = st.multiselect('Campanha', campanha_options, default=["Selecionar Todos"])
+        conteudo_selected = st.multiselect('Conteúdo', conteudo_options, default=["Selecionar Todos"])
         pagina_de_entrada_selected = st.multiselect('Página de Entrada', pagina_de_entrada_options, default=["Selecionar Todos"])
 
     # Aplicar os filtros
@@ -113,6 +114,8 @@ def show_dashboard(client, username):
         midia_selected = df['Mídia'].unique().tolist()
     if "Selecionar Todos" in campanha_selected:
         campanha_selected = df['Campanha'].unique().tolist()
+    if "Selecionar Todos" in conteudo_selected:
+        conteudo_selected = df['Conteúdo'].unique().tolist()
     if "Selecionar Todos" in pagina_de_entrada_selected:
         pagina_de_entrada_selected = df['Página de Entrada'].unique().tolist()
 
@@ -135,7 +138,7 @@ def show_dashboard(client, username):
 
     with tab1:
 
-        df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
+        df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
         display_metrics(df_filtered, tx_cookies, df_meta)
         display_charts(df_filtered)
         display_aggregations(df_filtered)
@@ -153,6 +156,7 @@ def show_dashboard(client, username):
             source `Origem`,
             medium `Mídia`,
             campaign `Campanha`,
+            content `Conteúdo`,
             fs_source `Origem Primeiro Clique`,
             fs_medium `Mídia Primeiro Clique`,
             fs_campaign `Campanha Primeiro Clique`,
@@ -183,7 +187,7 @@ def show_dashboard(client, username):
             canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
 
         # Aplica os filtros anteriores
-        df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, pagina_de_entrada_selected)
+        df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
 
         # Filtra pelo ID da Transação, se o valor estiver preenchido
         if id_transacao_input:

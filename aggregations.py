@@ -20,6 +20,16 @@ def display_aggregations(df):
     st.header("Campanhas")
     st.data_editor(campaigns, hide_index=1, use_container_width=1)
 
+    # Agrega os dados por Conteúdo
+    conteudo = df.groupby(['Conteúdo']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    conteudo['% Receita'] = ((conteudo['Receita'] / conteudo['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    conteudo = conteudo.sort_values(by='Pedidos', ascending=False)
+
+    st.header("Conteúdo")
+    st.write("Valor do utm_content.")
+    st.data_editor(conteudo, hide_index=1, use_container_width=1)
+
+
     # Agrega os dados por Página de Entrada
     pagina_de_entrada = df.groupby(['Página de Entrada']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
     pagina_de_entrada['% Receita'] = ((pagina_de_entrada['Receita'] / pagina_de_entrada['Receita'].sum()) * 100).round(2).astype(str) + '%'
