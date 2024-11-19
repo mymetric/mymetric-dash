@@ -59,11 +59,11 @@ def show_dashboard(client, username):
     # Adiciona a nova query responsiva ao filtro de data
     query_ads = f"""
     SELECT
-      sum(spend) `Investimento Meta Ads`
+      sum(cost) `Investimento Ads`
     FROM
-      `mymetric-hub-shopify.meta_ads.{table}_*`
+      `mymetric-hub-shopify.dbt_granular.{table}_join_paid_media_campaigns`
     WHERE
-      _table_suffix BETWEEN '{start_date_str_b}' AND '{end_date_str_b}'
+      date BETWEEN '{start_date_str}' AND '{end_date_str}'
     """
     
     # Função auxiliar para rodar as queries
@@ -88,7 +88,7 @@ def show_dashboard(client, username):
         # Obter os resultados das queries
         df = future_query1.result()
         df3 = future_query3.result()
-        df_meta = future_query_ads.result()
+        df_ads = future_query_ads.result()
 
     # Processar o resultado da terceira query
     tx_cookies = df3["Taxa Perda de Cookies Hoje"].sum()
@@ -139,7 +139,7 @@ def show_dashboard(client, username):
     with tab1:
 
         df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
-        display_metrics(df_filtered, tx_cookies, df_meta)
+        display_metrics(df_filtered, tx_cookies, df_ads)
         display_charts(df_filtered)
         display_aggregations(df_filtered)
 
