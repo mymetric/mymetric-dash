@@ -60,4 +60,25 @@ def display_metrics(df, tx_cookies, df_ads):
         if not df_ads.empty and df_ads['Investimento Ads'].sum() > 0:
             big_number_box(f"{(df_ads['Investimento Ads'].sum() / total_receita_paga) * 100:.2f}%", "TACoS")
 
+    # Filtra os dados para a plataforma google_ads
+    df_google_ads = df_ads[df_ads['Plataforma'] == 'google_ads']
+    df_meta_ads = df_ads[df_ads['Plataforma'] == 'meta_ads']
+
+    # Exibe o investimento total em Ads apenas se houver dados para google_ads
+    if not df_google_ads.empty and df_google_ads['Investimento Ads'].sum() > 0:
+        with col3:
+            big_number_box(
+                f"R$ {round(df_google_ads['Investimento Ads'].sum(), 2):,}".replace(",", "."), 
+                "Investimento Total em Google Ads"
+            )
+
+    # Exibe o investimento total em Ads apenas se houver dados para google_ads
+    if not df_meta_ads.empty and df_meta_ads['Investimento Ads'].sum() > 0:
+        with col4:
+            big_number_box(
+                f"R$ {round(df_meta_ads['Investimento Ads'].sum(), 2):,}".replace(",", "."), 
+                "Investimento Total em Google Ads"
+            )
+
+
     st.markdown("---")

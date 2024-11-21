@@ -59,11 +59,13 @@ def show_dashboard(client, username):
     # Adiciona a nova query responsiva ao filtro de data
     query_ads = f"""
     SELECT
+      platform `Plataforma`,
       sum(cost) `Investimento Ads`
     FROM
       `mymetric-hub-shopify.dbt_granular.{table}_join_paid_media_campaigns`
     WHERE
       date BETWEEN '{start_date_str}' AND '{end_date_str}'
+    group by all
     """
     
     # Função auxiliar para rodar as queries
