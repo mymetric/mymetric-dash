@@ -78,7 +78,7 @@ def display_metrics(df, tx_cookies, df_ads):
             with col4:
                 big_number_box(
                     f"R$ {round(df_meta_ads['Investimento Ads'].sum(), 2):,}".replace(",", "."), 
-                    "Investimento Total em Google Ads"
+                    "Investimento Total em Meta Ads"
                 )
 
 
