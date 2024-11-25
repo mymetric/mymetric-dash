@@ -2,12 +2,13 @@ import streamlit as st
 import pandas as pd
 import pytz
 from query_utils import run_query
+from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
 from filters import date_filters, traffic_filters
 from metrics import display_metrics
 from charts import display_charts
 from aggregations import display_aggregations
-from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor
+from tab_paid_media import display_tab_paid_media
 
 def show_dashboard(client, username):
     today = pd.to_datetime("today").date()
@@ -58,14 +59,19 @@ def show_dashboard(client, username):
     
     # Adiciona a nova query responsiva ao filtro de data
     query_ads = f"""
-    SELECT
-      platform `Plataforma`,
-      sum(cost) `Investimento Ads`
-    FROM
-      `mymetric-hub-shopify.dbt_granular.{table}_join_paid_media_campaigns`
-    WHERE
-      date BETWEEN '{start_date_str}' AND '{end_date_str}'
-    group by all
+        SELECT
+            platform `Plataforma`,
+            campaign_name `Campanha`,
+            sum(cost) `Investimento`,
+            sum(impressions) `Impressões`,
+            sum(clicks) `Cliques`,
+            sum(transactions) `Transações`,
+            sum(revenue) `Receita`
+        FROM
+            `mymetric-hub-shopify.dbt_join.{table}_ads_campaigns_results`
+        WHERE
+            date BETWEEN '{start_date_str}' AND '{end_date_str}'
+        group by all
     """
     
     # Função auxiliar para rodar as queries
@@ -133,82 +139,94 @@ def show_dashboard(client, username):
     """
     df_whatsapp = execute_query(query_whatsapp)
 
-    if not df_whatsapp.empty:
-        tab1, tab2, tab3 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos", "📱 WhatsApp Leads"])
-    else:
-        tab1, tab2 = st.tabs(["👀 Visão Geral", "🛒 Últimos Pedidos"])
+    tabs = ["👀 Visão Geral", "🛒 Últimos Pedidos"]  # Abas padrão
 
-    with tab1:
+    # Adiciona abas condicionalmente
+    if df_ads is not None and not df_ads.empty:
+        tabs.insert(1, "💰 Mídia Paga")
+    if df_whatsapp is not None and not df_whatsapp.empty:
+        tabs.append("📱 WhatsApp Leads")
 
-        df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
-        display_metrics(df_filtered, tx_cookies, df_ads)
-        display_charts(df_filtered)
-        display_aggregations(df_filtered)
+    # Cria abas no Streamlit
+    tab_list = st.tabs(tabs)
 
-    with tab2:
-        # Executa a query2 quando a aba "Últimos Pedidos" é aberta
-        query2 = f"""
-        SELECT
-            created_at `Horário`,
-            transaction_id `ID da Transação`,
-            first_name `Primeiro Nome`,
-            status `Status`,
-            value `Receita`,
-            source_name `Canal`,
-            source `Origem`,
-            medium `Mídia`,
-            campaign `Campanha`,
-            content `Conteúdo`,
-            fs_source `Origem Primeiro Clique`,
-            fs_medium `Mídia Primeiro Clique`,
-            fs_campaign `Campanha Primeiro Clique`,
-            page_location `Página de Entrada`,
-            page_params `Parâmetros de URL`
-        FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
-        WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
-        ORDER BY created_at DESC
-        LIMIT 2000
-        """
+    if "👀 Visão Geral" in tabs:
+        with tab_list[tabs.index("👀 Visão Geral")]:
 
-        # Executa a query2
-        df2 = execute_query(query2)
+            df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            display_metrics(df_filtered, tx_cookies, df_ads)
+            display_charts(df_filtered)
+            display_aggregations(df_filtered)
 
-        # Criar colunas para os filtros
-        col1, col2, col3 = st.columns(3)
+    if "💰 Mídia Paga" in tabs:
+        with tab_list[tabs.index("💰 Mídia Paga")]:
+            display_tab_paid_media(client, table, df_ads)
 
-        # Adiciona o campo de entrada para filtrar pelo ID da Transação na primeira coluna
-        with col1:
-            id_transacao_input = st.text_input("ID da Transação")
+    if "🛒 Últimos Pedidos" in tabs:
+        with tab_list[tabs.index("🛒 Últimos Pedidos")]:
+            # Executa a query2 quando a aba "Últimos Pedidos" é aberta
+            query2 = f"""
+            SELECT
+                created_at `Horário`,
+                transaction_id `ID da Transação`,
+                first_name `Primeiro Nome`,
+                status `Status`,
+                value `Receita`,
+                source_name `Canal`,
+                source `Origem`,
+                medium `Mídia`,
+                campaign `Campanha`,
+                content `Conteúdo`,
+                fs_source `Origem Primeiro Clique`,
+                fs_medium `Mídia Primeiro Clique`,
+                fs_campaign `Campanha Primeiro Clique`,
+                page_location `Página de Entrada`,
+                page_params `Parâmetros de URL`
+            FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
+            WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
+            ORDER BY created_at DESC
+            LIMIT 2000
+            """
 
-        # Adiciona o campo de seleção para o Status na segunda coluna
-        with col2:
-            status_selected = st.multiselect("Status", options=df2['Status'].unique())
+            # Executa a query2
+            df2 = execute_query(query2)
 
-        # Adiciona o campo de seleção para o Canal na terceira coluna
-        with col3:
-            canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
+            # Criar colunas para os filtros
+            col1, col2, col3 = st.columns(3)
 
-        # Aplica os filtros anteriores
-        df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            # Adiciona o campo de entrada para filtrar pelo ID da Transação na primeira coluna
+            with col1:
+                id_transacao_input = st.text_input("ID da Transação")
 
-        # Filtra pelo ID da Transação, se o valor estiver preenchido
-        if id_transacao_input:
-            df_filtered2 = df_filtered2[df_filtered2['ID da Transação'].astype(str).str.contains(id_transacao_input, na=False)]
+            # Adiciona o campo de seleção para o Status na segunda coluna
+            with col2:
+                status_selected = st.multiselect("Status", options=df2['Status'].unique())
 
-        # Filtra pelo Status se algum status for selecionado
-        if status_selected:
-            df_filtered2 = df_filtered2[df_filtered2['Status'].isin(status_selected)]
+            # Adiciona o campo de seleção para o Canal na terceira coluna
+            with col3:
+                canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
 
-        # Filtra pelo Canal se algum canal for selecionado
-        if canal_selected:
-            df_filtered2 = df_filtered2[df_filtered2['Canal'].isin(canal_selected)]
+            # Aplica os filtros anteriores
+            df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
 
-        # Exibe os dados filtrados
-        st.header("Últimos Pedidos")
-        st.data_editor(df_filtered2, hide_index=True, use_container_width=True)
+            # Filtra pelo ID da Transação, se o valor estiver preenchido
+            if id_transacao_input:
+                df_filtered2 = df_filtered2[df_filtered2['ID da Transação'].astype(str).str.contains(id_transacao_input, na=False)]
 
-    if not df_whatsapp.empty:
-        with tab3:
+            # Filtra pelo Status se algum status for selecionado
+            if status_selected:
+                df_filtered2 = df_filtered2[df_filtered2['Status'].isin(status_selected)]
+
+            # Filtra pelo Canal se algum canal for selecionado
+            if canal_selected:
+                df_filtered2 = df_filtered2[df_filtered2['Canal'].isin(canal_selected)]
+
+            # Exibe os dados filtrados
+            st.header("Últimos Pedidos")
+            st.data_editor(df_filtered2, hide_index=True, use_container_width=True)
+
+    if "📱 WhatsApp Leads" in tabs:
+        with tab_list[tabs.index("📱 WhatsApp Leads")]:
             # Display WhatsApp Leads table
             st.header("WhatsApp Leads")
             st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
