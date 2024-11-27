@@ -21,19 +21,6 @@ def send_discord_message(username):
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
 
-# Logo URL
-logo_url = "https://i.imgur.com/cPslqoR.png"
-
-# Display the header with the logo
-st.markdown(
-    f"""
-    <div style="display:flex; align-items:center; justify-content:center; padding:10px;">
-        <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
 # Cria o cliente da API
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
@@ -92,6 +79,19 @@ if check_password():
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
         user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
+        # Logo URL
+        logo_url = "https://i.imgur.com/cPslqoR.png"
+
+        # Display the header with the logo
+        st.sidebar.markdown(
+            f"""
+            <div style="display:flex; align-items:center; justify-content:center; padding:10px;">
+                <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         selected_user = st.sidebar.selectbox("Escolha um usuário", options=user_names)
         st.sidebar.write(f"Selecionado: {selected_user}")
         # Exibe o dashboard como se o usuário selecionado estivesse autenticado

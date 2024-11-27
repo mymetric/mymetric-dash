@@ -10,7 +10,22 @@ from charts import display_charts
 from aggregations import display_aggregations
 from tab_paid_media import display_tab_paid_media
 
+def atribuir_cluster(row):
+    if row['Origem'] == 'google' and row['Mídia'] == 'cpc':
+        return '🟢 Google Ads'
+    if row['Origem'] == 'meta' and row['Mídia'] == 'cpc':
+        return '🔵 Meta Ads'
+    elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
+        return '🌳 Google Orgânico'
+    elif row['Origem'] == 'direct':
+        return '🟡 Direto'
+    elif row['Origem'] == 'not captured':
+        return '🍪 Perda de Cookies'
+    else:
+        return f"◻️ {row['Origem']} / {row['Mídia']}"
+    
 def show_dashboard(client, username):
+
     today = pd.to_datetime("today").date()
     yesterday = today - pd.Timedelta(days=1)
     seven_days_ago = today - pd.Timedelta(days=7)
@@ -73,7 +88,7 @@ def show_dashboard(client, username):
             date BETWEEN '{start_date_str}' AND '{end_date_str}'
         group by all
     """
-    
+
     # Função auxiliar para rodar as queries
     def execute_query(query):
         return run_query(client, query)
@@ -97,29 +112,28 @@ def show_dashboard(client, username):
         df = future_query1.result()
         df3 = future_query3.result()
         df_ads = future_query_ads.result()
+    
+
+        df['Cluster'] = df.apply(atribuir_cluster, axis=1)
 
     # Processar o resultado da terceira query
     tx_cookies = df3["Taxa Perda de Cookies Hoje"].sum()
     tx_cookies = tx_cookies * 100
 
-    origem_options = ["Selecionar Todos"] + df['Origem'].unique().tolist()
-    midia_options = ["Selecionar Todos"] + df['Mídia'].unique().tolist()
+    cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
     conteudo_options = ["Selecionar Todos"] + df['Conteúdo'].unique().tolist()
     pagina_de_entrada_options = ["Selecionar Todos"] + df['Página de Entrada'].unique().tolist()
 
     with st.sidebar.expander("Fontes de Tráfego", expanded=True):
-        origem_selected = st.multiselect('Origem', origem_options, default=["Selecionar Todos"])
-        midia_selected = st.multiselect('Mídia', midia_options, default=["Selecionar Todos"])
+        cluster_selected = st.multiselect('Cluster', cluster_options, default=["Selecionar Todos"])
         campanha_selected = st.multiselect('Campanha', campanha_options, default=["Selecionar Todos"])
         conteudo_selected = st.multiselect('Conteúdo', conteudo_options, default=["Selecionar Todos"])
         pagina_de_entrada_selected = st.multiselect('Página de Entrada', pagina_de_entrada_options, default=["Selecionar Todos"])
 
     # Aplicar os filtros
-    if "Selecionar Todos" in origem_selected:
-        origem_selected = df['Origem'].unique().tolist()
-    if "Selecionar Todos" in midia_selected:
-        midia_selected = df['Mídia'].unique().tolist()
+    if "Selecionar Todos" in cluster_selected:
+        cluster_selected = df['Cluster'].unique().tolist()
     if "Selecionar Todos" in campanha_selected:
         campanha_selected = df['Campanha'].unique().tolist()
     if "Selecionar Todos" in conteudo_selected:
@@ -153,13 +167,14 @@ def show_dashboard(client, username):
     if "👀 Visão Geral" in tabs:
         with tab_list[tabs.index("👀 Visão Geral")]:
 
-            df_filtered = traffic_filters(df, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            df_filtered = traffic_filters(df, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
             display_metrics(df_filtered, tx_cookies, df_ads)
             display_charts(df_filtered)
             display_aggregations(df_filtered)
 
     if "💰 Mídia Paga" in tabs:
         with tab_list[tabs.index("💰 Mídia Paga")]:
+            st.toast('Novo Painel de Mídia Paga Disponível!', icon='😍')
             display_tab_paid_media(client, table, df_ads)
 
     if "🛒 Últimos Pedidos" in tabs:
@@ -191,6 +206,9 @@ def show_dashboard(client, username):
             # Executa a query2
             df2 = execute_query(query2)
 
+            # Aplicar a função usando apply
+            df2['Cluster'] = df2.apply(atribuir_cluster, axis=1)
+
             # Criar colunas para os filtros
             col1, col2, col3 = st.columns(3)
 
@@ -207,7 +225,7 @@ def show_dashboard(client, username):
                 canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
 
             # Aplica os filtros anteriores
-            df_filtered2 = traffic_filters(df2, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            df_filtered2 = traffic_filters(df2, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
 
             # Filtra pelo ID da Transação, se o valor estiver preenchido
             if id_transacao_input:

@@ -3,8 +3,8 @@ import streamlit as st
 from google.cloud import bigquery
 
 def display_aggregations(df):
-    # Agrega os dados por Origem e Mídia
-    aggregated_df = df.groupby(['Origem', 'Mídia']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Pedidos Pagos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+
+    aggregated_df = df.groupby(['Cluster']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Pedidos Pagos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
     aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
 

@@ -17,13 +17,13 @@ def display_metrics(df, tx_cookies, df_ads):
         st.markdown(f"""
             <div style="background-color:#C5EBC3;padding:20px;border-radius:10px;text-align:center;margin:5px">
                 <p style="color:#666;line-height:1">{label}</h3>
-                <p style="color:#666;line-height:1;font-size:40px;margin:0;">{data}</p>
+                <p style="color:#666;line-height:1;font-size:38px;margin:0;">{data}</p>
             </div>
         """, unsafe_allow_html=True)
         
     with col1:
         
-        big_number_box(f"{pedidos}", "Pedidos Capturados")
+        big_number_box(f"{pedidos:,}", "Pedidos Capturados")
     
     with col2:
         big_number_box(f"{pedidos_pagos}", "Pedidos Pagos")
