@@ -85,7 +85,7 @@ if check_password():
         # Display the header with the logo
         st.sidebar.markdown(
             f"""
-            <div style="display:flex; align-items:center; justify-content:center; padding:10px;">
+            <div>
                 <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
             </div>
             """,

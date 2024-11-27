@@ -19,6 +19,8 @@ def atribuir_cluster(row):
         return '🌳 Google Orgânico'
     elif row['Origem'] == 'direct':
         return '🟡 Direto'
+    elif row['Origem'] == 'shopify_draft_order':
+        return '🗒️ Draft'
     elif row['Origem'] == 'not captured':
         return '🍪 Perda de Cookies'
     else:

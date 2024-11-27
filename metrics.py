@@ -30,10 +30,10 @@ def display_metrics(df, tx_cookies, df_ads):
         
 
     with col3:
-        big_number_box(f"R$ {total_receita_capturada:,.2f}", "Receita Capturada")
+        big_number_box(f"R$ {total_receita_capturada:,.0f}", "Receita Capturada")
 
     with col4:
-        big_number_box(f"R$ {total_receita_paga:,.2f}", "Receita Paga")
+        big_number_box(f"R$ {total_receita_paga:,.0f}", "Receita Paga")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -70,7 +70,7 @@ def display_metrics(df, tx_cookies, df_ads):
             with col3:
                 big_number_box(
                     f"R$ {round(df_google_ads['Investimento'].sum(), 2):,}".replace(",", "."), 
-                    "Investimento Total em Google Ads"
+                    "Investimento em Google Ads"
                 )
 
         # Exibe o investimento total em Ads apenas se houver dados para google_ads
@@ -78,7 +78,7 @@ def display_metrics(df, tx_cookies, df_ads):
             with col4:
                 big_number_box(
                     f"R$ {round(df_meta_ads['Investimento'].sum(), 2):,}".replace(",", "."), 
-                    "Investimento Total em Meta Ads"
+                    "Investimento em Meta Ads"
                 )
 
 
