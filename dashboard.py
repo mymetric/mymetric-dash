@@ -79,6 +79,7 @@ def show_dashboard(client, username):
         SELECT
             platform `Plataforma`,
             campaign_name `Campanha`,
+            date `Data`,
             sum(cost) `Investimento`,
             sum(impressions) `Impressões`,
             sum(clicks) `Cliques`,

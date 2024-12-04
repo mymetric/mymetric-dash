@@ -8,7 +8,7 @@ def display_aggregations(df):
     aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
 
-    st.header("Origem e Mídia")
+    st.header("Cluster de Origens")
     st.write("Modelo de atribuição padrão: último clique não direto.")
     st.data_editor(aggregated_df, hide_index=1, use_container_width=1)
 
