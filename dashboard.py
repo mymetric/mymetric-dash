@@ -177,7 +177,10 @@ def show_dashboard(client, username):
 
     if "💰 Mídia Paga" in tabs:
         with tab_list[tabs.index("💰 Mídia Paga")]:
-            st.toast('Novo Painel de Mídia Paga Disponível!', icon='😍')
+            if st.session_state.last_toast_date != today:
+                st.toast('Novo Painel de Mídia Paga Disponível!', icon='😍')
+                st.session_state.last_toast_date = today
+
             display_tab_paid_media(client, table, df_ads)
 
     if "🛒 Últimos Pedidos" in tabs:
