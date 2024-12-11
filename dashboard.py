@@ -9,22 +9,8 @@ from metrics import display_metrics
 from charts import display_charts
 from aggregations import display_aggregations
 from tab_paid_media import display_tab_paid_media
-
-def atribuir_cluster(row):
-    if row['Origem'] == 'google' and row['Mídia'] == 'cpc':
-        return '🟢 Google Ads'
-    if row['Origem'] == 'meta' and row['Mídia'] == 'cpc':
-        return '🔵 Meta Ads'
-    elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
-        return '🌳 Google Orgânico'
-    elif row['Origem'] == 'direct':
-        return '🟡 Direto'
-    elif row['Origem'] == 'shopify_draft_order':
-        return '🗒️ Draft'
-    elif row['Origem'] == 'not captured':
-        return '🍪 Perda de Cookies'
-    else:
-        return f"◻️ {row['Origem']} / {row['Mídia']}"
+from custom.gringa_product_submited import display_tab_gringa_product_submited
+from helpers.components import atribuir_cluster
     
 def show_dashboard(client, username):
 
@@ -163,6 +149,13 @@ def show_dashboard(client, username):
         tabs.insert(1, "💰 Mídia Paga")
     if df_whatsapp is not None and not df_whatsapp.empty:
         tabs.append("📱 WhatsApp Leads")
+    
+
+
+    if username == "gringa":
+        tabs.append("🎁 Produtos Cadastrados")
+
+
 
     # Cria abas no Streamlit
     tab_list = st.tabs(tabs)
@@ -177,7 +170,6 @@ def show_dashboard(client, username):
 
     if "💰 Mídia Paga" in tabs:
         with tab_list[tabs.index("💰 Mídia Paga")]:
-            st.toast('Novo Painel de Mídia Paga Disponível!', icon='😍')
             display_tab_paid_media(client, table, df_ads)
 
     if "🛒 Últimos Pedidos" in tabs:
@@ -260,3 +252,8 @@ def show_dashboard(client, username):
                 file_name='whatsapp_leads.csv',
                 mime='text/csv'
             )
+    
+    if "🎁 Produtos Cadastrados" in tabs:
+        with tab_list[tabs.index("🎁 Produtos Cadastrados")]:
+            st.toast('Novo painel de Produtos Cadastrados disponível!', icon='😍')
+            display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
