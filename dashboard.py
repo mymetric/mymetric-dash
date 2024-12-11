@@ -53,8 +53,7 @@ def show_dashboard(client, username):
 
     query3 = f"""
     SELECT
-        round(count(distinct case when source = "not captured" then transaction_id end)/
-        (case when count(*) = 0 then 1 end), 4) `Taxa Perda de Cookies Hoje`
+        round(sum(case when source = "not captured" then 1 else 0 end)/count(*),2) `Taxa Perda de Cookies Hoje`
     FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
     WHERE date(created_at) = current_date("America/Sao_Paulo")
     GROUP BY ALL
@@ -106,8 +105,12 @@ def show_dashboard(client, username):
         df['Cluster'] = df.apply(atribuir_cluster, axis=1)
 
     # Processar o resultado da terceira query
+    
     tx_cookies = df3["Taxa Perda de Cookies Hoje"].sum()
     tx_cookies = tx_cookies * 100
+
+    if tx_cookies > 10:
+        st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável.")
 
     cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
