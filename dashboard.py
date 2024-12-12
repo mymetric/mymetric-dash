@@ -110,7 +110,7 @@ def show_dashboard(client, username):
     tx_cookies = tx_cookies * 100
 
     if tx_cookies > 10:
-        st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável.")
+        st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável, favor contatar o time MyMetric para auxiliar na resolução.")
 
     cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
