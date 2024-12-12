@@ -111,7 +111,7 @@ def show_dashboard(client, username):
     tx_cookies = tx_cookies * 100
 
     if tx_cookies > 10:
-        st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável, favor contatar o time MyMetric para auxiliar na resolução.")
+        st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável, favor contatar o time MyMetric para auxiliar na resolução.", icon="⚠️")
         send_discord_message(f"Usuário **{username}** com taxa de perda de cookies elevada: {tx_cookies:.2f}%.")
 
     cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
@@ -175,7 +175,7 @@ def show_dashboard(client, username):
 
     if "💰 Mídia Paga" in tabs:
         with tab_list[tabs.index("💰 Mídia Paga")]:
-            display_tab_paid_media(client, table, df_ads)
+            display_tab_paid_media(client, table, df_ads, username)
 
     if "🛒 Últimos Pedidos" in tabs:
         with tab_list[tabs.index("🛒 Últimos Pedidos")]:

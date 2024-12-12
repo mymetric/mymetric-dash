@@ -2,13 +2,14 @@ import streamlit as st
 import pandas as pd
 from query_utils import run_query
 from helpers import components
+from helpers.components import send_discord_message
 
 def execute_query(client, query):
     return run_query(client, query)
 
 import altair as alt
 
-def display_tab_paid_media(client, table, df_ads):
+def display_tab_paid_media(client, table, df_ads, username):
 
     # Unique options for dropdown filters
     platform_options = ["All"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
@@ -132,11 +133,12 @@ def display_tab_paid_media(client, table, df_ads):
     """
 
     qa = execute_query(client, qa)
-
-    st.write(f"{qa['Cobertura'].sum().round(2):.1%} do tráfego de Meta está no padrão de tagueamento desejado. Leia sobre o [padrão de tagueamento](https://mymetric.notion.site/Parametriza-o-de-Meta-Ads-a32df743c4e046ccade33720f0faec3a)")
-
-    
-
+    lost = qa['Cobertura'].sum()*100
+    if lost < 80:
+        st.warning(f"Atenção: A taxa de tagueamento de Meta Ads é de {lost:.2f}%, o que está abaixo do limite aceitável que é de 80%. [Saiba como implementar corretamente](https://mymetric.notion.site/Parametriza-o-de-Meta-Ads-a32df743c4e046ccade33720f0faec3a).", icon="⚠️")
+        send_discord_message(f"Usuário **{username}** com taxa de tagueamento de Meta Ads abaixo do esperado: {lost:.2f}%.")
+    else:
+        st.write(f"A taxa de tagueamento de Meta Ads é de {lost:.2f}%, o que está dentro do limite aceitável.")
 
     with st.expander("Ver mais detalhes"):
         qa = f"""
@@ -163,4 +165,3 @@ def display_tab_paid_media(client, table, df_ads):
         qa = execute_query(client, qa)
         st.write("As sessões a seguir vem de Meta Ads, porém, não estão no padrão de tagueamento.")
         st.data_editor(qa, hide_index=1, use_container_width=1)
-
