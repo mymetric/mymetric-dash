@@ -10,7 +10,8 @@ from charts import display_charts
 from aggregations import display_aggregations
 from tab_paid_media import display_tab_paid_media
 from custom.gringa_product_submited import display_tab_gringa_product_submited
-from helpers.components import atribuir_cluster
+from helpers.components import atribuir_cluster, send_discord_message
+
     
 def show_dashboard(client, username):
 
@@ -111,6 +112,7 @@ def show_dashboard(client, username):
 
     if tx_cookies > 10:
         st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável, favor contatar o time MyMetric para auxiliar na resolução.")
+        send_discord_message(f"Usuário **{username}** com taxa de perda de cookies elevada: {tx_cookies:.2f}%.")
 
     cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()

@@ -59,7 +59,7 @@ def display_tab_paid_media(client, table, df_ads):
         width=700,
         height=400,
         title=alt.TitleParams(
-            text='Investimento e Receira por Data',
+            text='Investimento e Receita por Data',
             fontSize=18,
             anchor='middle'
         )
@@ -89,7 +89,7 @@ def display_tab_paid_media(client, table, df_ads):
     }).reset_index()
 
     # Calculate ROAS and CPV, adding them as new columns
-    df_ads_agg['ROAS'] = (df_ads_agg['Receita'].sum() / df_ads_agg['Investimento'].sum())
+    df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
     df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
 
     # Round other numerical columns to 2 decimal places
@@ -135,6 +135,32 @@ def display_tab_paid_media(client, table, df_ads):
 
     st.write(f"{qa['Cobertura'].sum().round(2):.1%} do tráfego de Meta está no padrão de tagueamento desejado. Leia sobre o [padrão de tagueamento](https://mymetric.notion.site/Parametriza-o-de-Meta-Ads-a32df743c4e046ccade33720f0faec3a)")
 
+    
 
 
+    with st.expander("Ver mais detalhes"):
+        qa = f"""
+            select
+
+                source `Origem`,
+                medium `Mídia`,
+                campaign `Campanha`,
+                count(*) `Sessões`
+
+            from `mymetric-hub-shopify.dbt_join.{table}_sessions_gclids`
+
+            where
+
+            event_date >= date_sub(current_date("America/Sao_Paulo"), interval 7 day)
+            and page_params like "%fbclid%"
+            and page_params not like "%mm_ads%"
+
+            group by all
+
+            order by `Sessões` desc
+
+        """
+        qa = execute_query(client, qa)
+        st.write("As sessões a seguir vem de Meta Ads, porém, não estão no padrão de tagueamento.")
+        st.data_editor(qa, hide_index=1, use_container_width=1)
 

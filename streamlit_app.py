@@ -5,19 +5,7 @@ from google.cloud import bigquery
 import dashboard  # Importa o arquivo de dashboard
 from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
-import requests
-
-# URL do webhook do Discord (substitua pela URL do seu webhook)
-discord_webhook_url = "https://discord.com/api/webhooks/1296840635776766003/FwqBXh2mKVhqS2jnQmmP15RweElgco4v_eFp3kq4inxIrOYRPzNgRddcUjz2y_pwi2ep"
-
-# Função para enviar mensagem no Discord
-def send_discord_message(username):
-    message = {
-        "content": f"Usuário **{username}** acabou de fazer login no sistema MyMetric HUB."
-    }
-    # Faz a requisição POST para enviar a mensagem
-    requests.post(discord_webhook_url, json=message)
-
+from helpers.components import send_discord_message
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
 
@@ -58,7 +46,7 @@ def check_password():
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login
-                    send_discord_message(username)
+                    send_discord_message(f"Usuário **{username}** acabou de fazer login no sistema MyMetric HUB.")
                     st.rerun()  # Recarrega a página após login
                     break
             else:

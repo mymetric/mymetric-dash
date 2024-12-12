@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 
 
 def big_number_box(data, label):
@@ -24,3 +25,15 @@ def atribuir_cluster(row):
         return '🍪 Perda de Cookies'
     else:
         return f"◻️ {row['Origem']} / {row['Mídia']}"
+
+# URL do webhook do Discord (substitua pela URL do seu webhook)
+
+def send_discord_message(message):
+
+    discord_webhook_url = "https://discord.com/api/webhooks/1296840635776766003/FwqBXh2mKVhqS2jnQmmP15RweElgco4v_eFp3kq4inxIrOYRPzNgRddcUjz2y_pwi2ep"
+
+    message = {
+        "content": message
+    }
+    # Faz a requisição POST para enviar a mensagem
+    requests.post(discord_webhook_url, json=message)
