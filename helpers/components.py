@@ -13,12 +13,14 @@ def big_number_box(data, label):
 def atribuir_cluster(row):
     if row['Origem'] == 'google' and row['Mídia'] == 'cpc':
         return '🟢 Google Ads'
-    if row['Origem'] == 'meta' and row['Mídia'] == 'cpc':
+    elif row['Origem'] == 'meta' and row['Mídia'] == 'cpc':
         return '🔵 Meta Ads'
     elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
         return '🌳 Google Orgânico'
     elif row['Origem'] == 'direct':
         return '🟡 Direto'
+    elif row['Origem'] == 'crm':
+        return '✉️ CRM'
     elif row['Origem'] == 'shopify_draft_order':
         return '🗒️ Draft'
     elif row['Origem'] == 'not captured':

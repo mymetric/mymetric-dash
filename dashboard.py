@@ -115,12 +115,16 @@ def show_dashboard(client, username):
         send_discord_message(f"Usuário **{username}** com taxa de perda de cookies elevada: {tx_cookies:.2f}%.")
 
     cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
+    origem_options = ["Selecionar Todos"] + df['Origem'].unique().tolist()
+    midia_options = ["Selecionar Todos"] + df['Mídia'].unique().tolist()
     campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
     conteudo_options = ["Selecionar Todos"] + df['Conteúdo'].unique().tolist()
     pagina_de_entrada_options = ["Selecionar Todos"] + df['Página de Entrada'].unique().tolist()
 
     with st.sidebar.expander("Fontes de Tráfego", expanded=True):
         cluster_selected = st.multiselect('Cluster', cluster_options, default=["Selecionar Todos"])
+        origem_selected = st.multiselect('Origem', origem_options, default=["Selecionar Todos"])
+        midia_selected = st.multiselect('Mídia', midia_options, default=["Selecionar Todos"])
         campanha_selected = st.multiselect('Campanha', campanha_options, default=["Selecionar Todos"])
         conteudo_selected = st.multiselect('Conteúdo', conteudo_options, default=["Selecionar Todos"])
         pagina_de_entrada_selected = st.multiselect('Página de Entrada', pagina_de_entrada_options, default=["Selecionar Todos"])
@@ -128,6 +132,10 @@ def show_dashboard(client, username):
     # Aplicar os filtros
     if "Selecionar Todos" in cluster_selected:
         cluster_selected = df['Cluster'].unique().tolist()
+    if "Selecionar Todos" in origem_selected:
+        origem_selected = df['Origem'].unique().tolist()
+    if "Selecionar Todos" in midia_selected:
+        midia_selected = df['Mídia'].unique().tolist()
     if "Selecionar Todos" in campanha_selected:
         campanha_selected = df['Campanha'].unique().tolist()
     if "Selecionar Todos" in conteudo_selected:
@@ -168,7 +176,7 @@ def show_dashboard(client, username):
     if "👀 Visão Geral" in tabs:
         with tab_list[tabs.index("👀 Visão Geral")]:
 
-            df_filtered = traffic_filters(df, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            df_filtered = traffic_filters(df, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
             display_metrics(df_filtered, tx_cookies, df_ads)
             display_charts(df_filtered)
             display_aggregations(df_filtered)
@@ -225,7 +233,7 @@ def show_dashboard(client, username):
                 canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
 
             # Aplica os filtros anteriores
-            df_filtered2 = traffic_filters(df2, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            df_filtered2 = traffic_filters(df2, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
 
             # Filtra pelo ID da Transação, se o valor estiver preenchido
             if id_transacao_input:
