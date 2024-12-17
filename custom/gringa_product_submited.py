@@ -4,7 +4,7 @@ from helpers.components import atribuir_cluster
 from filters import date_filters, traffic_filters
 
 
-def display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected):
+def display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected):
 
     def execute_query(query):
         return run_query(client, query)
@@ -53,7 +53,7 @@ def display_tab_gringa_product_submited(client, start_date, end_date, cluster_se
     df = execute_query(query)
     
     df['Cluster'] = df.apply(atribuir_cluster, axis=1)
-    df = traffic_filters(df, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+    df = traffic_filters(df, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
 
     aggregated_df = df.groupby(['Data']).agg({'Sessões': 'sum', 'Cadastros': 'sum'}).reset_index().sort_values(by='Cadastros', ascending=False)
     st.line_chart(aggregated_df, x = "Data", y = "Cadastros")

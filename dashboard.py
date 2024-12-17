@@ -269,4 +269,4 @@ def show_dashboard(client, username):
     if "🎁 Produtos Cadastrados" in tabs:
         with tab_list[tabs.index("🎁 Produtos Cadastrados")]:
             st.toast('Novo painel de Produtos Cadastrados disponível!', icon='😍')
-            display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
