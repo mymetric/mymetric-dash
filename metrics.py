@@ -11,8 +11,6 @@ def display_metrics(df, tx_cookies, df_ads):
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (total_receita_paga / total_receita_capturada) * 100
-    gads_connect_rate = df[df['Cluster'] == "🟢 Google Ads"]["Sessões"].sum()/df_ads[df_ads['Plataforma'] =="google_ads"]["Cliques"].sum()*100
-    mads_connect_rate = df[df['Cluster'] == "🔵 Meta Ads"]["Sessões"].sum()/df_ads[df_ads['Plataforma'] =="meta_ads"]["Cliques"].sum()*100
 
     st.header("Big Numbers")
 
@@ -64,6 +62,7 @@ def display_metrics(df, tx_cookies, df_ads):
         # Exibe o investimento total em Ads apenas se houver dados para google_ads
         if not df_google_ads.empty and df_google_ads['Investimento'].sum() > 0:
             with col3:
+                gads_connect_rate = df[df['Cluster'] == "🟢 Google Ads"]["Sessões"].sum()/df_ads[df_ads['Plataforma'] =="google_ads"]["Cliques"].sum()*100
                 components.big_number_box(
                     f"R$ {round(df_google_ads['Investimento'].sum(), 2):,}".replace(",", "."), 
                     "Investimento em Google Ads"
@@ -76,6 +75,7 @@ def display_metrics(df, tx_cookies, df_ads):
         # Exibe o investimento total em Ads apenas se houver dados para google_ads
         if not df_meta_ads.empty and df_meta_ads['Investimento'].sum() > 0:
             with col4:
+                mads_connect_rate = df[df['Cluster'] == "🔵 Meta Ads"]["Sessões"].sum()/df_ads[df_ads['Plataforma'] =="meta_ads"]["Cliques"].sum()*100
                 components.big_number_box(
                     f"R$ {round(df_meta_ads['Investimento'].sum(), 2):,}".replace(",", "."), 
                     "Investimento em Meta Ads"
