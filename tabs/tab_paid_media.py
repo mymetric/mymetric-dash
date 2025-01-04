@@ -103,16 +103,16 @@ def display_tab_paid_media(client, table, df_ads, username):
     col1, col2, col3, col4 = st.columns(4)
         
     with col1:
-        big_number_box(f"R$ {df_ads_agg['Investimento'].sum():,.2f}".replace(",", "."), "Investimento")
+        big_number_box(f"R$ {df_ads_agg['Investimento'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Investimento")
     
     with col2:
-        big_number_box(f"R$ {df_ads_agg['Receita'].sum():,.2f}".replace(",", "."), "Receita")
+        big_number_box(f"R$ {df_ads_agg['Receita'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Receita")
         
     with col3:
-        big_number_box(f"{df_ads_agg['Receita'].sum()/df_ads_agg['Investimento'].sum():,.2f}".replace(",", "."), "ROAS")
+        big_number_box(f"{df_ads_agg['Receita'].sum()/df_ads_agg['Investimento'].sum():,.2f}".replace(".", ","), "ROAS")
 
     with col4:
-        big_number_box(f"R$ {df_ads_agg['CPV'].sum():,.2f}".replace(",", "."), "CPV")
+        big_number_box(f"R$ {df_ads_agg['CPV'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "CPV")
 
     st.markdown("---")
 

@@ -10,12 +10,41 @@ def run_query(_client, query):
     return pd.DataFrame(rows)
 
 def big_number_box(data, label, bg_color='#C5EBC3'):
-    st.markdown(f"""
-        <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px">
-            <p style="color:#666;line-height:1">{label}</h3>
-            <p style="color:#666;line-height:1;font-size:38px;margin:0;">{data}</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # Check if the data starts with "R$" and if so, split it into parts
+    if isinstance(data, str) and data.startswith("R$"):
+        currency_symbol = "R$"
+        value = data[2:].strip()  # Remove "R$" and any whitespace
+        
+        # Split the value into whole numbers and cents if there's a decimal point
+        if "," in value:
+            whole, cents = value.split(",")
+            st.markdown(f"""
+                <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px">
+                    <p style="color:#666;line-height:1;font-size:13px;margin:0 0 5px;">{label}</h3>
+                    <p style="color:#666;line-height:1;margin:0;">
+                        <span style="font-size:20px">{currency_symbol}</span>
+                        <span style="font-size:33px">{whole}</span>
+                        <span style="font-size:20px">,{cents}</span>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px">
+                    <p style="color:#666;line-height:1;font-size:13px;margin:0 0 5px;">{label}</h3>
+                    <p style="color:#666;line-height:1;margin:0;">
+                        <span style="font-size:20px">{currency_symbol}</span>
+                        <span style="font-size:35px">{value}</span>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+            <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px">
+                <p style="color:#666;line-height:1;font-size:13px;margin:0 0 5px;">{label}</h3>
+                <p style="color:#666;line-height:1;font-size:35px;margin:0;">{data}</p>
+            </div>
+        """, unsafe_allow_html=True)
 
 def atribuir_cluster(row):
     if row['Origem'] == 'google' and row['Mídia'] == 'cpc':

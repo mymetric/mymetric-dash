@@ -92,7 +92,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     with col1:
         # Exibe os dados da query_ads se houver resultado
         if not df_ads.empty and df_ads['Investimento'].sum() > 0:
-            components.big_number_box(f"R$ {round(df_ads['Investimento'].sum(),2):,.2f}".replace(",", "."), "Investimento Total em Ads")
+            components.big_number_box(f"R$ {round(df_ads['Investimento'].sum(),2):,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Investimento Total em Ads")
     with col2:
         # Exibe os dados da query_ads se houver resultado
         if not df_ads.empty and df_ads['Investimento'].sum() > 0:
@@ -108,7 +108,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
             with col3:
                 gads_connect_rate = df[df['Cluster'] == "🟢 Google Ads"]["Sessões"].sum()/df_ads[df_ads['Plataforma'] =="google_ads"]["Cliques"].sum()*100
                 components.big_number_box(
-                    f"R$ {round(df_google_ads['Investimento'].sum(), 2):,}".replace(",", "."), 
+                    f"R$ {round(df_google_ads['Investimento'].sum(), 2):,}".replace(",", "*").replace(".", ",").replace("*", "."), 
                     "Investimento em Google Ads"
                 )
 
@@ -125,7 +125,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                 # Formata e exibe o investimento em Meta Ads
                 meta_ads_investment = round(df_meta_ads['Investimento'].sum(), 2)
                 components.big_number_box(
-                    f"R$ {meta_ads_investment:,.2f}".replace(",", "."),
+                    f"R$ {meta_ads_investment:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
                     "Investimento em Meta Ads"
                 )
 
