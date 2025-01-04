@@ -34,8 +34,6 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (total_receita_paga / total_receita_capturada) * 100
 
-    st.header("Big Numbers")
-
     # Add progress bar for meta only if we're looking at the current month
     first_day_current_month = current_date.replace(day=1)
     
@@ -48,6 +46,8 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
         meta_proporcional = meta_receita * (dias_passados / last_day)
         percentual_meta = (total_receita_paga / meta_proporcional) * 100 if meta_proporcional > 0 else 0
         
+        st.header("Run Rate")
+
         st.markdown(f"""
             <div style="margin-bottom: 20px;">
                 <p style="margin-bottom: 5px; color: #666;">Meta do Mês: R$ {meta_receita:,.2f}</p>
@@ -60,6 +60,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
             </div>
         """, unsafe_allow_html=True)
 
+    st.header("Big Numbers")
     col1, col2, col3, col4 = st.columns(4)
         
     with col1:
