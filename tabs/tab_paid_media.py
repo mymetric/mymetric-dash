@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-from query_utils import run_query
-from helpers import components
-from helpers.components import send_discord_message
+from helpers.components import send_discord_message, run_query, big_number_box
 
 def execute_query(client, query):
     return run_query(client, query)
@@ -103,16 +101,16 @@ def display_tab_paid_media(client, table, df_ads, username):
     col1, col2, col3, col4 = st.columns(4)
         
     with col1:
-        components.big_number_box(f"R$ {df_ads_agg['Investimento'].sum():,.0f}", "Investimento")
+        big_number_box(f"R$ {df_ads_agg['Investimento'].sum():,.0f}", "Investimento")
     
     with col2:
-        components.big_number_box(f"R$ {round(df_ads_agg['Receita'].sum()):,.0f}", "Receita")
+        big_number_box(f"R$ {round(df_ads_agg['Receita'].sum()):,.0f}", "Receita")
         
     with col3:
-        components.big_number_box(f"{df_ads_agg['Receita'].sum()/df_ads_agg['Investimento'].sum():,.2f}", "ROAS")
+        big_number_box(f"{df_ads_agg['Receita'].sum()/df_ads_agg['Investimento'].sum():,.2f}", "ROAS")
 
     with col4:
-        components.big_number_box(f"R$ {round(df_ads_agg['CPV'].sum()):,.0f}", "CPV")
+        big_number_box(f"R$ {round(df_ads_agg['CPV'].sum()):,.0f}", "CPV")
 
     st.markdown("---")
 

@@ -1,36 +1,18 @@
 import streamlit as st
 import pandas as pd
-import pytz
-from query_utils import run_query
-from datetime import datetime, timedelta
+from datetime import timedelta
 from concurrent.futures import ThreadPoolExecutor
+from helpers.components import atribuir_cluster, send_discord_message, run_query
 from filters import date_filters, traffic_filters
-from metrics import display_metrics
-from charts import display_charts
-from aggregations import display_aggregations
-from tab_paid_media import display_tab_paid_media
+from tabs.tab_general import display_tab_general
+from tabs.tab_last_orders import display_tab_last_orders
+from tabs.tab_paid_media import display_tab_paid_media
 from custom.gringa_product_submited import display_tab_gringa_product_submited
-from helpers.components import atribuir_cluster, send_discord_message
 
-    
-def show_dashboard(client, username):
-
-    today = pd.to_datetime("today").date()
-    yesterday = today - pd.Timedelta(days=1)
-    seven_days_ago = today - pd.Timedelta(days=7)
-    thirty_days_ago = today - pd.Timedelta(days=30)
-
-    start_date, end_date = date_filters(today, yesterday, seven_days_ago, thirty_days_ago)
-
-    # Converte as datas para string no formato 'YYYY-MM-DD' para a query
-    start_date_str = start_date.strftime('%Y-%m-%d')
-    end_date_str = end_date.strftime('%Y-%m-%d')
-    start_date_str_b = start_date.strftime('%Y%m%d')
-    end_date_str_b = end_date.strftime('%Y%m%d')
-
+def load_data(client, username, start_date_str, end_date_str):
     table = username
 
-    query1 = f"""
+    query_general = f"""
     SELECT
         event_date AS Data,
         source Origem,
@@ -52,74 +34,60 @@ def show_dashboard(client, username):
     ORDER BY Pedidos DESC
     """
 
-    query3 = f"""
+    query_cookies = f"""
     SELECT
         round(sum(case when source = "not captured" then 1 else 0 end)/count(*),2) `Taxa Perda de Cookies Hoje`
     FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
     WHERE date(created_at) = current_date("America/Sao_Paulo")
     GROUP BY ALL
     """
-    
-    # Adiciona a nova query responsiva ao filtro de data
+
     query_ads = f"""
-        SELECT
-            platform `Plataforma`,
-            campaign_name `Campanha`,
-            date `Data`,
-            sum(cost) `Investimento`,
-            sum(impressions) `Impressões`,
-            sum(clicks) `Cliques`,
-            sum(transactions) `Transações`,
-            sum(revenue) `Receita`
-        FROM
-            `mymetric-hub-shopify.dbt_join.{table}_ads_campaigns_results`
-        WHERE
-            date BETWEEN '{start_date_str}' AND '{end_date_str}'
-        group by all
+    SELECT
+        platform `Plataforma`,
+        campaign_name `Campanha`,
+        date `Data`,
+        sum(cost) `Investimento`,
+        sum(impressions) `Impressões`,
+        sum(clicks) `Cliques`,
+        sum(transactions) `Transações`,
+        sum(revenue) `Receita`
+    FROM
+        `mymetric-hub-shopify.dbt_join.{table}_ads_campaigns_results`
+    WHERE
+        date BETWEEN '{start_date_str}' AND '{end_date_str}'
+    GROUP BY ALL
     """
 
-    # Função auxiliar para rodar as queries
+    queries = {
+        "general": query_general,
+        "cookies": query_cookies,
+        "ads": query_ads
+    }
+
+    return queries
+
+def execute_queries(client, queries):
     def execute_query(query):
-        return run_query(client, query)
-    
-    # Função auxiliar para rodar query com tratamento de exceção
-    def execute_query_safe(query):
         try:
             return run_query(client, query)
         except Exception as e:
-            # Captura o erro, registra o log (opcional) e retorna um DataFrame vazio
             st.error(f"Erro ao executar a query: {e}")
             return pd.DataFrame()
 
-    # Usar ThreadPoolExecutor para rodar as queries em paralelo
     with ThreadPoolExecutor() as executor:
-        future_query1 = executor.submit(execute_query, query1)
-        future_query3 = executor.submit(execute_query, query3)
-        future_query_ads = executor.submit(execute_query_safe, query_ads)
+        futures = {key: executor.submit(execute_query, query) for key, query in queries.items()}
+        results = {key: future.result() for key, future in futures.items()}
 
-        # Obter os resultados das queries
-        df = future_query1.result()
-        df3 = future_query3.result()
-        df_ads = future_query_ads.result()
-    
+    return results
 
-        df['Cluster'] = df.apply(atribuir_cluster, axis=1)
-
-    # Processar o resultado da terceira query
-    
-    tx_cookies = df3["Taxa Perda de Cookies Hoje"].sum()
-    tx_cookies = tx_cookies * 100
-
-    if tx_cookies > 10:
-        st.warning(f"Atenção: A taxa de perda de cookies hoje é {tx_cookies:.2f}%, o que está acima do limite aceitável, favor contatar o time MyMetric para auxiliar na resolução.", icon="⚠️")
-        send_discord_message(f"Usuário **{username}** com taxa de perda de cookies elevada: {tx_cookies:.2f}%.")
-
-    cluster_options = ["Selecionar Todos"] + df['Cluster'].unique().tolist()
-    origem_options = ["Selecionar Todos"] + df['Origem'].unique().tolist()
-    midia_options = ["Selecionar Todos"] + df['Mídia'].unique().tolist()
-    campanha_options = ["Selecionar Todos"] + df['Campanha'].unique().tolist()
-    conteudo_options = ["Selecionar Todos"] + df['Conteúdo'].unique().tolist()
-    pagina_de_entrada_options = ["Selecionar Todos"] + df['Página de Entrada'].unique().tolist()
+def process_filters(query_general):
+    cluster_options = ["Selecionar Todos"] + query_general['Cluster'].unique().tolist()
+    origem_options = ["Selecionar Todos"] + query_general['Origem'].unique().tolist()
+    midia_options = ["Selecionar Todos"] + query_general['Mídia'].unique().tolist()
+    campanha_options = ["Selecionar Todos"] + query_general['Campanha'].unique().tolist()
+    conteudo_options = ["Selecionar Todos"] + query_general['Conteúdo'].unique().tolist()
+    pagina_de_entrada_options = ["Selecionar Todos"] + query_general['Página de Entrada'].unique().tolist()
 
     with st.sidebar.expander("Fontes de Tráfego", expanded=True):
         cluster_selected = st.multiselect('Cluster', cluster_options, default=["Selecionar Todos"])
@@ -129,144 +97,124 @@ def show_dashboard(client, username):
         conteudo_selected = st.multiselect('Conteúdo', conteudo_options, default=["Selecionar Todos"])
         pagina_de_entrada_selected = st.multiselect('Página de Entrada', pagina_de_entrada_options, default=["Selecionar Todos"])
 
-    # Aplicar os filtros
-    if "Selecionar Todos" in cluster_selected:
-        cluster_selected = df['Cluster'].unique().tolist()
-    if "Selecionar Todos" in origem_selected:
-        origem_selected = df['Origem'].unique().tolist()
-    if "Selecionar Todos" in midia_selected:
-        midia_selected = df['Mídia'].unique().tolist()
-    if "Selecionar Todos" in campanha_selected:
-        campanha_selected = df['Campanha'].unique().tolist()
-    if "Selecionar Todos" in conteudo_selected:
-        conteudo_selected = df['Conteúdo'].unique().tolist()
-    if "Selecionar Todos" in pagina_de_entrada_selected:
-        pagina_de_entrada_selected = df['Página de Entrada'].unique().tolist()
+    return {
+        "cluster_selected": cluster_selected,
+        "origem_selected": origem_selected,
+        "midia_selected": midia_selected,
+        "campanha_selected": campanha_selected,
+        "conteudo_selected": conteudo_selected,
+        "pagina_de_entrada_selected": pagina_de_entrada_selected
+    }
 
-    # Query for WhatsApp widget data
-    query_whatsapp = f"""
-    SELECT
-        received_at `Data Cadastro`,
-        name `Nome`,
-        phone `Telefone`,
-        email `E-mail`
-    FROM `mymetric-hub-shopify.dbt_granular.{table}_whatsapp_widget`
-    ORDER BY received_at DESC
-    """
-    df_whatsapp = execute_query(query_whatsapp)
+def create_tabs(username, df_ads, df_whatsapp):
+    tabs = ["\U0001F441 Visão Geral", "\U0001F6D2 Últimos Pedidos"]
 
-    tabs = ["👀 Visão Geral", "🛒 Últimos Pedidos"]  # Abas padrão
-
-    # Adiciona abas condicionalmente
     if df_ads is not None and not df_ads.empty:
-        tabs.insert(1, "💰 Mídia Paga")
-    if df_whatsapp is not None and not df_whatsapp.empty:
-        tabs.append("📱 WhatsApp Leads")
-    
+        tabs.insert(1, "\U0001F4B0 Mídia Paga")
 
+    if df_whatsapp is not None and not df_whatsapp.empty:
+        tabs.append("\U0001F4F1 WhatsApp Leads")
 
     if username == "gringa":
-        tabs.append("🎁 Produtos Cadastrados")
+        tabs.append("\U0001F381 Produtos Cadastrados")
 
+    return tabs
 
+def show_dashboard(client, username):
+    try:
+        today = pd.to_datetime("today").date()
+        yesterday = today - pd.Timedelta(days=1)
+        seven_days_ago = today - pd.Timedelta(days=7)
+        thirty_days_ago = today - pd.Timedelta(days=30)
 
-    # Cria abas no Streamlit
-    tab_list = st.tabs(tabs)
+        start_date, end_date = date_filters(today, yesterday, seven_days_ago, thirty_days_ago)
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
 
-    if "👀 Visão Geral" in tabs:
-        with tab_list[tabs.index("👀 Visão Geral")]:
+        queries = load_data(client, username, start_date_str, end_date_str)
+        results = execute_queries(client, queries)
 
-            df_filtered = traffic_filters(df, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
-            display_metrics(df_filtered, tx_cookies, df_ads)
-            display_charts(df_filtered)
-            display_aggregations(df_filtered)
+        if not results["general"].empty:
+            query_general = results["general"]
+            query_general['Cluster'] = query_general.apply(atribuir_cluster, axis=1)
 
-    if "💰 Mídia Paga" in tabs:
-        with tab_list[tabs.index("💰 Mídia Paga")]:
-            display_tab_paid_media(client, table, df_ads, username)
+            filters = process_filters(query_general)
+            tabs = create_tabs(username, results["ads"], results["cookies"])
 
-    if "🛒 Últimos Pedidos" in tabs:
-        with tab_list[tabs.index("🛒 Últimos Pedidos")]:
-            # Executa a query2 quando a aba "Últimos Pedidos" é aberta
-            query2 = f"""
-            SELECT
-                created_at `Horário`,
-                transaction_id `ID da Transação`,
-                first_name `Primeiro Nome`,
-                status `Status`,
-                value `Receita`,
-                source_name `Canal`,
-                source `Origem`,
-                medium `Mídia`,
-                campaign `Campanha`,
-                content `Conteúdo`,
-                fs_source `Origem Primeiro Clique`,
-                fs_medium `Mídia Primeiro Clique`,
-                fs_campaign `Campanha Primeiro Clique`,
-                page_location `Página de Entrada`,
-                page_params `Parâmetros de URL`
-            FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
-            WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
-            ORDER BY created_at DESC
-            LIMIT 2000
-            """
+            tab_list = st.tabs(tabs)
 
-            # Executa a query2
-            df2 = execute_query(query2)
+            # Exemplo de uso das abas
+            if "\U0001F441 Visão Geral" in tabs:
+                with tab_list[tabs.index("\U0001F441 Visão Geral")]:
+                    tx_cookies = results["cookies"]["Taxa Perda de Cookies Hoje"].sum()*100
 
-            # Aplicar a função usando apply
-            df2['Cluster'] = df2.apply(atribuir_cluster, axis=1)
+                    display_tab_general(query_general, tx_cookies, results["ads"], username, **filters)
 
-            # Criar colunas para os filtros
-            col1, col2, col3 = st.columns(3)
+            if "\U0001F4B0 Mídia Paga" in tabs:
+                with tab_list[tabs.index("\U0001F4B0 Mídia Paga")]:
+                    display_tab_paid_media(client, username, results["ads"], username)
 
-            # Adiciona o campo de entrada para filtrar pelo ID da Transação na primeira coluna
-            with col1:
-                id_transacao_input = st.text_input("ID da Transação")
+            if "\U0001F6D2 Últimos Pedidos" in tabs:
+                with tab_list[tabs.index("\U0001F6D2 Últimos Pedidos")]:
+                    query_last_orders = f"""
+                    SELECT
+                        created_at `Horário`,
+                        transaction_id `ID da Transação`,
+                        first_name `Primeiro Nome`,
+                        status `Status`,
+                        value `Receita`,
+                        source_name `Canal`,
+                        source `Origem`,
+                        medium `Mídia`,
+                        campaign `Campanha`,
+                        content `Conteúdo`,
+                        fs_source `Origem Primeiro Clique`,
+                        fs_medium `Mídia Primeiro Clique`,
+                        fs_campaign `Campanha Primeiro Clique`,
+                        page_location `Página de Entrada`,
+                        page_params `Parâmetros de URL`
+                    FROM `mymetric-hub-shopify.dbt_join.{username}_orders_sessions`
+                    WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
+                    ORDER BY created_at DESC
+                    LIMIT 2000
+                    """
+                    df_last_orders = run_query(client, query_last_orders)
+                    display_tab_last_orders(df_last_orders, **filters)
 
-            # Adiciona o campo de seleção para o Status na segunda coluna
-            with col2:
-                status_selected = st.multiselect("Status", options=df2['Status'].unique())
+            if "\U0001F4F1 WhatsApp Leads" in tabs:
+                with tab_list[tabs.index("\U0001F4F1 WhatsApp Leads")]:
+                    query_whatsapp = f"""
+                    SELECT
+                        received_at `Data Cadastro`,
+                        name `Nome`,
+                        phone `Telefone`,
+                        email `E-mail`
+                    FROM `mymetric-hub-shopify.dbt_granular.{username}_whatsapp_widget`
+                    ORDER BY received_at DESC
+                    """
+                    df_whatsapp = run_query(client, query_whatsapp)
+                    st.header("WhatsApp Leads")
+                    st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
 
-            # Adiciona o campo de seleção para o Canal na terceira coluna
-            with col3:
-                canal_selected = st.multiselect("Canal", options=df2['Canal'].unique())
+                    csv = df_whatsapp.to_csv(index=False)
+                    st.download_button(
+                        label="Exportar para CSV",
+                        data=csv,
+                        file_name='whatsapp_leads.csv',
+                        mime='text/csv'
+                    )
 
-            # Aplica os filtros anteriores
-            df_filtered2 = traffic_filters(df2, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+            if "\U0001F381 Produtos Cadastrados" in tabs:
+                with tab_list[tabs.index("\U0001F381 Produtos Cadastrados")]:
+                    display_tab_gringa_product_submited(client, start_date, end_date, **filters)
 
-            # Filtra pelo ID da Transação, se o valor estiver preenchido
-            if id_transacao_input:
-                df_filtered2 = df_filtered2[df_filtered2['ID da Transação'].astype(str).str.contains(id_transacao_input, na=False)]
-
-            # Filtra pelo Status se algum status for selecionado
-            if status_selected:
-                df_filtered2 = df_filtered2[df_filtered2['Status'].isin(status_selected)]
-
-            # Filtra pelo Canal se algum canal for selecionado
-            if canal_selected:
-                df_filtered2 = df_filtered2[df_filtered2['Canal'].isin(canal_selected)]
-
-            # Exibe os dados filtrados
-            st.header("Últimos Pedidos")
-            st.data_editor(df_filtered2, hide_index=True, use_container_width=True)
-
-    if "📱 WhatsApp Leads" in tabs:
-        with tab_list[tabs.index("📱 WhatsApp Leads")]:
-            # Display WhatsApp Leads table
-            st.header("WhatsApp Leads")
-            st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
-
-            # Export button for WhatsApp data
-            csv = df_whatsapp.to_csv(index=False)
-            st.download_button(
-                label="Exportar para CSV",
-                data=csv,
-                file_name='whatsapp_leads.csv',
-                mime='text/csv'
-            )
-    
-    if "🎁 Produtos Cadastrados" in tabs:
-        with tab_list[tabs.index("🎁 Produtos Cadastrados")]:
-            st.toast('Novo painel de Produtos Cadastrados disponível!', icon='😍')
-            display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected)
+        else:
+            error_msg = f"❌ Erro: Não foi possível carregar os dados para {username}"
+            st.error(error_msg)
+            send_discord_message(error_msg)
+            
+    except Exception as e:
+        error_msg = f"❌ Erro crítico no dashboard de {username}: {str(e)}"
+        st.error(error_msg)
+        send_discord_message(error_msg)
+        st.stop()

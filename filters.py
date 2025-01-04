@@ -34,11 +34,24 @@ def date_filters(today, yesterday, seven_days_ago, thirty_days_ago):
 
 def traffic_filters(df, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected):
     
-    df = df[df['Cluster'].isin(cluster_selected)]
-    df = df[df['Origem'].isin(origem_selected)]
-    df = df[df['Mídia'].isin(midia_selected)]
-    df = df[df['Campanha'].isin(campanha_selected)]
-    df = df[df['Conteúdo'].isin(conteudo_selected)]
-    df = df[df['Página de Entrada'].isin(pagina_de_entrada_selected)]
+    # Adiciona filtro de cluster
+    if "Selecionar Todos" not in cluster_selected:
+        df = df[df['Cluster'].isin(cluster_selected)]
+    
+    # Se "Selecionar Todos" não estiver em origem_selected, aplica o filtro
+    if "Selecionar Todos" not in origem_selected:
+        df = df[df['Origem'].isin(origem_selected)]
+    
+    if "Selecionar Todos" not in midia_selected:
+        df = df[df['Mídia'].isin(midia_selected)]
+    
+    if "Selecionar Todos" not in campanha_selected:
+        df = df[df['Campanha'].isin(campanha_selected)]
+    
+    if "Selecionar Todos" not in conteudo_selected:
+        df = df[df['Conteúdo'].isin(conteudo_selected)]
+    
+    if "Selecionar Todos" not in pagina_de_entrada_selected:
+        df = df[df['Página de Entrada'].isin(pagina_de_entrada_selected)]
 
     return df

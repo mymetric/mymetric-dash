@@ -1,10 +1,3 @@
-# users.py
-
-# Dicionário de usuários e senhas
-# https://mymetric.streamlit.app
-# usuário: evoke
-# senha: asfGjHFzzAIwao8
-
 import pandas as pd
 import streamlit as st
 

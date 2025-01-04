@@ -1,6 +1,13 @@
 import streamlit as st
 import requests
+import pandas as pd
 
+@st.cache_data(ttl=600)
+def run_query(_client, query):
+    query_job = _client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return pd.DataFrame(rows)
 
 def big_number_box(data, label):
         st.markdown(f"""

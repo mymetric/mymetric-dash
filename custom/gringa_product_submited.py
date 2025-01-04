@@ -1,6 +1,5 @@
 import streamlit as st
-from query_utils import run_query
-from helpers.components import atribuir_cluster
+from helpers.components import atribuir_cluster, run_query
 from filters import date_filters, traffic_filters
 
 
