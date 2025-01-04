@@ -34,41 +34,41 @@ def display_tab_general(df, tx_cookies, df_ads, username,**filters):
     col1, col2, col3, col4 = st.columns(4)
         
     with col1:
-        components.big_number_box(f"{pedidos:,}", "Pedidos Capturados")
+        components.big_number_box(f"{pedidos:,.0f}".replace(",", "."), "Pedidos Capturados")
     
     with col2:
-        components.big_number_box(f"{pedidos_pagos:,}", "Pedidos Pagos")
+        components.big_number_box(f"{pedidos_pagos:,.0f}".replace(",", "."), "Pedidos Pagos")
 
     with col3:
-        components.big_number_box(f"R$ {total_receita_capturada:,.0f}", "Receita Capturada")
+        components.big_number_box(f"R$ {total_receita_capturada:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Receita Capturada")
 
     with col4:
-        components.big_number_box(f"R$ {total_receita_paga:,.0f}", "Receita Paga")
+        components.big_number_box(f"R$ {total_receita_paga:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Receita Paga")
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        components.big_number_box(f"{sessoes:,}", "Sessões")
+        components.big_number_box(f"{sessoes:,.0f}".replace(",", "."), "Sessões")
 
     with col2:
-        components.big_number_box(f"{tx_conv:.2f}%", "Tx Conversão")
+        components.big_number_box(f"{tx_conv:.2f}".replace(".", ",") + "%", "Tx Conversão")
 
     with col3:
-        components.big_number_box(f"{tx_cookies:.2f}%", "Tx Perda de Cookies Hoje")
+        components.big_number_box(f"{tx_cookies:.2f}".replace(".", ",") + "%", "Tx Perda de Cookies Hoje")
 
     with col4:
-        components.big_number_box(f"{round(percentual_pago,2)}%", "% Pago")
+        components.big_number_box(f"{percentual_pago:.2f}".replace(".", ",") + "%", "% Pago")
     
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         # Exibe os dados da query_ads se houver resultado
         if not df_ads.empty and df_ads['Investimento'].sum() > 0:
-            components.big_number_box(f"R$ {round(df_ads['Investimento'].sum(),2):,}", "Investimento Total em Ads")
+            components.big_number_box(f"R$ {round(df_ads['Investimento'].sum(),2):,.2f}".replace(",", "."), "Investimento Total em Ads")
     with col2:
         # Exibe os dados da query_ads se houver resultado
         if not df_ads.empty and df_ads['Investimento'].sum() > 0:
-            components.big_number_box(f"{(df_ads['Investimento'].sum() / total_receita_paga) * 100:.2f}%", "TACoS")
+            components.big_number_box(f"{(df_ads['Investimento'].sum() / total_receita_paga) * 100:.2f}".replace(".", ",") + "%", "TACoS")
 
     # Filtra os dados para a plataforma google_ads
     if not df_ads.empty:
