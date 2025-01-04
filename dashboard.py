@@ -7,6 +7,7 @@ from filters import date_filters, traffic_filters
 from tabs.tab_general import display_tab_general
 from tabs.tab_last_orders import display_tab_last_orders
 from tabs.tab_paid_media import display_tab_paid_media
+from tabs.tab_settings import display_tab_settings
 from custom.gringa_product_submited import display_tab_gringa_product_submited
 
 def load_data(client, username, start_date_str, end_date_str):
@@ -59,10 +60,21 @@ def load_data(client, username, start_date_str, end_date_str):
     GROUP BY ALL
     """
 
+    query_whatsapp = f"""
+    SELECT
+        received_at `Data Cadastro`,
+        name `Nome`,
+        phone `Telefone`,
+        email `E-mail`
+    FROM `mymetric-hub-shopify.dbt_granular.{username}_whatsapp_widget`
+    ORDER BY received_at DESC
+    """
+
     queries = {
         "general": query_general,
         "cookies": query_cookies,
-        "ads": query_ads
+        "ads": query_ads,
+        "whatsapp": query_whatsapp
     }
 
     return queries
@@ -118,6 +130,8 @@ def create_tabs(username, df_ads, df_whatsapp):
     if username == "gringa":
         tabs.append("\U0001F381 Produtos Cadastrados")
 
+    tabs.append("\U0001F4E6 Configurações")
+
     return tabs
 
 def show_dashboard(client, username):
@@ -139,7 +153,7 @@ def show_dashboard(client, username):
             query_general['Cluster'] = query_general.apply(atribuir_cluster, axis=1)
 
             filters = process_filters(query_general)
-            tabs = create_tabs(username, results["ads"], results["cookies"])
+            tabs = create_tabs(username, results["ads"], results["whatsapp"])
 
             tab_list = st.tabs(tabs)
 
@@ -147,8 +161,7 @@ def show_dashboard(client, username):
             if "\U0001F441 Visão Geral" in tabs:
                 with tab_list[tabs.index("\U0001F441 Visão Geral")]:
                     tx_cookies = results["cookies"]["Taxa Perda de Cookies Hoje"].sum()*100
-
-                    display_tab_general(query_general, tx_cookies, results["ads"], username, **filters)
+                    display_tab_general(query_general, tx_cookies, results["ads"], username, start_date=start_date, end_date=end_date, **filters)
 
             if "\U0001F4B0 Mídia Paga" in tabs:
                 with tab_list[tabs.index("\U0001F4B0 Mídia Paga")]:
@@ -183,16 +196,9 @@ def show_dashboard(client, username):
 
             if "\U0001F4F1 WhatsApp Leads" in tabs:
                 with tab_list[tabs.index("\U0001F4F1 WhatsApp Leads")]:
-                    query_whatsapp = f"""
-                    SELECT
-                        received_at `Data Cadastro`,
-                        name `Nome`,
-                        phone `Telefone`,
-                        email `E-mail`
-                    FROM `mymetric-hub-shopify.dbt_granular.{username}_whatsapp_widget`
-                    ORDER BY received_at DESC
-                    """
-                    df_whatsapp = run_query(client, query_whatsapp)
+                    
+                    df_whatsapp = results["whatsapp"]
+
                     st.header("WhatsApp Leads")
                     st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
 
@@ -207,6 +213,10 @@ def show_dashboard(client, username):
             if "\U0001F381 Produtos Cadastrados" in tabs:
                 with tab_list[tabs.index("\U0001F381 Produtos Cadastrados")]:
                     display_tab_gringa_product_submited(client, start_date, end_date, **filters)
+
+            if "\U0001F4E6 Configurações" in tabs:
+                with tab_list[tabs.index("\U0001F4E6 Configurações")]:
+                    display_tab_settings(username)
 
         else:
             error_msg = f"❌ Erro: Não foi possível carregar os dados para {username}"

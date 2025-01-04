@@ -5,10 +5,15 @@ import pandas as pd
 from filters import date_filters, traffic_filters
 from helpers.components import send_discord_message
 from datetime import datetime, date
+from helpers.config import load_table_metas
+import calendar
 
-def display_tab_general(df, tx_cookies, df_ads, username,**filters):
-
-
+def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, **filters):
+    # Carregar as metas do usuário
+    metas = load_table_metas(username)
+    current_month = datetime.now().strftime("%Y-%m")
+    meta_receita = float(metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0))
+    
     df = traffic_filters(df, **filters)
 
     
@@ -30,6 +35,30 @@ def display_tab_general(df, tx_cookies, df_ads, username,**filters):
     percentual_pago = (total_receita_paga / total_receita_capturada) * 100
 
     st.header("Big Numbers")
+
+    # Add progress bar for meta only if we're looking at the current month
+    first_day_current_month = current_date.replace(day=1)
+    
+    # Check if the selected date range matches current month
+    is_current_month = (start_date == first_day_current_month and end_date == current_date)
+    
+    if meta_receita > 0 and is_current_month:
+        dias_passados = current_date.day
+        _, last_day = calendar.monthrange(current_date.year, current_date.month)
+        meta_proporcional = meta_receita * (dias_passados / last_day)
+        percentual_meta = (total_receita_paga / meta_proporcional) * 100 if meta_proporcional > 0 else 0
+        
+        st.markdown(f"""
+            <div style="margin-bottom: 20px;">
+                <p style="margin-bottom: 5px; color: #666;">Meta do Mês: R$ {meta_receita:,.2f}</p>
+                <div style="width: 100%; background-color: #f0f2f6; border-radius: 10px;">
+                    <div style="width: {min(percentual_meta, 100)}%; height: 20px; background-color: {'#28a745' if percentual_meta >= 100 else '#17a2b8'}; 
+                         border-radius: 10px; text-align: center; color: white; line-height: 20px;">
+                        {percentual_meta:.1f}%
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
         
@@ -57,8 +86,7 @@ def display_tab_general(df, tx_cookies, df_ads, username,**filters):
         components.big_number_box(f"{tx_cookies:.2f}".replace(".", ",") + "%", "Tx Perda de Cookies Hoje")
 
     with col4:
-        components.big_number_box(f"{percentual_pago:.2f}".replace(".", ",") + "%", "% Pago")
-    
+        components.big_number_box(f"{percentual_pago:.1f}%", "% Receita Paga/Capturada")
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:

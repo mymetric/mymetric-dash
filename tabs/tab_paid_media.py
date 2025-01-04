@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from helpers.components import send_discord_message, run_query, big_number_box
+from helpers.config import load_table_metas
+from datetime import datetime
 
 def execute_query(client, query):
     return run_query(client, query)
@@ -163,3 +165,8 @@ def display_tab_paid_media(client, table, df_ads, username):
         qa = execute_query(client, qa)
         st.write("As sessões a seguir vem de Meta Ads, porém, não estão no padrão de tagueamento.")
         st.data_editor(qa, hide_index=1, use_container_width=1)
+
+    # Carregar as metas do usuário
+    metas = load_table_metas(username)
+    current_month = datetime.now().strftime("%Y-%m")
+    meta_receita = float(metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0))

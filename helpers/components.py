@@ -9,13 +9,13 @@ def run_query(_client, query):
     rows = [dict(row) for row in rows_raw]
     return pd.DataFrame(rows)
 
-def big_number_box(data, label):
-        st.markdown(f"""
-            <div style="background-color:#C5EBC3;padding:20px;border-radius:10px;text-align:center;margin:5px">
-                <p style="color:#666;line-height:1">{label}</h3>
-                <p style="color:#666;line-height:1;font-size:38px;margin:0;">{data}</p>
-            </div>
-        """, unsafe_allow_html=True)
+def big_number_box(data, label, bg_color='#C5EBC3'):
+    st.markdown(f"""
+        <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px">
+            <p style="color:#666;line-height:1">{label}</h3>
+            <p style="color:#666;line-height:1;font-size:38px;margin:0;">{data}</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 def atribuir_cluster(row):
     if row['Origem'] == 'google' and row['Mídia'] == 'cpc':
