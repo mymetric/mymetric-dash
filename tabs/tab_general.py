@@ -80,6 +80,46 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
             </div>
         """, unsafe_allow_html=True)
 
+        # Adiciona explicação detalhada do Run Rate
+        with st.expander("ℹ️ Como o Run Rate é calculado?"):
+            st.markdown(f"""
+                ### Cálculo do Run Rate
+
+                O Run Rate é uma forma de avaliar se você está no caminho certo para atingir sua meta mensal, considerando o número de dias que já se passaram no mês.
+                
+                **Dados do cálculo atual:**
+                - Meta do mês: R$ {meta_receita:,.2f}
+                - Dias passados: {dias_passados} de {last_day} dias
+                - Proporção do mês: {(dias_passados/last_day*100):.1f}%
+                - Meta proporcional: R$ {meta_proporcional:,.2f}
+                - Receita realizada: R$ {total_receita_paga:,.2f}
+                - Percentual atingido: {percentual_meta:.1f}%
+
+                **Como interpretar:**
+                - Se o percentual for 100%, você está exatamente no ritmo para atingir a meta
+                - Acima de 100% significa que está acima do ritmo necessário
+                - Abaixo de 100% indica que precisa acelerar as vendas para atingir a meta
+
+                **Exemplo:**
+                Se sua meta é R$ 100.000 e já se passaram 15 dias de um mês com 30 dias:
+                1. Meta proporcional = R$ 100.000 × (15/30) = R$ 50.000
+                2. Se você faturou R$ 60.000, seu Run Rate é 120% (acima do necessário)
+                3. Se faturou R$ 40.000, seu Run Rate é 80% (precisa acelerar)
+            """)
+
+            # Adiciona projeção de fechamento
+            receita_projetada = total_receita_paga * (last_day / dias_passados)
+            st.markdown(f"""
+                ### Projeção de Fechamento
+
+                Mantendo o ritmo atual de vendas:
+                - Projeção de receita: R$ {receita_projetada:,.2f}
+                - Percentual da meta: {(receita_projetada/meta_receita*100):.1f}%
+                - {'🎯 Meta será atingida!' if receita_projetada >= meta_receita else '⚠️ Meta não será atingida no ritmo atual'}
+                
+                {f'Faltam R$ {(meta_receita - receita_projetada):,.2f} para atingir a meta no ritmo atual.' if receita_projetada < meta_receita else ''}
+            """)
+
     st.header("Big Numbers")
     col1, col2, col3, col4 = st.columns(4)
         
