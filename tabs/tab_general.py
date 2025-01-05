@@ -15,7 +15,6 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     meta_receita = float(metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0))
     
     df = traffic_filters(df, **filters)
-
     
     current_date = date.today()
     if current_date <= date(2025, 1, 15):
@@ -25,6 +24,27 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                 <p style="color:#666; margin:10px 0 0 0">Que este ano seja repleto de insights valiosos e métricas positivas. Boas análises! 📊</p>
             </div>
         """.format(username=username.upper()), unsafe_allow_html=True)
+
+    # Verifica se já mostrou o aviso para este usuário nesta sessão
+    if 'showed_meta_notice' not in st.session_state:
+        st.session_state.showed_meta_notice = False
+
+    if not st.session_state.showed_meta_notice and meta_receita == 0:
+        st.info("""
+        ### 🎯 Configure suas Metas de Faturamento!
+        
+        Agora você pode definir e acompanhar suas metas mensais de receita.
+        
+        Para começar:
+        1. Acesse a aba "⚙️ Configurações"
+        2. Defina sua meta mensal
+        3. Acompanhe o progresso aqui na aba "Visão Geral"
+        
+        Comece agora mesmo a trackear seus objetivos! 📈
+        """)
+        if st.button("Entendi!", type="primary"):
+            st.session_state.showed_meta_notice = True
+            st.rerun()
 
     sessoes = df["Sessões"].sum()
     pedidos = df["Pedidos"].sum()
