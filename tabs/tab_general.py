@@ -49,10 +49,10 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     sessoes = df["Sessões"].sum()
     pedidos = df["Pedidos"].sum()
     pedidos_pagos = df["Pedidos Pagos"].sum()
-    tx_conv = (df["Pedidos"].sum()/df["Sessões"].sum())*100
+    tx_conv = (df["Pedidos"].sum()/df["Sessões"].sum())*100 if df["Sessões"].sum() > 0 else 0
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
-    percentual_pago = (total_receita_paga / total_receita_capturada) * 100
+    percentual_pago = (total_receita_paga / total_receita_capturada) * 100 if total_receita_capturada > 0 else 0
 
     # Add progress bar for meta only if we're looking at the current month
     first_day_current_month = current_date.replace(day=1)
@@ -190,10 +190,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                     hint="Percentual de cliques do Meta Ads que foram corretamente atribuídos como sessões. Ideal manter acima de 80%"
                 )
 
-
     st.markdown("---")
-
-
 
     df['Data'] = pd.to_datetime(df['Data']).dt.date  # Converte para apenas a data (sem horas)
     df_grouped = df.groupby('Data').agg({'Sessões': 'sum', 'Receita Paga': 'sum'}).reset_index()
@@ -256,50 +253,97 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
         </div>
     """, unsafe_allow_html=True)
 
-
-
-
-
-
-    aggregated_df = df.groupby(['Cluster']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Pedidos Pagos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
-    aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
-    aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
-
+    # Tabela de Cluster de Origens
     st.header("Cluster de Origens")
     st.write("Modelo de atribuição padrão: último clique não direto.")
-    st.data_editor(aggregated_df, hide_index=1, use_container_width=1)
-
-
-    aggregated_df = df.groupby(['Origem', 'Mídia']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Pedidos Pagos': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    
+    aggregated_df = df.groupby(['Cluster']).agg({
+        'Sessões': 'sum', 
+        'Pedidos': 'sum', 
+        'Pedidos Primeiro Clique': 'sum', 
+        'Pedidos Pagos': 'sum', 
+        'Receita': 'sum', 
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Adiciona coluna de taxa de conversão
+    aggregated_df['Tx Conversão'] = (aggregated_df['Pedidos'] / aggregated_df['Sessões'] * 100).round(2).astype(str) + '%'
     aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
-
-    st.header("Origem e Mídia")
+    
     st.data_editor(aggregated_df, hide_index=1, use_container_width=1)
 
-    # Agrega os dados por Campanha
-    campaigns = df.groupby(['Campanha']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
+    # Tabela de Origem e Mídia
+    st.header("Origem e Mídia")
+    
+    aggregated_df = df.groupby(['Origem', 'Mídia']).agg({
+        'Sessões': 'sum', 
+        'Pedidos': 'sum', 
+        'Pedidos Primeiro Clique': 'sum', 
+        'Pedidos Pagos': 'sum', 
+        'Receita': 'sum', 
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Adiciona coluna de taxa de conversão
+    aggregated_df['Tx Conversão'] = (aggregated_df['Pedidos'] / aggregated_df['Sessões'] * 100).round(2).astype(str) + '%'
+    aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
+    
+    st.data_editor(aggregated_df, hide_index=1, use_container_width=1)
+
+    # Tabela de Campanhas
+    st.header("Campanhas")
+    
+    campaigns = df.groupby(['Campanha']).agg({
+        'Sessões': 'sum', 
+        'Pedidos': 'sum', 
+        'Pedidos Primeiro Clique': 'sum', 
+        'Receita': 'sum', 
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Adiciona coluna de taxa de conversão
+    campaigns['Tx Conversão'] = (campaigns['Pedidos'] / campaigns['Sessões'] * 100).round(2).astype(str) + '%'
     campaigns['% Receita'] = ((campaigns['Receita'] / campaigns['Receita'].sum()) * 100).round(2).astype(str) + '%'
     campaigns = campaigns.sort_values(by='Pedidos', ascending=False)
-
-    st.header("Campanhas")
+    
     st.data_editor(campaigns, hide_index=1, use_container_width=1)
 
-    # Agrega os dados por Conteúdo
-    conteudo = df.groupby(['Conteúdo']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
-    conteudo['% Receita'] = ((conteudo['Receita'] / conteudo['Receita'].sum()) * 100).round(2).astype(str) + '%'
-    conteudo = conteudo.sort_values(by='Pedidos', ascending=False)
-
+    # Tabela de Conteúdo
     st.header("Conteúdo")
     st.write("Valor do utm_content.")
+    
+    conteudo = df.groupby(['Conteúdo']).agg({
+        'Sessões': 'sum', 
+        'Pedidos': 'sum', 
+        'Pedidos Primeiro Clique': 'sum', 
+        'Receita': 'sum', 
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Adiciona coluna de taxa de conversão
+    conteudo['Tx Conversão'] = (conteudo['Pedidos'] / conteudo['Sessões'] * 100).round(2).astype(str) + '%'
+    conteudo['% Receita'] = ((conteudo['Receita'] / conteudo['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    conteudo = conteudo.sort_values(by='Pedidos', ascending=False)
+    
     st.data_editor(conteudo, hide_index=1, use_container_width=1)
 
-
-    # Agrega os dados por Página de Entrada
-    pagina_de_entrada = df.groupby(['Página de Entrada']).agg({'Sessões': 'sum', 'Pedidos': 'sum', 'Pedidos Primeiro Clique': 'sum', 'Receita': 'sum', 'Receita Paga': 'sum'}).reset_index()
-    pagina_de_entrada['% Receita'] = ((pagina_de_entrada['Receita'] / pagina_de_entrada['Receita'].sum()) * 100).round(2).astype(str) + '%'
-    pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
-
+    # Tabela de Página de Entrada
     st.header("Página de Entrada")
     st.write("Página por onde o usuário iniciou a sessão")
+    
+    pagina_de_entrada = df.groupby(['Página de Entrada']).agg({
+        'Sessões': 'sum', 
+        'Pedidos': 'sum', 
+        'Pedidos Primeiro Clique': 'sum', 
+        'Receita': 'sum', 
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Adiciona coluna de taxa de conversão
+    pagina_de_entrada['Tx Conversão'] = (pagina_de_entrada['Pedidos'] / pagina_de_entrada['Sessões'] * 100).round(2).astype(str) + '%'
+    pagina_de_entrada['% Receita'] = ((pagina_de_entrada['Receita'] / pagina_de_entrada['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
+    
     st.data_editor(pagina_de_entrada, hide_index=1, use_container_width=1)

@@ -2,6 +2,7 @@ import streamlit as st
 from helpers.config import save_table_metas, load_table_metas
 from datetime import datetime
 import pandas as pd
+from helpers.components import send_discord_message
 
 def display_tab_settings(table):
     st.header("Configurações")
@@ -51,4 +52,9 @@ def display_tab_settings(table):
         
         save_table_metas(table, current_metas)
         st.success("Meta salva com sucesso!")
+
+        # Envia mensagem para o Discord
+        mes_formatado = pd.to_datetime(selected_month).strftime("%B/%Y").capitalize()
+        send_discord_message(f"Usuário **{table}** cadastrou meta de R$ {meta_receita_paga:,.2f} para {mes_formatado}.")
+        
         st.rerun()
