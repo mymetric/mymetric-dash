@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import timedelta
+from datetime import timedelta, date, datetime
 from concurrent.futures import ThreadPoolExecutor
 from helpers.components import atribuir_cluster, send_discord_message, run_query
 from filters import date_filters, traffic_filters
@@ -9,6 +9,8 @@ from tabs.tab_last_orders import display_tab_last_orders
 from tabs.tab_paid_media import display_tab_paid_media
 from tabs.tab_settings import display_tab_settings
 from custom.gringa_product_submited import display_tab_gringa_product_submited
+from tabs.tab_today import display_tab_today
+from helpers.config import load_table_metas
 
 def load_data(client, username, start_date_str, end_date_str):
     table = username
@@ -16,6 +18,7 @@ def load_data(client, username, start_date_str, end_date_str):
     query_general = f"""
     SELECT
         event_date AS Data,
+        extract(hour from created_at) as Hora,
         source Origem,
         medium `Mídia`, 
         campaign Campanha,
@@ -33,6 +36,31 @@ def load_data(client, username, start_date_str, end_date_str):
     WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
     GROUP BY ALL
     ORDER BY Pedidos DESC
+    """
+
+    # Query específica para dados de hoje
+    today_str = date.today().strftime('%Y-%m-%d')
+    query_today = f"""
+    SELECT
+        event_date AS Data,
+        extract(hour from created_at) as Hora,
+        source Origem,
+        medium `Mídia`, 
+        campaign Campanha,
+        page_location `Página de Entrada`,
+        content `Conteúdo`,
+
+        COUNTIF(event_name = 'session') `Sessões`,
+        COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
+        SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
+        COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
+        SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) `Receita Paga`,
+        COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
+
+    FROM `mymetric-hub-shopify.dbt_join.{table}_events_long`
+    WHERE event_date = '{today_str}'
+    GROUP BY ALL
+    ORDER BY Hora ASC
     """
 
     query_cookies = f"""
@@ -72,6 +100,7 @@ def load_data(client, username, start_date_str, end_date_str):
 
     queries = {
         "general": query_general,
+        "today": query_today,
         "cookies": query_cookies,
         "ads": query_ads,
         "whatsapp": query_whatsapp
@@ -118,11 +147,13 @@ def process_filters(query_general):
         "pagina_de_entrada_selected": pagina_de_entrada_selected
     }
 
-def create_tabs(username, df_ads, df_whatsapp):
-    tabs = ["\U0001F441 Visão Geral", "\U0001F6D2 Últimos Pedidos"]
+def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
+    tabs = ["\U0001F441 Visão Geral", "📊 Análise do Dia"]
+    
+    tabs.append("\U0001F6D2 Últimos Pedidos")
 
     if df_ads is not None and not df_ads.empty:
-        tabs.insert(1, "\U0001F4B0 Mídia Paga")
+        tabs.insert(len(tabs)-1, "\U0001F4B0 Mídia Paga")
 
     if df_whatsapp is not None and not df_whatsapp.empty:
         tabs.append("\U0001F4F1 WhatsApp Leads")
@@ -153,9 +184,14 @@ def show_dashboard(client, username):
             query_general['Cluster'] = query_general.apply(atribuir_cluster, axis=1)
 
             filters = process_filters(query_general)
-            tabs = create_tabs(username, results["ads"], results["whatsapp"])
+            tabs = create_tabs(username, results["ads"], results["whatsapp"], start_date, end_date)
 
             tab_list = st.tabs(tabs)
+
+            # Carrega as metas do usuário para usar em várias abas
+            metas = load_table_metas(username)
+            current_month = datetime.now().strftime("%Y-%m")
+            meta_receita = float(metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0))
 
             # Exemplo de uso das abas
             if "\U0001F441 Visão Geral" in tabs:
@@ -165,6 +201,14 @@ def show_dashboard(client, username):
 
                     if tx_cookies > 10:
                         send_discord_message(f"Usuário **{username}** com Taxa de Perda de Cookies alta: {tx_cookies:.2f}%. Ideal manter abaixo de 30%.")
+
+            # Aba de Análise do Dia
+            if "📊 Análise do Dia" in tabs:
+                with tab_list[tabs.index("📊 Análise do Dia")]:
+                    # Usa os dados da query específica de hoje
+                    df_today = results["today"]
+                    df_today['Cluster'] = df_today.apply(atribuir_cluster, axis=1)
+                    display_tab_today(df_today, results["ads"], username, meta_receita)
 
             if "\U0001F4B0 Mídia Paga" in tabs:
                 with tab_list[tabs.index("\U0001F4B0 Mídia Paga")]:
@@ -199,12 +243,9 @@ def show_dashboard(client, username):
 
             if "\U0001F4F1 WhatsApp Leads" in tabs:
                 with tab_list[tabs.index("\U0001F4F1 WhatsApp Leads")]:
-                    
                     df_whatsapp = results["whatsapp"]
-
                     st.header("WhatsApp Leads")
                     st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
-
                     csv = df_whatsapp.to_csv(index=False)
                     st.download_button(
                         label="Exportar para CSV",

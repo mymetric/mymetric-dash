@@ -25,25 +25,64 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
             </div>
         """.format(username=username.upper()), unsafe_allow_html=True)
 
-    # Verifica se já mostrou o aviso para este usuário nesta sessão
+    # Verifica se já mostrou os avisos para este usuário nesta sessão
     if 'showed_meta_notice' not in st.session_state:
         st.session_state.showed_meta_notice = False
+    if 'showed_today_notice' not in st.session_state:
+        st.session_state.showed_today_notice = False
 
     if not st.session_state.showed_meta_notice and meta_receita == 0:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.info("""
+            ### 🎯 Configure suas Metas de Faturamento!
+            
+            Agora você pode definir e acompanhar suas metas mensais de receita.
+            
+            Para começar:
+            1. Acesse a aba "⚙️ Configurações"
+            2. Defina sua meta mensal
+            3. Acompanhe o progresso aqui na aba "Visão Geral"
+            
+            Comece agora mesmo a trackear seus objetivos! 📈
+            """)
+            if st.button("Entendi!", key="meta_notice", type="primary"):
+                st.session_state.showed_meta_notice = True
+                st.rerun()
+
+        with col2:
+            st.info("""
+            ### 📊 Nova Aba de Análise do Dia!
+            
+            Agora você pode acompanhar suas métricas em tempo real na aba "Análise do Dia".
+            
+            Recursos disponíveis:
+            - Acompanhamento hora a hora
+            - Comparação com dias anteriores
+            - Acompanhamento de meta diária
+            
+            Confira agora mesmo! 🚀
+            """)
+            if st.button("Entendi!", key="today_notice", type="primary"):
+                st.session_state.showed_today_notice = True
+                st.rerun()
+
+    elif not st.session_state.showed_today_notice:
         st.info("""
-        ### 🎯 Configure suas Metas de Faturamento!
+        ### 📊 Nova Aba de Análise do Dia!
         
-        Agora você pode definir e acompanhar suas metas mensais de receita.
+        Agora você pode acompanhar suas métricas em tempo real na aba "Análise do Dia".
         
-        Para começar:
-        1. Acesse a aba "⚙️ Configurações"
-        2. Defina sua meta mensal
-        3. Acompanhe o progresso aqui na aba "Visão Geral"
+        Recursos disponíveis:
+        - Acompanhamento hora a hora
+        - Comparação com dias anteriores
+        - Principais fontes de tráfego do dia
         
-        Comece agora mesmo a trackear seus objetivos! 📈
+        Confira agora mesmo! 🚀
         """)
-        if st.button("Entendi!", type="primary"):
-            st.session_state.showed_meta_notice = True
+        if st.button("Entendi!", key="today_notice", type="primary"):
+            st.session_state.showed_today_notice = True
             st.rerun()
 
     sessoes = df["Sessões"].sum()
