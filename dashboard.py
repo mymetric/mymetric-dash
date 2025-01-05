@@ -163,6 +163,9 @@ def show_dashboard(client, username):
                     tx_cookies = results["cookies"]["Taxa Perda de Cookies Hoje"].sum()*100
                     display_tab_general(query_general, tx_cookies, results["ads"], username, start_date=start_date, end_date=end_date, **filters)
 
+                    if tx_cookies > 10:
+                        send_discord_message(f"Usuário **{username}** com Taxa de Perda de Cookies alta: {tx_cookies:.2f}%. Ideal manter abaixo de 30%.")
+
             if "\U0001F4B0 Mídia Paga" in tabs:
                 with tab_list[tabs.index("\U0001F4B0 Mídia Paga")]:
                     display_tab_paid_media(client, username, results["ads"], username)

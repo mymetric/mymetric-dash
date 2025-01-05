@@ -84,40 +84,80 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     col1, col2, col3, col4 = st.columns(4)
         
     with col1:
-        components.big_number_box(f"{pedidos:,.0f}".replace(",", "."), "Pedidos Capturados")
+        components.big_number_box(
+            f"{pedidos:,.0f}".replace(",", "."), 
+            "Pedidos Capturados",
+            hint="Total de pedidos registrados no período, incluindo pagos e não pagos"
+        )
     
     with col2:
-        components.big_number_box(f"{pedidos_pagos:,.0f}".replace(",", "."), "Pedidos Pagos")
+        components.big_number_box(
+            f"{pedidos_pagos:,.0f}".replace(",", "."), 
+            "Pedidos Pagos",
+            hint="Total de pedidos que foram efetivamente pagos no período"
+        )
 
     with col3:
-        components.big_number_box(f"R$ {total_receita_capturada:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Receita Capturada")
+        components.big_number_box(
+            f"R$ {total_receita_capturada:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Receita Capturada",
+            hint="Valor total dos pedidos capturados, incluindo pagos e não pagos"
+        )
 
     with col4:
-        components.big_number_box(f"R$ {total_receita_paga:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Receita Paga")
+        components.big_number_box(
+            f"R$ {total_receita_paga:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Receita Paga",
+            hint="Valor total dos pedidos que foram efetivamente pagos"
+        )
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        components.big_number_box(f"{sessoes:,.0f}".replace(",", "."), "Sessões")
+        components.big_number_box(
+            f"{sessoes:,.0f}".replace(",", "."), 
+            "Sessões",
+            hint="Número total de visitas ao site no período selecionado"
+        )
 
     with col2:
-        components.big_number_box(f"{tx_conv:.2f}".replace(".", ",") + "%", "Tx Conversão")
+        components.big_number_box(
+            f"{tx_conv:.2f}".replace(".", ",") + "%", 
+            "Tx Conversão",
+            hint="Percentual de sessões que resultaram em pedidos (Pedidos/Sessões)"
+        )
 
     with col3:
-        components.big_number_box(f"{tx_cookies:.2f}".replace(".", ",") + "%", "Tx Perda de Cookies Hoje")
+        components.big_number_box(
+            f"{tx_cookies:.2f}".replace(".", ",") + "%", 
+            "Tx Perda de Cookies Hoje",
+            hint="Percentual de sessões sem identificação de origem devido à perda de cookies. Ideal manter abaixo de 10%"
+        )
 
     with col4:
-        components.big_number_box(f"{percentual_pago:.1f}%", "% Receita Paga/Capturada")
+        components.big_number_box(
+            f"{percentual_pago:.1f}%", 
+            "% Receita Paga/Capturada",
+            hint="Percentual da receita total capturada que foi efetivamente paga"
+        )
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         # Exibe os dados da query_ads se houver resultado
         if not df_ads.empty and df_ads['Investimento'].sum() > 0:
-            components.big_number_box(f"R$ {round(df_ads['Investimento'].sum(),2):,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Investimento Total em Ads")
+            components.big_number_box(
+                f"R$ {round(df_ads['Investimento'].sum(),2):,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+                "Investimento Total em Ads",
+                hint="Soma do investimento em todas as plataformas de mídia paga (Google Ads + Meta Ads)"
+            )
     with col2:
         # Exibe os dados da query_ads se houver resultado
         if not df_ads.empty and df_ads['Investimento'].sum() > 0:
-            components.big_number_box(f"{(df_ads['Investimento'].sum() / total_receita_paga) * 100:.2f}".replace(".", ",") + "%", "TACoS")
+            components.big_number_box(
+                f"{(df_ads['Investimento'].sum() / total_receita_paga) * 100:.2f}".replace(".", ",") + "%", 
+                "TACoS",
+                hint="Total Advertising Cost of Sales - Percentual do faturamento gasto em publicidade"
+            )
 
     # Filtra os dados para a plataforma google_ads
     if not df_ads.empty:
@@ -129,11 +169,10 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
             with col3:
                 gads_connect_rate = df[df['Cluster'] == "🟢 Google Ads"]["Sessões"].sum()/df_ads[df_ads['Plataforma'] =="google_ads"]["Cliques"].sum()*100
                 components.big_number_box(
-                    f"R$ {round(df_google_ads['Investimento'].sum(), 2):,}".replace(",", "*").replace(".", ",").replace("*", "."), 
-                    "Investimento em Google Ads"
+                    f"{gads_connect_rate:.1f}%", 
+                    "Connect Rate Google Ads",
+                    hint="Percentual de cliques do Google Ads que foram corretamente atribuídos como sessões. Ideal manter acima de 80%"
                 )
-
-                components.big_number_box(f"{gads_connect_rate:.1f}%", "Connect Rate Google Ads")
 
         # Exibe o investimento total em Ads apenas se houver dados para google_ads
         if not df_meta_ads.empty and df_meta_ads['Investimento'].sum() > 0:
@@ -146,14 +185,10 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                 # Formata e exibe o investimento em Meta Ads
                 meta_ads_investment = round(df_meta_ads['Investimento'].sum(), 2)
                 components.big_number_box(
-                    f"R$ {meta_ads_investment:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-                    "Investimento em Meta Ads"
+                    f"{mads_connect_rate:.1f}%", 
+                    "Connect Rate Meta Ads",
+                    hint="Percentual de cliques do Meta Ads que foram corretamente atribuídos como sessões. Ideal manter acima de 80%"
                 )
-
-                
-                if mads_connect_rate < 80:
-                    send_discord_message(f"Usuário **{username}** com Connect Rate do Meta Ads abaixo do esperado: {mads_connect_rate:.2f}%.")
-                components.big_number_box(f"{mads_connect_rate:.1f}%", "Connect Rate Meta Ads")
 
 
     st.markdown("---")
@@ -182,8 +217,8 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
 
     # Combine os dois gráficos (linha e barras) com dois eixos Y e interatividade
     combined_chart = alt.layer(
-        line_sessions,
-        bar_receita
+        bar_receita,
+        line_sessions
     ).resolve_scale(
         y='independent'  # Escalas independentes para as duas métricas
     ).add_selection(
@@ -206,6 +241,20 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
 
     # Exibe o gráfico no Streamlit
     st.altair_chart(combined_chart, use_container_width=True)
+
+    # Adiciona legenda manual com HTML/CSS abaixo do gráfico
+    st.markdown("""
+        <div style="display: flex; justify-content: center; gap: 20px; margin-top: -20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 3px; background-color: #D1B1C8;"></div>
+                <span>Sessões</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 15px; background-color: #C5EBC3;"></div>
+                <span>Receita Paga</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 
 

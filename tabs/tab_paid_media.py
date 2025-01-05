@@ -31,15 +31,15 @@ def display_tab_paid_media(client, table, df_ads, username):
 
     df_grouped = df_ads.groupby('Data').agg({'Receita': 'sum', 'Investimento': 'sum'}).reset_index()
 
-    # Cria o gráfico de Sessões com a cor #D1B1C8
-    line_sessions = alt.Chart(df_grouped).mark_line(color='#D1B1C8', strokeWidth=3).encode(
+    # Cria o gráfico de Receita com a cor #D1B1C8 (roxo)
+    line_receita = alt.Chart(df_grouped).mark_line(color='#D1B1C8', strokeWidth=3).encode(
         x=alt.X('Data:T', title='Data'),
         y=alt.Y('Receita:Q', axis=alt.Axis(title='Receita')),
         tooltip=['Data', 'Receita']
     )
 
-    # Cria o gráfico de Receita Paga com a cor #C5EBC3 e barras estilosas
-    bar_receita = alt.Chart(df_grouped).mark_bar(color='#C5EBC3', size=25).encode(
+    # Cria o gráfico de Investimento com a cor #C5EBC3 (verde)
+    bar_investimento = alt.Chart(df_grouped).mark_bar(color='#C5EBC3', size=25).encode(
         x=alt.X('Data:T', title='Data'),
         y=alt.Y('Investimento:Q', axis=alt.Axis(title='Investimento')),
         tooltip=['Data', 'Investimento']
@@ -50,8 +50,8 @@ def display_tab_paid_media(client, table, df_ads, username):
 
     # Combine os dois gráficos (linha e barras) com dois eixos Y e interatividade
     combined_chart = alt.layer(
-        line_sessions,
-        bar_receita
+        bar_investimento,
+        line_receita
     ).resolve_scale(
         y='independent'  # Escalas independentes para as duas métricas
     ).add_selection(
@@ -75,10 +75,19 @@ def display_tab_paid_media(client, table, df_ads, username):
     # Exibe o gráfico no Streamlit
     st.altair_chart(combined_chart, use_container_width=True)
 
-
-
-
-
+    # Adiciona legenda manual com HTML/CSS abaixo do gráfico
+    st.markdown("""
+        <div style="display: flex; justify-content: center; gap: 20px; margin-top: -20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 3px; background-color: #D1B1C8;"></div>
+                <span>Receita</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 15px; background-color: #C5EBC3;"></div>
+                <span>Investimento</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Group by platform and campaign, aggregating relevant metrics
     df_ads_agg = df_ads.groupby(['Plataforma', 'Campanha']).agg({
@@ -103,16 +112,32 @@ def display_tab_paid_media(client, table, df_ads, username):
     col1, col2, col3, col4 = st.columns(4)
         
     with col1:
-        big_number_box(f"R$ {df_ads_agg['Investimento'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Investimento")
+        big_number_box(
+            f"R$ {df_ads_agg['Investimento'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Investimento",
+            hint="Total investido em mídia paga no período selecionado (Google Ads + Meta Ads)"
+        )
     
     with col2:
-        big_number_box(f"R$ {df_ads_agg['Receita'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "Receita")
+        big_number_box(
+            f"R$ {df_ads_agg['Receita'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Receita",
+            hint="Receita total gerada por mídia paga no período selecionado"
+        )
         
     with col3:
-        big_number_box(f"{df_ads_agg['Receita'].sum()/df_ads_agg['Investimento'].sum():,.2f}".replace(".", ","), "ROAS")
+        big_number_box(
+            f"{df_ads_agg['Receita'].sum()/df_ads_agg['Investimento'].sum():,.2f}".replace(".", ","), 
+            "ROAS",
+            hint="Return On Ad Spend - Retorno sobre o investimento em anúncios (Receita/Investimento). Exemplo: ROAS 3 significa que para cada R$1 investido, retornou R$3 em vendas"
+        )
 
     with col4:
-        big_number_box(f"R$ {df_ads_agg['CPV'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), "CPV")
+        big_number_box(
+            f"R$ {df_ads_agg['CPV'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "CPV",
+            hint="Custo Por Venda - Valor médio gasto em anúncios para conseguir uma venda (Investimento/Transações)"
+        )
 
     st.markdown("---")
 
