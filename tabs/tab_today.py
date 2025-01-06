@@ -5,17 +5,114 @@ from datetime import datetime
 from helpers.components import big_number_box
 import calendar
 
+def calculate_daily_goal(meta_receita, total_receita_mes):
+    """Calcula a meta diária considerando apenas o valor que falta para bater a meta do mês."""
+    hoje = datetime.now()
+    _, ultimo_dia = calendar.monthrange(hoje.year, hoje.month)
+    dias_restantes = ultimo_dia - hoje.day + 1  # +1 para incluir o dia atual
+    
+    # Calcula quanto falta para atingir a meta
+    valor_faltante = meta_receita - total_receita_mes
+    if valor_faltante <= 0:
+        return 0, 0, 0
+        
+    # Calcula a meta diária baseada apenas no valor faltante
+    meta_diaria = valor_faltante / dias_restantes if dias_restantes > 0 else 0
+    
+    return meta_diaria, valor_faltante, dias_restantes
+
+def format_currency(value):
+    """Formata valor para o padrão de moeda BR."""
+    return f"R$ {value:,.2f}".replace(",", "*").replace(".", ",").replace("*", ".")
+
+def create_progress_bar(current, target, color="#C5EBC3"):
+    """Cria uma barra de progresso estilizada."""
+    progress = min(100, (current / target * 100)) if target > 0 else 0
+    return f"""
+        <div style="margin: 10px 0;">
+            <div style="
+                width: 100%;
+                background-color: #f0f2f6;
+                border-radius: 10px;
+                padding: 3px;
+            ">
+                <div style="
+                    width: {progress}%;
+                    height: 24px;
+                    background-color: {color};
+                    border-radius: 8px;
+                    transition: width 500ms;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #31333F;
+                    font-weight: bold;
+                ">
+                    {progress:.1f}%
+                </div>
+            </div>
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                margin-top: 5px;
+                color: #31333F;
+                font-size: 14px;
+            ">
+                <span>Meta Diária: {format_currency(target)}</span>
+                <span>Faturado Hoje: {format_currency(current)}</span>
+            </div>
+        </div>
+    """
+
 def display_tab_today(df, df_ads, username, meta_receita):
     st.header("Análise do Dia")
     
-    # Calcular métricas totais
+    # Calcular métricas totais do dia
     sessoes = df["Sessões"].sum()
     pedidos = df["Pedidos"].sum()
     pedidos_pagos = df["Pedidos Pagos"].sum()
-    total_receita_paga = df["Receita Paga"].sum()
+    total_receita_dia = df["Receita Paga"].sum()
     
     # Pegar hora atual
     hora_atual = datetime.now().hour
+    
+    # Buscar total do mês
+    hoje = datetime.now()
+    primeiro_dia = hoje.replace(day=1).strftime('%Y-%m-%d')
+    ultimo_dia = hoje.strftime('%Y-%m-%d')
+    
+    query_mes = f"""
+    SELECT SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) as total_mes
+    FROM `mymetric-hub-shopify.dbt_join.{username}_events_long`
+    WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
+    """
+    
+    # Executar a query para buscar o total do mês
+    from google.cloud import bigquery
+    from google.oauth2 import service_account
+    
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"]
+    )
+    client = bigquery.Client(credentials=credentials)
+    
+    df_mes = client.query(query_mes).to_dataframe()
+    total_receita_mes = float(df_mes['total_mes'].iloc[0])
+    
+    # Calcula a meta diária e informações relacionadas
+    meta_diaria, valor_faltante, dias_restantes = calculate_daily_goal(meta_receita, total_receita_mes)
+    
+    # Exibe informações sobre a meta no topo
+    if meta_receita > 0:
+        st.markdown(f"""
+        <div style='background-color: #F0F2F6; padding: 20px; border-radius: 10px; margin: 10px 0;'>
+            <h3 style='margin-top: 0; color: #31333F;'>🎯 Meta Diária</h3>
+            <p style='margin: 5px 0; color: #31333F;'>
+                Para bater a meta do mês de {format_currency(meta_receita)}, você precisa faturar {format_currency(meta_diaria)} por dia nos próximos {dias_restantes} dias
+            </p>
+            {create_progress_bar(total_receita_dia, meta_diaria)}
+        </div>
+        """, unsafe_allow_html=True)
     
     # Agrupa por hora
     df_hora = df.groupby('Hora').agg({
@@ -42,7 +139,7 @@ def display_tab_today(df, df_ads, username, meta_receita):
     
     # Projeção para o final do dia
     horas_restantes = 24 - hora_atual
-    projecao_receita = total_receita_paga + (media_receita_hora * horas_restantes)
+    projecao_receita = total_receita_dia + (media_receita_hora * horas_restantes)
     projecao_pedidos = pedidos + (media_pedidos_hora * horas_restantes)
     projecao_sessoes = sessoes + (media_sessoes_hora * horas_restantes)
     
@@ -51,9 +148,9 @@ def display_tab_today(df, df_ads, username, meta_receita):
     
     with col1:
         big_number_box(
-            f"R$ {projecao_receita:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            format_currency(projecao_receita),
             "Projeção de Receita",
-            hint=f"Projeção baseada na média de R$ {media_receita_hora:,.2f} por hora. Faltam {horas_restantes}h para o fim do dia."
+            hint=f"Projeção baseada na média de {format_currency(media_receita_hora)} por hora. Faltam {horas_restantes}h para o fim do dia."
         )
         
     with col2:
@@ -129,7 +226,7 @@ def display_tab_today(df, df_ads, username, meta_receita):
         # Adicionar tabela com dados por hora
         df_hora_display = df_hora.copy()
         for col in ['Receita Paga', 'Receita Acumulada']:
-            df_hora_display[col] = df_hora_display[col].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+            df_hora_display[col] = df_hora_display[col].apply(format_currency)
         
         # Adicionar % do total
         df_hora_display['% do Total'] = (df_hora['Receita Paga'] / df_hora['Receita Paga'].sum() * 100).round(2).astype(str) + '%'
@@ -142,26 +239,22 @@ def display_tab_today(df, df_ads, username, meta_receita):
         st.subheader("Insights")
         # Melhor hora
         melhor_hora = df_hora.loc[df_hora['Receita Paga'].idxmax()]
-        st.success(f"🌟 Melhor hora do dia: {int(melhor_hora['Hora'])}h com R$ {melhor_hora['Receita Paga']:,.2f} em receita e {int(melhor_hora['Pedidos'])} pedidos")
+        st.success(f"🌟 Melhor hora do dia: {int(melhor_hora['Hora'])}h com {format_currency(melhor_hora['Receita Paga'])} em receita e {int(melhor_hora['Pedidos'])} pedidos")
         
         # Média por hora
-        st.info(f"📊 Média por hora até agora: R$ {media_receita_hora:,.2f} em receita e {media_pedidos_hora:.1f} pedidos")
+        st.info(f"📊 Média por hora até agora: {format_currency(media_receita_hora)} em receita e {media_pedidos_hora:.1f} pedidos")
         
         # Ritmo necessário
         if meta_receita > 0:
-            # Pega o último dia do mês atual
-            _, ultimo_dia = calendar.monthrange(datetime.now().year, datetime.now().month)
-            # Calcula a meta diária
-            meta_diaria = meta_receita / ultimo_dia
             # Calcula o ritmo necessário por hora para o resto do dia
-            ritmo_hora = (meta_diaria - total_receita_paga) / horas_restantes if horas_restantes > 0 else 0
+            ritmo_hora = (meta_diaria - total_receita_dia) / horas_restantes if horas_restantes > 0 else 0
             
             st.warning(f"""
             🎯 **Metas e Ritmos:**
-            - Meta diária: R$ {meta_diaria:,.2f}
-            - Faturado hoje: R$ {total_receita_paga:,.2f}
-            - Falta hoje: R$ {(meta_diaria - total_receita_paga):,.2f}
-            - Ritmo necessário: R$ {ritmo_hora:,.2f}/hora para as próximas {horas_restantes}h
+            - Meta diária: {format_currency(meta_diaria)}
+            - Faturado hoje: {format_currency(total_receita_dia)}
+            - Falta hoje: {format_currency(meta_diaria - total_receita_dia)}
+            - Ritmo necessário: {format_currency(ritmo_hora)}/hora para as próximas {horas_restantes}h
             """)
         
         # Comparação com média
@@ -193,8 +286,8 @@ def display_tab_today(df, df_ads, username, meta_receita):
     df_origem['Ticket Médio'] = (df_origem['Receita Paga'] / df_origem['Pedidos Pagos']).round(2)
     
     # Formata as colunas numéricas
-    df_origem['Receita Paga'] = df_origem['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-    df_origem['Ticket Médio'] = df_origem['Ticket Médio'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    df_origem['Receita Paga'] = df_origem['Receita Paga'].apply(format_currency)
+    df_origem['Ticket Médio'] = df_origem['Ticket Médio'].apply(format_currency)
     df_origem['Tx Conversão'] = df_origem['Tx Conversão'].astype(str) + '%'
     df_origem['% Receita'] = df_origem['% Receita'].astype(str) + '%'
     
