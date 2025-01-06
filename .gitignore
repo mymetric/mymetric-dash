@@ -167,3 +167,28 @@ cython_debug/
 configs/*
 !configs/.gitkeep
 !configs/example.json
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+analytics/logs/
+analytics/logs/*
+
+# Local configuration
+.env
+.env.local
+.env.*.local
+
+# System Files
+.DS_Store
+Thumbs.db
