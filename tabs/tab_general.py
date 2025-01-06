@@ -107,9 +107,15 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
         
         st.header("Run Rate")
 
+        # Calcula a projeção de fechamento do mês
+        receita_projetada = total_receita_paga * (last_day / dias_passados) if dias_passados > 0 else 0
+
         st.markdown(f"""
             <div style="margin-bottom: 20px;">
-                <p style="margin-bottom: 5px; color: #666;">Meta do Mês: R$ {meta_receita:,.2f}</p>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #666;">
+                    <p style="margin: 0;">Meta do Mês: R$ {meta_receita:,.2f}</p>
+                    <p style="margin: 0;">Projeção: R$ {receita_projetada:,.2f} ({(receita_projetada/meta_receita*100):.1f}% da meta)</p>
+                </div>
                 <div style="width: 100%; background-color: #f0f2f6; border-radius: 10px;">
                     <div style="width: {min(percentual_meta, 100)}%; height: 20px; background-color: {'#28a745' if percentual_meta >= 100 else '#17a2b8'}; 
                          border-radius: 10px; text-align: center; color: white; line-height: 20px;">
