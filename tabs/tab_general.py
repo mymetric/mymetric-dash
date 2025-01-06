@@ -117,7 +117,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                     <p style="margin: 0;">Projeção: R$ {receita_projetada:,.2f} ({(receita_projetada/meta_receita*100):.1f}% da meta)</p>
                 </div>
                 <div style="width: 100%; background-color: #f0f2f6; border-radius: 10px;">
-                    <div style="width: {min(percentual_meta, 100)}%; height: 20px; background-color: {'#28a745' if percentual_meta >= 100 else '#17a2b8'}; 
+                    <div style="width: {min(percentual_meta, 100)}%; height: 20px; background-color: {'#28a745' if percentual_meta >= 100 else '#dc3545' if percentual_meta < 80 else '#17a2b8'}; 
                          border-radius: 10px; text-align: center; color: white; line-height: 20px;">
                         {percentual_meta:.1f}%
                     </div>
