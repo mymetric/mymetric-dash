@@ -2,17 +2,25 @@ import os
 import json
 import requests
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_location():
     """
     Obtém a localização baseada no IP usando o serviço ip-api.com
     """
     try:
+        logger.info("Attempting to get location from ip-api.com")
         response = requests.get('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
+        
+        logger.info(f"IP API Response status code: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
+            logger.info(f"IP API Response data: {data}")
+            
             if data.get('status') == 'success':
-                return {
+                location_data = {
                     'city': data.get('city', 'Unknown'),
                     'region': data.get('regionName', 'Unknown'),
                     'country': data.get('country', 'Unknown'),
@@ -22,8 +30,16 @@ def get_location():
                     'lat': data.get('lat', 0),
                     'lon': data.get('lon', 0)
                 }
-    except:
-        pass
+                logger.info(f"Successfully retrieved location data: {location_data}")
+                return location_data
+            else:
+                logger.error(f"IP API returned error status: {data.get('message', 'No message')}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error making request to IP API: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error getting location: {str(e)}")
+    
+    logger.warning("Returning default location data due to error")
     return {
         'city': 'Unknown',
         'region': 'Unknown',

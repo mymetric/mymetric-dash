@@ -6,8 +6,12 @@ import dashboard  # Importa o arquivo de dashboard
 from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
 from helpers.components import send_discord_message
+from analytics.logger import log_event, get_location
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
+
+# Logo URL
+logo_url = "https://i.imgur.com/cPslqoR.png"
 
 # Cria o cliente da API
 credentials = service_account.Credentials.from_service_account_info(
@@ -33,6 +37,16 @@ def check_password():
             st.rerun()  # Recarrega a página após expiração
 
     if not st.session_state.authenticated:
+        # Display the header with the logo
+        st.sidebar.markdown(
+            f"""
+            <div>
+                <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
         # Formulário de login
         st.sidebar.subheader("Login")
         username = st.sidebar.text_input("Usuário")
@@ -46,7 +60,34 @@ def check_password():
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login
-                    send_discord_message(f"Usuário **{username}** acabou de fazer login no sistema MyMetric HUB.")
+                    
+                    # Obtém localização do usuário
+                    location = get_location()
+                    
+                    # Registra o evento de login e envia mensagem para o Discord
+                    log_event(username, 'login', {
+                        'user_agent': st.session_state.get('user_agent', 'unknown'),
+                        **location
+                    })
+                    
+                    # Envia mensagem de login para o Discord
+                    login_msg = f"""
+🔐 **Novo Login no Dashboard**
+
+**Usuário:** `{username}`
+**Data/Hora:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`
+
+**Localização do Acesso:**
+> 🌆 Cidade: `{location['city']}`
+> 🗺️ Estado: `{location['region']}`
+> 🌎 País: `{location['country']}`
+> 🌐 IP: `{location['ip']}`
+> 📡 ISP: `{location['isp']}`
+> 🕒 Timezone: `{location['timezone']}`
+> 📍 Coords: `{location['lat']}, {location['lon']}`
+"""
+                    send_discord_message(login_msg)
+                    
                     st.rerun()  # Recarrega a página após login
                     break
             else:
@@ -62,13 +103,10 @@ def logout():
 
 # Executa a função de autenticação
 if check_password():
-    
     # Verifica se o usuário é 'mymetric' (usuário mestre)
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
         user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
-        # Logo URL
-        logo_url = "https://i.imgur.com/cPslqoR.png"
 
         # Display the header with the logo
         st.sidebar.markdown(
