@@ -171,34 +171,7 @@ def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
     return tabs
 
 def show_dashboard(client, username):
-    # Obtém localização do usuário antes do try
-    location = get_location()
-    
     try:
-        # Registra o evento de login e envia mensagem para o Discord
-        log_event(st.session_state.username, 'login', {
-            'user_agent': st.session_state.get('user_agent', 'unknown'),
-            **location
-        })
-        
-        # Envia mensagem de login para o Discord
-        login_msg = f"""
-🔐 **Novo Login no Dashboard**
-
-**Cliente:** `{username}`
-**Data/Hora:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`
-
-**Localização do Acesso:**
-> 🌆 Cidade: `{location['city']}`
-> 🗺️ Estado: `{location['region']}`
-> 🌎 País: `{location['country']}`
-> 🌐 IP: `{location['ip']}`
-> 📡 ISP: `{location['isp']}`
-> 🕒 Timezone: `{location['timezone']}`
-> 📍 Coords: `{location['lat']}, {location['lon']}`
-"""
-        send_discord_message(login_msg)
-
         today = pd.to_datetime("today").date()
         yesterday = today - pd.Timedelta(days=1)
         seven_days_ago = today - pd.Timedelta(days=7)
