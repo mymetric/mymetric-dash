@@ -12,7 +12,7 @@ from custom.gringa_product_submited import display_tab_gringa_product_submited
 from tabs.tab_today import display_tab_today
 from tabs.tab_master import display_tab_master
 from helpers.config import load_table_metas
-from analytics.logger import log_event
+from analytics.logger import log_event, get_location
 
 def load_data(client, username, start_date_str, end_date_str):
     table = username
@@ -171,11 +171,33 @@ def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
     return tabs
 
 def show_dashboard(client, username):
+    # Obtém localização do usuário antes do try
+    location = get_location()
+    
     try:
-        # Registra o evento de login
+        # Registra o evento de login e envia mensagem para o Discord
         log_event(st.session_state.username, 'login', {
-            'user_agent': st.session_state.get('user_agent', 'unknown')
+            'user_agent': st.session_state.get('user_agent', 'unknown'),
+            **location
         })
+        
+        # Envia mensagem de login para o Discord
+        login_msg = f"""
+🔐 **Novo Login no Dashboard**
+
+**Cliente:** `{username}`
+**Data/Hora:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`
+
+**Localização do Acesso:**
+> 🌆 Cidade: `{location['city']}`
+> 🗺️ Estado: `{location['region']}`
+> 🌎 País: `{location['country']}`
+> 🌐 IP: `{location['ip']}`
+> 📡 ISP: `{location['isp']}`
+> 🕒 Timezone: `{location['timezone']}`
+> 📍 Coords: `{location['lat']}, {location['lon']}`
+"""
+        send_discord_message(login_msg)
 
         today = pd.to_datetime("today").date()
         yesterday = today - pd.Timedelta(days=1)
@@ -221,7 +243,15 @@ def show_dashboard(client, username):
                     display_tab_general(query_general, tx_cookies, results["ads"], username, start_date=start_date, end_date=end_date, **filters)
 
                     if tx_cookies > 10:
-                        send_discord_message(f"Usuário **{username}** com Taxa de Perda de Cookies alta: {tx_cookies:.2f}%. Ideal manter abaixo de 30%.")
+                        send_discord_message(f"""
+⚠️ **Alerta de Perda de Cookies** ⚠️
+
+**Cliente:** `{username}`
+**Taxa de Perda:** `{tx_cookies:.2f}%`
+**Limite Recomendado:** `30%`
+
+*Este alerta é gerado quando a taxa de perda de cookies está acima do normal.*
+""")
 
             # Aba de Análise do Dia
             if "📊 Análise do Dia" in tabs:
@@ -301,12 +331,26 @@ def show_dashboard(client, username):
                     display_tab_settings(username)
 
         else:
-            error_msg = f"❌ Erro: Não foi possível carregar os dados para {username}"
+            error_msg = f"""
+❌ **Erro de Carregamento de Dados** ❌
+
+**Cliente:** `{username}`
+**Problema:** Não foi possível carregar os dados do dashboard.
+
+*Por favor, verifique se há problemas com as queries ou com o acesso ao banco de dados.*
+"""
             st.error(error_msg)
             send_discord_message(error_msg)
             
     except Exception as e:
-        error_msg = f"❌ Erro crítico no dashboard de {username}: {str(e)}"
+        error_msg = f"""
+🚨 **Erro Crítico no Dashboard** 🚨
+
+**Cliente:** `{username}`
+**Erro:** `{str(e)}`
+
+*Este é um erro crítico que impede o funcionamento do dashboard. Necessita atenção imediata.*
+"""
         st.error(error_msg)
         send_discord_message(error_msg)
         st.stop()

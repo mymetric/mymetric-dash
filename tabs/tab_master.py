@@ -100,4 +100,28 @@ def display_tab_master(client):
             for tab, views in tab_views.items()
         ]).sort_values('Visualizações', ascending=False)
         
-        st.dataframe(df_tabs, hide_index=True, use_container_width=True) 
+        st.dataframe(df_tabs, hide_index=True, use_container_width=True)
+    
+    # Análise de Logins
+    st.subheader("Últimos Logins")
+    
+    login_data = []
+    for username, events in all_events.items():
+        for event in events:
+            if event['event_type'] == 'login':
+                login_data.append({
+                    'Usuário': username,
+                    'Data/Hora': datetime.fromisoformat(event['timestamp']).strftime('%d/%m/%Y %H:%M'),
+                    'Cidade': event['data'].get('city', 'Unknown'),
+                    'Estado': event['data'].get('region', 'Unknown'),
+                    'País': event['data'].get('country', 'Unknown'),
+                    'IP': event['data'].get('ip', 'Unknown'),
+                    'User Agent': event['data'].get('user_agent', 'Unknown')
+                })
+    
+    if login_data:
+        df_logins = pd.DataFrame(login_data)
+        df_logins = df_logins.sort_values('Data/Hora', ascending=False)
+        st.dataframe(df_logins, hide_index=True, use_container_width=True)
+    else:
+        st.info("Nenhum login registrado ainda.") 

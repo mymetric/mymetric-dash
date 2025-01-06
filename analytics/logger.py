@@ -1,6 +1,39 @@
 import os
 import json
+import requests
 from datetime import datetime
+
+def get_location():
+    """
+    Obtém a localização baseada no IP usando o serviço ip-api.com
+    """
+    try:
+        response = requests.get('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('status') == 'success':
+                return {
+                    'city': data.get('city', 'Unknown'),
+                    'region': data.get('regionName', 'Unknown'),
+                    'country': data.get('country', 'Unknown'),
+                    'ip': data.get('query', 'Unknown'),
+                    'isp': data.get('isp', 'Unknown'),
+                    'timezone': data.get('timezone', 'Unknown'),
+                    'lat': data.get('lat', 0),
+                    'lon': data.get('lon', 0)
+                }
+    except:
+        pass
+    return {
+        'city': 'Unknown',
+        'region': 'Unknown',
+        'country': 'Unknown',
+        'ip': 'Unknown',
+        'isp': 'Unknown',
+        'timezone': 'Unknown',
+        'lat': 0,
+        'lon': 0
+    }
 
 def log_event(username, event_type, event_data=None):
     """
@@ -17,6 +50,12 @@ def log_event(username, event_type, event_data=None):
     
     # Nome do arquivo de log para este usuário
     log_file = f'analytics/logs/{username}.json'
+    
+    # Se for um evento de login, adiciona informações de localização
+    if event_type == 'login':
+        location = get_location()
+        event_data = event_data or {}
+        event_data.update(location)
     
     # Prepara o evento
     event = {
