@@ -1,23 +1,48 @@
 import streamlit as st
 from datetime import date
+import json
+import os
+
+def load_closed_notices(username):
+    """Carrega os avisos fechados do arquivo JSON do usuário."""
+    notices_path = f'configs/notices/{username}.json'
+    
+    try:
+        with open(notices_path, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_closed_notices(username, notices):
+    """Salva os avisos fechados no arquivo JSON do usuário."""
+    # Garante que o diretório existe
+    os.makedirs('configs/notices', exist_ok=True)
+    
+    notices_path = f'configs/notices/{username}.json'
+    with open(notices_path, 'w') as f:
+        json.dump(notices, f, indent=2)
 
 def show_new_year_notice(username):
     """Exibe a mensagem de ano novo com botão de fechar estilizado."""
-    if not st.session_state.closed_notices.get('new_year_2025', False):
+    closed_notices = load_closed_notices(username)
+    
+    if not closed_notices.get('new_year_2025', False):
         st.info(f"""
         ### 🎉 Feliz 2025, {username.upper()}!
         
         Que este ano seja repleto de insights valiosos e métricas positivas. Boas análises! 📊
         """)
         if st.button("Obrigado, vamos juntos!", key="close_new_year", type="primary"):
-            st.session_state.closed_notices['new_year_2025'] = True
+            closed_notices['new_year_2025'] = True
+            save_closed_notices(username, closed_notices)
             st.rerun()
 
 def show_feature_notices(username, meta_receita=0):
     """Exibe os avisos de novas features com opção de não mostrar novamente."""
+    closed_notices = load_closed_notices(username)
     
     # Aviso de metas
-    if not st.session_state.closed_notices.get(f'{username}_meta_notice', False) and meta_receita == 0:
+    if not closed_notices.get('meta_notice', False) and meta_receita == 0:
         col1, col2 = st.columns(2)
         
         with col1:
@@ -34,7 +59,8 @@ def show_feature_notices(username, meta_receita=0):
             Comece agora mesmo a trackear seus objetivos! 📈
             """)
             if st.button("Não mostrar novamente", key="meta_notice", type="primary"):
-                st.session_state.closed_notices[f'{username}_meta_notice'] = True
+                closed_notices['meta_notice'] = True
+                save_closed_notices(username, closed_notices)
                 st.rerun()
 
         with col2:
@@ -51,11 +77,12 @@ def show_feature_notices(username, meta_receita=0):
             Confira agora mesmo! 🚀
             """)
             if st.button("Não mostrar novamente", key="today_notice", type="primary"):
-                st.session_state.closed_notices[f'{username}_today_notice'] = True
+                closed_notices['today_notice'] = True
+                save_closed_notices(username, closed_notices)
                 st.rerun()
 
     # Aviso da aba de análise do dia
-    elif not st.session_state.closed_notices.get(f'{username}_today_notice', False):
+    elif not closed_notices.get('today_notice', False):
         st.info("""
         ### 📊 Nova Aba de Análise do Dia!
         
@@ -69,7 +96,8 @@ def show_feature_notices(username, meta_receita=0):
         Confira agora mesmo! 🚀
         """)
         if st.button("Não mostrar novamente", key="today_notice", type="primary"):
-            st.session_state.closed_notices[f'{username}_today_notice'] = True
+            closed_notices['today_notice'] = True
+            save_closed_notices(username, closed_notices)
             st.rerun()
 
 def initialize_notices():
