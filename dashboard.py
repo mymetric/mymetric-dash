@@ -45,7 +45,7 @@ def load_data(client, username, start_date_str, end_date_str):
     query_today = f"""
     SELECT
         event_date AS Data,
-        extract(hour from created_at) as Hora,
+        extract(hour from timestamp(created_at, "America/Sao_Paulo")) as Hora,
         source Origem,
         medium `Mídia`, 
         campaign Campanha,
