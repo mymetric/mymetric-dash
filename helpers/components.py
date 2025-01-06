@@ -2,6 +2,14 @@ import streamlit as st
 import requests
 import pandas as pd
 
+def section_title(title):
+    """Cria um título de seção com margem padronizada."""
+    st.markdown(f"""
+        <h2 style="margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f2f6;">
+            {title}
+        </h2>
+    """, unsafe_allow_html=True)
+
 @st.cache_data(ttl=600)
 def run_query(_client, query):
     query_job = _client.query(query)

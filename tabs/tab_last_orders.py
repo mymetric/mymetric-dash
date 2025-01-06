@@ -1,6 +1,6 @@
 import streamlit as st
 from filters import date_filters, traffic_filters
-from helpers.components import atribuir_cluster
+from helpers.components import atribuir_cluster, section_title
 
 def display_tab_last_orders(df2, **filters):
 
@@ -39,5 +39,5 @@ def display_tab_last_orders(df2, **filters):
         df_filtered2 = df_filtered2[df_filtered2['Canal'].isin(canal_selected)]
 
     # Exibe os dados filtrados
-    st.header("Últimos Pedidos")
+    section_title("Últimos Pedidos")
     st.data_editor(df_filtered2, hide_index=True, use_container_width=True)

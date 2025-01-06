@@ -1,26 +1,61 @@
 import streamlit as st
-from datetime import date
+from datetime import date, datetime
 import json
-import os
+from google.cloud import bigquery
+from google.oauth2 import service_account
+
+def get_bigquery_client():
+    """Cria um cliente BigQuery com as credenciais corretas."""
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"]
+    )
+    return bigquery.Client(credentials=credentials)
 
 def load_closed_notices(username):
-    """Carrega os avisos fechados do arquivo JSON do usuário."""
-    notices_path = f'configs/notices/{username}.json'
+    """Carrega os avisos fechados do BigQuery."""
+    client = get_bigquery_client()
+    
+    query = f"""
+    SELECT notices
+    FROM `mymetric-hub-shopify.dbt_config.user_notices`
+    WHERE username = '{username}'
+    LIMIT 1
+    """
     
     try:
-        with open(notices_path, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+        query_job = client.query(query)
+        rows = list(query_job.result())
+        if rows:
+            notices_str = rows[0]['notices']
+            return json.loads(notices_str) if notices_str else {}
+        return {}
+    except Exception as e:
+        st.error(f"Erro ao carregar avisos: {str(e)}")
         return {}
 
 def save_closed_notices(username, notices):
-    """Salva os avisos fechados no arquivo JSON do usuário."""
-    # Garante que o diretório existe
-    os.makedirs('configs/notices', exist_ok=True)
+    """Salva os avisos fechados no BigQuery."""
+    client = get_bigquery_client()
     
-    notices_path = f'configs/notices/{username}.json'
-    with open(notices_path, 'w') as f:
-        json.dump(notices, f, indent=2)
+    # Converte o dicionário de avisos para JSON
+    notices_json = json.dumps(notices)
+    
+    # Query para inserir ou atualizar os avisos
+    query = f"""
+    MERGE `mymetric-hub-shopify.dbt_config.user_notices` AS target
+    USING (SELECT '{username}' as username, '{notices_json}' as notices) AS source
+    ON target.username = source.username
+    WHEN MATCHED THEN
+        UPDATE SET notices = source.notices, updated_at = CURRENT_TIMESTAMP()
+    WHEN NOT MATCHED THEN
+        INSERT (username, notices, created_at, updated_at)
+        VALUES (source.username, source.notices, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    """
+    
+    try:
+        client.query(query)
+    except Exception as e:
+        st.error(f"Erro ao salvar avisos: {str(e)}")
 
 def show_new_year_notice(username):
     """Exibe a mensagem de ano novo com botão de fechar estilizado."""

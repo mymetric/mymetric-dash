@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import timedelta, date, datetime
 from concurrent.futures import ThreadPoolExecutor
-from helpers.components import atribuir_cluster, send_discord_message, run_query
+from helpers.components import atribuir_cluster, send_discord_message, run_query, section_title
 from filters import date_filters, traffic_filters
 from tabs.tab_general import display_tab_general
 from tabs.tab_last_orders import display_tab_last_orders
@@ -262,7 +262,7 @@ def show_dashboard(client, username):
                 with tab_list[tabs.index("\U0001F4F1 WhatsApp Leads")]:
                     log_event(st.session_state.username, 'tab_view', {'tab': 'whatsapp_leads'})
                     df_whatsapp = results["whatsapp"]
-                    st.header("WhatsApp Leads")
+                    section_title("WhatsApp Leads")
                     st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
                     csv = df_whatsapp.to_csv(index=False)
                     st.download_button(
