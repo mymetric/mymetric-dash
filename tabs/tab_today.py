@@ -169,4 +169,63 @@ def display_tab_today(df, df_ads, username, meta_receita):
             ultima_hora = df_hora[df_hora['Hora'] == hora_atual - 1]['Receita Paga'].iloc[0]
             diff_media = ((ultima_hora / media_receita_hora) - 1) * 100 if media_receita_hora > 0 else 0
             status = "acima" if diff_media > 0 else "abaixo"
-            st.info(f"📈 Última hora completa ({hora_atual-1}h) está {abs(diff_media):.1f}% {status} da média") 
+            st.info(f"📈 Última hora completa ({hora_atual-1}h) está {abs(diff_media):.1f}% {status} da média")
+        
+    # Adiciona espaço
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Análise de Origens
+    st.header("Análise de Origens")
+    
+    # Agrupa dados por origem
+    df_origem = df.groupby(['Cluster', 'Origem', 'Mídia']).agg({
+        'Sessões': 'sum',
+        'Pedidos': 'sum',
+        'Pedidos Pagos': 'sum',
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Calcula métricas adicionais
+    df_origem['Tx Conversão'] = (df_origem['Pedidos'] / df_origem['Sessões'] * 100).round(2)
+    df_origem['% Receita'] = (df_origem['Receita Paga'] / df_origem['Receita Paga'].sum() * 100).round(2)
+    df_origem['Ticket Médio'] = (df_origem['Receita Paga'] / df_origem['Pedidos Pagos']).round(2)
+    
+    # Formata as colunas numéricas
+    df_origem['Receita Paga'] = df_origem['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    df_origem['Ticket Médio'] = df_origem['Ticket Médio'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    df_origem['Tx Conversão'] = df_origem['Tx Conversão'].astype(str) + '%'
+    df_origem['% Receita'] = df_origem['% Receita'].astype(str) + '%'
+    
+    # Ordena pelo número de pedidos
+    df_origem = df_origem.sort_values('Pedidos', ascending=False)
+    
+    # Insights sobre as origens
+    melhor_origem = df_origem.iloc[0]
+    st.success(f"""
+    🏆 **Principal origem do dia:** {melhor_origem['Cluster']} - {melhor_origem['Origem']}/{melhor_origem['Mídia']}
+    - Sessões: {melhor_origem['Sessões']}
+    - Pedidos: {melhor_origem['Pedidos']} ({melhor_origem['Tx Conversão']} de conversão)
+    - Receita: {melhor_origem['Receita Paga']} ({melhor_origem['% Receita']} do total)
+    """)
+    
+    # Alerta para origens com baixa conversão
+    baixa_conv = df_origem[
+        (df_origem['Sessões'] >= 100) & 
+        (df_origem['Tx Conversão'].str.rstrip('%').astype(float) < 0.5)
+    ]
+    if not baixa_conv.empty:
+        st.warning(f"""
+        ⚠️ **Origens com baixa conversão (>100 sessões e <0.5%):**
+        """ + "\n".join([
+            f"- {row['Cluster']} - {row['Origem']}/{row['Mídia']}: {row['Tx Conversão']} ({row['Sessões']} sessões)"
+            for _, row in baixa_conv.iterrows()
+        ]))
+    
+    # Adiciona espaço antes da tabela
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Exibe a tabela
+    st.subheader("Detalhamento por Origem")
+    st.dataframe(df_origem, hide_index=True, use_container_width=True) 
