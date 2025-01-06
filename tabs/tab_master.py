@@ -3,12 +3,17 @@ import pandas as pd
 from datetime import datetime, timedelta
 from helpers.components import run_query
 from analytics.logger import get_all_events
+import pytz
 
 def display_tab_master(client):
     st.header("Painel Mestre")
     
     # Busca todos os eventos
     all_events = get_all_events()
+    
+    # Configura timezone de Brasília
+    tz_br = pytz.timezone('America/Sao_Paulo')
+    now = datetime.now(tz_br)
     
     # Métricas Gerais
     st.subheader("Métricas de Uso")
@@ -18,7 +23,6 @@ def display_tab_master(client):
     total_events = sum(len(events) for events in all_events.values())
     
     # Usuários ativos
-    now = datetime.now()
     active_today = 0
     active_7d = 0
     active_30d = 0
@@ -27,7 +31,7 @@ def display_tab_master(client):
         if not user_events:
             continue
             
-        last_event = datetime.fromisoformat(user_events[-1]['timestamp'])
+        last_event = datetime.fromisoformat(user_events[-1]['timestamp']).astimezone(tz_br)
         if last_event.date() == now.date():
             active_today += 1
         if (now - last_event) <= timedelta(days=7):
@@ -65,8 +69,8 @@ def display_tab_master(client):
             event_types[event_type] = event_types.get(event_type, 0) + 1
         
         # Calcula primeira e última atividade
-        first_event = datetime.fromisoformat(events[0]['timestamp'])
-        last_event = datetime.fromisoformat(events[-1]['timestamp'])
+        first_event = datetime.fromisoformat(events[0]['timestamp']).astimezone(tz_br)
+        last_event = datetime.fromisoformat(events[-1]['timestamp']).astimezone(tz_br)
         
         user_metrics.append({
             'Usuário': username,
@@ -109,9 +113,10 @@ def display_tab_master(client):
     for username, events in all_events.items():
         for event in events:
             if event['event_type'] == 'login':
+                login_time = datetime.fromisoformat(event['timestamp']).astimezone(tz_br)
                 login_data.append({
                     'Usuário': username,
-                    'Data/Hora': datetime.fromisoformat(event['timestamp']).strftime('%d/%m/%Y %H:%M'),
+                    'Data/Hora': login_time.strftime('%d/%m/%Y %H:%M'),
                     'Cidade': event['data'].get('city', 'Unknown'),
                     'Estado': event['data'].get('region', 'Unknown'),
                     'País': event['data'].get('country', 'Unknown'),
