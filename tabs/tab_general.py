@@ -50,6 +50,48 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
 
         # Calcula a projeção de fechamento do mês
         receita_projetada = total_receita_paga * (last_day / dias_passados) if dias_passados > 0 else 0
+        
+        # Calcula a probabilidade de atingir a meta
+        media_diaria = total_receita_paga / dias_passados if dias_passados > 0 else 0
+        dias_restantes = last_day - dias_passados
+        valor_faltante = meta_receita - total_receita_paga
+        valor_necessario_por_dia = valor_faltante / dias_restantes if dias_restantes > 0 else float('inf')
+        
+        # Calcula a probabilidade baseada na diferença entre a média diária atual e a necessária
+        if valor_faltante <= 0:
+            probabilidade = 100  # Já atingiu a meta
+            mensagem_probabilidade = "🎉 Meta atingida! Continue o ótimo trabalho!"
+            cor_probabilidade = "#28a745"
+        elif dias_restantes == 0:
+            if valor_faltante > 0:
+                probabilidade = 0
+                mensagem_probabilidade = "⚠️ Tempo esgotado para este mês"
+                cor_probabilidade = "#dc3545"
+            else:
+                probabilidade = 100
+                mensagem_probabilidade = "🎉 Meta atingida! Continue o ótimo trabalho!"
+                cor_probabilidade = "#28a745"
+        else:
+            # Quanto maior a média diária em relação ao necessário, maior a probabilidade
+            razao = media_diaria / valor_necessario_por_dia if valor_necessario_por_dia > 0 else 0
+            probabilidade = min(100, razao * 100)
+            
+            # Define a mensagem baseada na faixa de probabilidade
+            if probabilidade >= 80:
+                mensagem_probabilidade = "🚀 Excelente ritmo! Você está muito próximo de atingir a meta!"
+                cor_probabilidade = "#28a745"
+            elif probabilidade >= 60:
+                mensagem_probabilidade = "💪 Bom progresso! Continue focado que a meta está ao seu alcance!"
+                cor_probabilidade = "#17a2b8"
+            elif probabilidade >= 40:
+                mensagem_probabilidade = "⚡ Momento de intensificar! Aumente as ações de marketing e vendas!"
+                cor_probabilidade = "#ffc107"
+            elif probabilidade >= 20:
+                mensagem_probabilidade = "🎯 Hora de agir! Revise suas estratégias e faça ajustes!"
+                cor_probabilidade = "#fd7e14"
+            else:
+                mensagem_probabilidade = "🔥 Alerta! Momento de tomar ações urgentes para reverter o cenário!"
+                cor_probabilidade = "#dc3545"
 
         st.markdown(f"""
             <div style="margin-bottom: 20px;">
@@ -62,6 +104,34 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                          border-radius: 10px; text-align: center; color: white; line-height: 20px;">
                         {percentual_meta:.1f}%
                     </div>
+                </div>
+                <div style="
+                    margin-top: 15px;
+                    padding: 15px;
+                    border-radius: 10px;
+                    background-color: {cor_probabilidade}15;
+                    border: 1px solid {cor_probabilidade};
+                ">
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 8px;
+                    ">
+                        <strong style="color: {cor_probabilidade};">Probabilidade de atingir a meta</strong>
+                        <span style="
+                            background-color: {cor_probabilidade};
+                            color: white;
+                            padding: 4px 12px;
+                            border-radius: 15px;
+                            font-weight: bold;
+                        ">{probabilidade:.1f}%</span>
+                    </div>
+                    <p style="
+                        margin: 0;
+                        color: {cor_probabilidade};
+                        font-size: 0.95em;
+                    ">{mensagem_probabilidade}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -80,11 +150,19 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                 - Meta proporcional: R$ {meta_proporcional:,.2f}
                 - Receita realizada: R$ {total_receita_paga:,.2f}
                 - Percentual atingido: {percentual_meta:.1f}%
+                - Probabilidade de atingir a meta: {probabilidade:.1f}%
 
                 **Como interpretar:**
                 - Se o percentual for 100%, você está exatamente no ritmo para atingir a meta
                 - Acima de 100% significa que está acima do ritmo necessário
                 - Abaixo de 100% indica que precisa acelerar as vendas para atingir a meta
+
+                **Faixas de Probabilidade:**
+                - 🟢 80-100%: Excelente chance de atingir a meta
+                - 🔵 60-79%: Boa chance, mantenha o foco
+                - 🟡 40-59%: Chance moderada, intensifique as ações
+                - 🟠 20-39%: Chance baixa, momento de revisar estratégias
+                - 🔴 0-19%: Chance muito baixa, ações urgentes necessárias
 
                 **Exemplo:**
                 Se sua meta é R$ 100.000 e já se passaram 15 dias de um mês com 30 dias:
