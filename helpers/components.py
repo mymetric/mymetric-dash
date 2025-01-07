@@ -215,23 +215,15 @@ def atribuir_cluster(row):
     else:
         return f"◻️ {row['Origem']} / {row['Mídia']}"
 
-# URL do webhook do Discord (substitua pela URL do seu webhook)
-
 def send_discord_message(message):
+    """Envia uma mensagem para o webhook do Discord."""
     try:
-        discord_webhook_url = "https://discord.com/api/webhooks/1296840635776766003/FwqBXh2mKVhqS2jnQmmP15RweElgco4v_eFp3kq4inxIrOYRPzNgRddcUjz2y_pwi2ep"
-
-        payload = {
+        webhook_url = st.secrets["discord_webhook_url"]
+        data = {
             "content": message
         }
-        
-        response = requests.post(discord_webhook_url, json=payload)
-        response.raise_for_status()  # Raises an HTTPError for bad responses (4xx, 5xx)
-        
-        return True
-    except requests.exceptions.RequestException as e:
-        st.error(f"Erro ao enviar mensagem para o Discord: {str(e)}")
-        return False
+        response = requests.post(webhook_url, json=data)
+        response.raise_for_status()
     except Exception as e:
-        st.error(f"Erro inesperado ao enviar mensagem para o Discord: {str(e)}")
-        return False
+        st.error(f"Erro ao enviar mensagem para o Discord: {str(e)}")
+        print(f"Erro ao enviar mensagem para o Discord: {str(e)}")
