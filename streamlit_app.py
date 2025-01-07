@@ -6,7 +6,7 @@ import dashboard  # Importa o arquivo de dashboard
 from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
 from helpers.components import send_discord_message
-from analytics.logger import log_event
+from analytics.logger import log_event, get_location
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
 
@@ -23,10 +23,21 @@ client = bigquery.Client(credentials=credentials)
 def check_password():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
-        st.session_state.username = None
         st.session_state.login_time = None
 
+    session_duration_days = 7  # Definir a duração da sessão em dias
+
+    # Verifica se a sessão já expirou
+    if st.session_state.authenticated:
+        session_expiration_time = st.session_state.login_time + timedelta(days=session_duration_days)
+        if datetime.now() > session_expiration_time:
+            st.session_state.authenticated = False
+            st.sidebar.warning("Sua sessão expirou. Faça login novamente.")
+            st.session_state.login_time = None
+            st.rerun()  # Recarrega a página após expiração
+
     if not st.session_state.authenticated:
+        # Display the header with the logo
         st.sidebar.markdown(
             f"""
             <div>
@@ -36,9 +47,12 @@ def check_password():
             unsafe_allow_html=True
         )
         
+        # Formulário de login
+        st.sidebar.subheader("Login")
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")
-        
+
+        # Verifica se o nome de usuário e senha estão corretos
         if st.sidebar.button("Entrar"):
             # Loop through the users list to check credentials
             for user in users:
@@ -47,8 +61,14 @@ def check_password():
                     st.session_state.username = username
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login
                     
-                    # Registra o evento de login
-                    log_event(username, 'login')
+                    # Obtém localização do usuário
+                    location = get_location()
+                    
+                    # Registra o evento de login e envia mensagem para o Discord
+                    log_event(username, 'login', {
+                        'user_agent': st.session_state.get('user_agent', 'unknown'),
+                        **location
+                    })
                     
                     # Envia mensagem de login para o Discord
                     login_msg = f"""
@@ -56,6 +76,15 @@ def check_password():
 
 **Usuário:** `{username}`
 **Data/Hora:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`
+
+**Localização do Acesso:**
+> 🌆 Cidade: `{location['city']}`
+> 🗺️ Estado: `{location['region']}`
+> 🌎 País: `{location['country']}`
+> 🌐 IP: `{location['ip']}`
+> 📡 ISP: `{location['isp']}`
+> 🕒 Timezone: `{location['timezone']}`
+> 📍 Coords: `{location['lat']}, {location['lon']}`
 """
                     send_discord_message(login_msg)
                     

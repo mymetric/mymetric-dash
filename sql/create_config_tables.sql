@@ -26,12 +26,4 @@ CREATE TABLE IF NOT EXISTS `mymetric-hub-shopify.dbt_config.user_settings` (
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     PRIMARY KEY(username) NOT ENFORCED
-);
-
--- Cria a tabela de eventos de usuário
-CREATE TABLE IF NOT EXISTS `mymetric-hub-shopify.dbt_config.user_events` (
-    username STRING,
-    event_type STRING,
-    event_data STRING,  -- JSON com os dados do evento
-    created_at TIMESTAMP
 ); 

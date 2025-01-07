@@ -218,35 +218,13 @@ def atribuir_cluster(row):
 def send_discord_message(message):
     """Envia uma mensagem para o webhook do Discord."""
     try:
-        # Tenta obter a URL do webhook do Discord das secrets
-        webhook_url = None
-        try:
-            webhook_url = st.secrets["general"]["discord_webhook_url"]
-            print(f"Webhook URL encontrada: {webhook_url[:20]}...")  # Log parcial da URL por segurança
-        except Exception as e:
-            print(f"Erro ao acessar webhook URL: {str(e)}")
-            return
-        
-        # Se não houver webhook configurado, apenas loga a mensagem
-        if not webhook_url:
-            print(f"Discord message (webhook not configured): {message}")
-            return
-            
-        print(f"Tentando enviar mensagem para o Discord: {message[:100]}...")  # Log do início da mensagem
-        
+        webhook_url = st.secrets["discord_webhook_url"]
+        st.write(webhook_url)
         data = {
             "content": message
         }
         response = requests.post(webhook_url, json=data)
-        
-        # Log da resposta
-        print(f"Status code da resposta: {response.status_code}")
-        if response.status_code != 204:  # Discord retorna 204 para sucesso
-            print(f"Resposta do Discord: {response.text}")
-            
         response.raise_for_status()
-        print("Mensagem enviada com sucesso!")
-        
     except Exception as e:
+        st.error(f"Erro ao enviar mensagem para o Discord: {str(e)}")
         print(f"Erro ao enviar mensagem para o Discord: {str(e)}")
-        # Não mostra o erro para o usuário para não interromper a experiência

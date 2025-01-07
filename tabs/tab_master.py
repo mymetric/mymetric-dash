@@ -1,183 +1,127 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from helpers.components import run_query, section_title, big_number_box
+from helpers.components import run_query
+from analytics.logger import get_all_events
 
 def display_tab_master(client):
     st.header("Painel Mestre")
     
-    # Query para métricas gerais
-    query_metrics = """
-    WITH user_activity AS (
-        SELECT
-            username,
-            COUNT(*) as total_events,
-            COUNT(DISTINCT DATE(created_at)) as days_active,
-            MIN(created_at) as first_activity,
-            MAX(created_at) as last_activity,
-            CURRENT_TIMESTAMP() as now
-        FROM `mymetric-hub-shopify.dbt_config.user_events`
-        GROUP BY username
-    )
-    SELECT
-        COUNT(DISTINCT username) as total_users,
-        COUNTIF(DATE(last_activity) = CURRENT_DATE()) as active_today,
-        COUNTIF(DATE_DIFF(CURRENT_DATE(), DATE(last_activity), DAY) <= 7) as active_7d,
-        COUNTIF(DATE_DIFF(CURRENT_DATE(), DATE(last_activity), DAY) <= 30) as active_30d,
-        AVG(days_active) as avg_active_days,
-        AVG(total_events) as avg_events_per_user
-    FROM user_activity
-    """
+    # Busca todos os eventos
+    all_events = get_all_events()
     
-    # Query para análise por usuário
-    query_user_metrics = """
-    WITH event_counts AS (
-        SELECT
-            username,
-            COUNT(*) as total_events,
-            COUNTIF(event_type = 'login') as login_count,
-            COUNTIF(event_type = 'tab_view') as tab_views,
-            MIN(created_at) as first_activity,
-            MAX(created_at) as last_activity
-        FROM `mymetric-hub-shopify.dbt_config.user_events`
-        GROUP BY username
-    )
-    SELECT
-        username as usuario,
-        total_events as total_eventos,
-        login_count as logins,
-        tab_views as views_abas,
-        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', first_activity) as primeira_atividade,
-        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', last_activity) as ultima_atividade,
-        DATE_DIFF(last_activity, first_activity, DAY) + 1 as dias_uso
-    FROM event_counts
-    ORDER BY total_events DESC
-    """
+    # Métricas Gerais
+    st.subheader("Métricas de Uso")
     
-    # Query para abas mais visitadas
-    query_tab_views = """
-    WITH tab_data AS (
-        SELECT
-            JSON_EXTRACT_SCALAR(event_data, '$.tab') as tab_name
-        FROM `mymetric-hub-shopify.dbt_config.user_events`
-        WHERE event_type = 'tab_view'
-        AND event_data IS NOT NULL
-    )
-    SELECT
-        IFNULL(tab_name, 'unknown') as aba,
-        COUNT(*) as visualizacoes
-    FROM tab_data
-    GROUP BY tab_name
-    ORDER BY visualizacoes DESC
-    """
+    # Calcula métricas gerais
+    total_users = len(all_events)
+    total_events = sum(len(events) for events in all_events.values())
     
-    # Query para últimos logins
-    query_logins = """
-    SELECT
-        username as usuario,
-        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', created_at) as data_hora,
-        JSON_EXTRACT_SCALAR(event_data, '$.city') as cidade,
-        JSON_EXTRACT_SCALAR(event_data, '$.region') as estado,
-        JSON_EXTRACT_SCALAR(event_data, '$.country') as pais,
-        JSON_EXTRACT_SCALAR(event_data, '$.ip') as ip,
-        JSON_EXTRACT_SCALAR(event_data, '$.user_agent') as user_agent
-    FROM `mymetric-hub-shopify.dbt_config.user_events`
-    WHERE event_type = 'login'
-    AND event_data IS NOT NULL
-    ORDER BY created_at DESC
-    LIMIT 1000
-    """
+    # Usuários ativos
+    now = datetime.now()
+    active_today = 0
+    active_7d = 0
+    active_30d = 0
     
-    # Executa as queries
-    df_metrics = run_query(client, query_metrics)
-    df_user_metrics = run_query(client, query_user_metrics)
-    df_tab_views = run_query(client, query_tab_views)
-    df_logins = run_query(client, query_logins)
+    for user_events in all_events.values():
+        if not user_events:
+            continue
+            
+        last_event = datetime.fromisoformat(user_events[-1]['timestamp'])
+        if last_event.date() == now.date():
+            active_today += 1
+        if (now - last_event) <= timedelta(days=7):
+            active_7d += 1
+        if (now - last_event) <= timedelta(days=30):
+            active_30d += 1
     
-    # Renomeia as colunas para exibição
-    df_user_metrics = df_user_metrics.rename(columns={
-        'usuario': 'Usuário',
-        'total_eventos': 'Total de Eventos',
-        'logins': 'Logins',
-        'views_abas': 'Views de Abas',
-        'primeira_atividade': 'Primeira Atividade',
-        'ultima_atividade': 'Última Atividade',
-        'dias_uso': 'Dias de Uso'
-    })
-    
-    df_tab_views = df_tab_views.rename(columns={
-        'aba': 'Aba',
-        'visualizacoes': 'Visualizações'
-    })
-    
-    df_logins = df_logins.rename(columns={
-        'usuario': 'Usuário',
-        'data_hora': 'Data/Hora',
-        'cidade': 'Cidade',
-        'estado': 'Estado',
-        'pais': 'País',
-        'ip': 'IP',
-        'user_agent': 'User Agent'
-    })
-    
-    # Exibe métricas gerais
-    section_title("📊 Métricas de Uso")
+    # Exibe métricas em colunas
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        big_number_box(
-            f"{int(df_metrics['total_users'].iloc[0]):,}".replace(",", "."),
-            "Total de Usuários",
-            hint="Número total de usuários registrados no sistema"
-        )
+        st.metric("Total de Usuários", total_users)
     
     with col2:
-        big_number_box(
-            f"{int(df_metrics['active_today'].iloc[0]):,}".replace(",", "."),
-            "Ativos Hoje",
-            hint="Usuários que realizaram alguma ação hoje"
-        )
+        st.metric("Ativos Hoje", active_today)
     
     with col3:
-        big_number_box(
-            f"{int(df_metrics['active_7d'].iloc[0]):,}".replace(",", "."),
-            "Ativos (7d)",
-            hint="Usuários que realizaram alguma ação nos últimos 7 dias"
-        )
+        st.metric("Ativos (7d)", active_7d)
     
     with col4:
-        big_number_box(
-            f"{int(df_metrics['active_30d'].iloc[0]):,}".replace(",", "."),
-            "Ativos (30d)",
-            hint="Usuários que realizaram alguma ação nos últimos 30 dias"
-        )
-    
-    # Métricas de engajamento
-    section_title("🎯 Engajamento")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        big_number_box(
-            f"{df_metrics['avg_active_days'].iloc[0]:.1f}",
-            "Média de Dias Ativos",
-            hint="Média de dias que os usuários acessam o sistema"
-        )
-    
-    with col2:
-        big_number_box(
-            f"{df_metrics['avg_events_per_user'].iloc[0]:.1f}",
-            "Média de Eventos/Usuário",
-            hint="Média de ações realizadas por usuário"
-        )
+        st.metric("Ativos (30d)", active_30d)
     
     # Análise por Usuário
-    section_title("👥 Análise por Usuário")
-    st.dataframe(df_user_metrics, hide_index=True, use_container_width=True)
+    st.subheader("Análise por Usuário")
+    
+    user_metrics = []
+    for username, events in all_events.items():
+        if not events:
+            continue
+            
+        # Conta eventos por tipo
+        event_types = {}
+        for event in events:
+            event_type = event['event_type']
+            event_types[event_type] = event_types.get(event_type, 0) + 1
+        
+        # Calcula primeira e última atividade
+        first_event = datetime.fromisoformat(events[0]['timestamp'])
+        last_event = datetime.fromisoformat(events[-1]['timestamp'])
+        
+        user_metrics.append({
+            'Usuário': username,
+            'Total de Eventos': len(events),
+            'Logins': event_types.get('login', 0),
+            'Views de Abas': event_types.get('tab_view', 0),
+            'Primeira Atividade': first_event.strftime('%d/%m/%Y %H:%M'),
+            'Última Atividade': last_event.strftime('%d/%m/%Y %H:%M'),
+            'Dias de Uso': (last_event - first_event).days + 1
+        })
+    
+    # Cria DataFrame e ordena por total de eventos
+    df_metrics = pd.DataFrame(user_metrics)
+    if not df_metrics.empty:
+        df_metrics = df_metrics.sort_values('Total de Eventos', ascending=False)
+        st.dataframe(df_metrics, hide_index=True, use_container_width=True)
     
     # Análise de Abas mais Visitadas
-    section_title("📑 Abas mais Visitadas")
-    st.dataframe(df_tab_views, hide_index=True, use_container_width=True)
+    st.subheader("Abas mais Visitadas")
+    
+    tab_views = {}
+    for events in all_events.values():
+        for event in events:
+            if event['event_type'] == 'tab_view':
+                tab_name = event['data'].get('tab', 'unknown')
+                tab_views[tab_name] = tab_views.get(tab_name, 0) + 1
+    
+    if tab_views:
+        df_tabs = pd.DataFrame([
+            {'Aba': tab, 'Visualizações': views}
+            for tab, views in tab_views.items()
+        ]).sort_values('Visualizações', ascending=False)
+        
+        st.dataframe(df_tabs, hide_index=True, use_container_width=True)
     
     # Análise de Logins
-    section_title("🔐 Últimos Logins")
-    st.dataframe(df_logins, hide_index=True, use_container_width=True) 
+    st.subheader("Últimos Logins")
+    
+    login_data = []
+    for username, events in all_events.items():
+        for event in events:
+            if event['event_type'] == 'login':
+                login_data.append({
+                    'Usuário': username,
+                    'Data/Hora': datetime.fromisoformat(event['timestamp']).strftime('%d/%m/%Y %H:%M'),
+                    'Cidade': event['data'].get('city', 'Unknown'),
+                    'Estado': event['data'].get('region', 'Unknown'),
+                    'País': event['data'].get('country', 'Unknown'),
+                    'IP': event['data'].get('ip', 'Unknown'),
+                    'User Agent': event['data'].get('user_agent', 'Unknown')
+                })
+    
+    if login_data:
+        df_logins = pd.DataFrame(login_data)
+        df_logins = df_logins.sort_values('Data/Hora', ascending=False)
+        st.dataframe(df_logins, hide_index=True, use_container_width=True)
+    else:
+        st.info("Nenhum login registrado ainda.") 

@@ -12,7 +12,7 @@ from custom.gringa_product_submited import display_tab_gringa_product_submited
 from tabs.tab_today import display_tab_today
 from tabs.tab_master import display_tab_master
 from helpers.config import load_table_metas
-from analytics.logger import log_event
+from analytics.logger import log_event, get_location
 
 def load_data(client, username, start_date_str, end_date_str):
     table = username
