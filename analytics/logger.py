@@ -1,71 +1,54 @@
 import os
 import json
-import requests
 from datetime import datetime
-import logging
-
-logger = logging.getLogger(__name__)
+import streamlit as st
+from google.cloud import bigquery
+from google.oauth2 import service_account
+import requests
 
 def get_location():
     """
-    Obtém a localização baseada no IP usando o serviço ip-api.com
+    Obtém informações de localização do usuário através do IP.
     """
     try:
-        logger.info("Attempting to get location from ip-api.com")
-        response = requests.get('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
-        
-        logger.info(f"IP API Response status code: {response.status_code}")
+        response = requests.get('https://ipapi.co/json/')
         if response.status_code == 200:
             data = response.json()
-            logger.info(f"IP API Response data: {data}")
-            
-            if data.get('status') == 'success':
-                location_data = {
-                    'city': data.get('city', 'Unknown'),
-                    'region': data.get('regionName', 'Unknown'),
-                    'country': data.get('country', 'Unknown'),
-                    'ip': data.get('query', 'Unknown'),
-                    'isp': data.get('isp', 'Unknown'),
-                    'timezone': data.get('timezone', 'Unknown'),
-                    'lat': data.get('lat', 0),
-                    'lon': data.get('lon', 0)
-                }
-                logger.info(f"Successfully retrieved location data: {location_data}")
-                return location_data
-            else:
-                logger.error(f"IP API returned error status: {data.get('message', 'No message')}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error making request to IP API: {str(e)}")
-    except Exception as e:
-        logger.error(f"Unexpected error getting location: {str(e)}")
+            return {
+                'ip': data.get('ip', 'Unknown'),
+                'city': data.get('city', 'Unknown'),
+                'region': data.get('region', 'Unknown'),
+                'country': data.get('country_name', 'Unknown'),
+                'user_agent': st.get_user_agent()
+            }
+    except:
+        pass
     
-    logger.warning("Returning default location data due to error")
     return {
+        'ip': 'Unknown',
         'city': 'Unknown',
         'region': 'Unknown',
         'country': 'Unknown',
-        'ip': 'Unknown',
-        'isp': 'Unknown',
-        'timezone': 'Unknown',
-        'lat': 0,
-        'lon': 0
+        'user_agent': st.get_user_agent()
     }
+
+def get_bigquery_client():
+    """Cria um cliente BigQuery com as credenciais corretas."""
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"]
+    )
+    return bigquery.Client(credentials=credentials)
 
 def log_event(username, event_type, event_data=None):
     """
-    Registra um evento do usuário em um arquivo JSON.
+    Registra um evento do usuário no BigQuery.
     
     Args:
         username (str): Nome do usuário
         event_type (str): Tipo do evento (login, tab_view, etc)
         event_data (dict): Dados adicionais do evento
     """
-    
-    # Cria o diretório analytics/logs se não existir
-    os.makedirs('analytics/logs', exist_ok=True)
-    
-    # Nome do arquivo de log para este usuário
-    log_file = f'analytics/logs/{username}.json'
+    client = get_bigquery_client()
     
     # Se for um evento de login, adiciona informações de localização
     if event_type == 'login':
@@ -73,30 +56,25 @@ def log_event(username, event_type, event_data=None):
         event_data = event_data or {}
         event_data.update(location)
     
-    # Prepara o evento
-    event = {
-        'timestamp': datetime.now().isoformat(),
-        'event_type': event_type,
-        'data': event_data or {}
-    }
+    # Converte o dicionário de dados para JSON
+    event_data_json = json.dumps(event_data) if event_data else None
     
-    # Carrega eventos existentes ou cria lista vazia
+    # Query para inserir o evento
+    query = f"""
+    INSERT INTO `mymetric-hub-shopify.dbt_config.user_events`
+    (username, event_type, event_data, created_at)
+    VALUES
+    ('{username}', '{event_type}', '{event_data_json}', CURRENT_TIMESTAMP())
+    """
+    
     try:
-        with open(log_file, 'r') as f:
-            events = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        events = []
-    
-    # Adiciona novo evento
-    events.append(event)
-    
-    # Salva todos os eventos
-    with open(log_file, 'w') as f:
-        json.dump(events, f, indent=2)
+        client.query(query)
+    except Exception as e:
+        st.error(f"Erro ao registrar evento: {str(e)}")
 
 def get_user_events(username):
     """
-    Recupera todos os eventos de um usuário.
+    Recupera todos os eventos de um usuário do BigQuery.
     
     Args:
         username (str): Nome do usuário
@@ -104,30 +82,67 @@ def get_user_events(username):
     Returns:
         list: Lista de eventos do usuário
     """
-    log_file = f'analytics/logs/{username}.json'
+    client = get_bigquery_client()
+    
+    query = f"""
+    SELECT
+        event_type,
+        event_data,
+        FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%S', created_at) as timestamp
+    FROM `mymetric-hub-shopify.dbt_config.user_events`
+    WHERE username = '{username}'
+    ORDER BY created_at DESC
+    """
     
     try:
-        with open(log_file, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+        df = client.query(query).to_dataframe()
+        events = []
+        for _, row in df.iterrows():
+            event = {
+                'event_type': row['event_type'],
+                'timestamp': row['timestamp'],
+                'data': json.loads(row['event_data']) if row['event_data'] else {}
+            }
+            events.append(event)
+        return events
+    except Exception as e:
+        st.error(f"Erro ao recuperar eventos: {str(e)}")
         return []
 
 def get_all_events():
     """
-    Recupera eventos de todos os usuários.
+    Recupera eventos de todos os usuários do BigQuery.
     
     Returns:
         dict: Dicionário com eventos por usuário
     """
-    events = {}
-    logs_dir = 'analytics/logs'
+    client = get_bigquery_client()
     
-    if not os.path.exists(logs_dir):
-        return events
-        
-    for filename in os.listdir(logs_dir):
-        if filename.endswith('.json'):
-            username = filename[:-5]  # remove .json
-            events[username] = get_user_events(username)
+    query = """
+    SELECT
+        username,
+        event_type,
+        event_data,
+        FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%S', created_at) as timestamp
+    FROM `mymetric-hub-shopify.dbt_config.user_events`
+    ORDER BY created_at DESC
+    """
+    
+    try:
+        df = client.query(query).to_dataframe()
+        events = {}
+        for _, row in df.iterrows():
+            username = row['username']
+            if username not in events:
+                events[username] = []
             
-    return events 
+            event = {
+                'event_type': row['event_type'],
+                'timestamp': row['timestamp'],
+                'data': json.loads(row['event_data']) if row['event_data'] else {}
+            }
+            events[username].append(event)
+        return events
+    except Exception as e:
+        st.error(f"Erro ao recuperar eventos: {str(e)}")
+        return {} 

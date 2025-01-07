@@ -52,7 +52,7 @@ def create_tables():
     CREATE TABLE IF NOT EXISTS `mymetric-hub-shopify.dbt_config.user_events` (
         username STRING,
         event_type STRING,
-        event_data STRING,
+        event_data STRING,  -- JSON com os dados do evento
         created_at TIMESTAMP
     );
     """
