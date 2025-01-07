@@ -4,33 +4,6 @@ from datetime import datetime
 import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
-import requests
-
-def get_location():
-    """
-    Obtém informações de localização do usuário através do IP.
-    """
-    try:
-        response = requests.get('https://ipapi.co/json/')
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                'ip': data.get('ip', 'Unknown'),
-                'city': data.get('city', 'Unknown'),
-                'region': data.get('region', 'Unknown'),
-                'country': data.get('country_name', 'Unknown'),
-                'user_agent': st.get_user_agent()
-            }
-    except:
-        pass
-    
-    return {
-        'ip': 'Unknown',
-        'city': 'Unknown',
-        'region': 'Unknown',
-        'country': 'Unknown',
-        'user_agent': st.get_user_agent()
-    }
 
 def get_bigquery_client():
     """Cria um cliente BigQuery com as credenciais corretas."""
@@ -49,12 +22,6 @@ def log_event(username, event_type, event_data=None):
         event_data (dict): Dados adicionais do evento
     """
     client = get_bigquery_client()
-    
-    # Se for um evento de login, adiciona informações de localização
-    if event_type == 'login':
-        location = get_location()
-        event_data = event_data or {}
-        event_data.update(location)
     
     # Converte o dicionário de dados para JSON
     event_data_json = json.dumps(event_data) if event_data else None
