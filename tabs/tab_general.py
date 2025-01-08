@@ -310,7 +310,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
         components.big_number_box(
             f"R$ {total_receita_paga:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
             "Receita Paga",
-            hint="Valor total dos pedidos que foram efetivamente pagos"
+            hint="Valor total dos pedidos que foram efetivamente pagos. Vá na aba Análises do Shopify para encontrar esse dado."
         )
 
     col1, col2, col3, col4 = st.columns(4)
