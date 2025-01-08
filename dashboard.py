@@ -150,7 +150,7 @@ def process_filters(query_general):
     }
 
 def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
-    tabs = ["\U0001F441 Visão Geral", "📊 Análise do Dia"]
+    tabs = ["\U0001F441 Visão Geral", "📊 Análise do Dia", "🔥 Mapa de Calor de Conversão"]
     
     tabs.append("\U0001F6D2 Últimos Pedidos")
 
@@ -291,6 +291,15 @@ def show_dashboard(client, username):
                         st.session_state.current_tab = 'configuracoes'
                         log_event(st.session_state.username, 'tab_view', {'tab': 'configuracoes'})
                     display_tab_settings(username)
+
+            # Aba do Mapa de Calor de Conversão
+            if "🔥 Mapa de Calor de Conversão" in tabs:
+                with tab_list[tabs.index("🔥 Mapa de Calor de Conversão")]:
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'mapa_calor':
+                        st.session_state.current_tab = 'mapa_calor'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'mapa_calor'})
+                    from tabs.tab_conversion_heatmap import display_conversion_heatmap
+                    display_conversion_heatmap(query_general)
 
         else:
             error_msg = f"""

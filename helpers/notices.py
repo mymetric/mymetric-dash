@@ -72,68 +72,38 @@ def show_new_year_notice(username):
             save_closed_notices(username, closed_notices)
             st.rerun()
 
-def show_feature_notices(username, meta_receita=0):
+def show_feature_notices(username, meta_receita):
     """Exibe os avisos de novas features com opção de não mostrar novamente."""
     closed_notices = load_closed_notices(username)
     
-    # Aviso de metas
-    if not closed_notices.get('meta_notice', False) and meta_receita == 0:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.info("""
-            ### 🎯 Configure suas Metas de Faturamento!
-            
-            Agora você pode definir e acompanhar suas metas mensais de receita.
-            
-            Para começar:
-            1. Acesse a aba "⚙️ Configurações"
-            2. Defina sua meta mensal
-            3. Acompanhe o progresso aqui na aba "Visão Geral"
-            
-            Comece agora mesmo a trackear seus objetivos! 📈
-            """)
-            if st.button("Não mostrar novamente", key="meta_notice", type="primary"):
-                closed_notices['meta_notice'] = True
-                save_closed_notices(username, closed_notices)
-                st.rerun()
-
-        with col2:
-            st.info("""
-            ### 📊 Nova Aba de Análise do Dia!
-            
-            Agora você pode acompanhar suas métricas em tempo real na aba "Análise do Dia".
-            
-            Recursos disponíveis:
-            - Acompanhamento hora a hora
-            - Comparação com dias anteriores
-            - Acompanhamento de meta diária
-            
-            Confira agora mesmo! 🚀
-            """)
-            if st.button("Não mostrar novamente", key="today_notice", type="primary"):
-                closed_notices['today_notice'] = True
-                save_closed_notices(username, closed_notices)
-                st.rerun()
-
-    # Aviso da aba de análise do dia
-    elif not closed_notices.get('today_notice', False):
+    # Aviso do Mapa de Calor
+    if not closed_notices.get('heatmap_notice', False):
         st.info("""
-        ### 📊 Nova Aba de Análise do Dia!
+        ### 🆕 Nova Feature: Mapa de Calor de Conversão
         
-        Agora você pode acompanhar suas métricas em tempo real na aba "Análise do Dia".
+        Agora você pode visualizar suas taxas de conversão por hora do dia e dia da semana em um mapa de calor interativo.
         
-        Recursos disponíveis:
-        - Acompanhamento hora a hora
-        - Comparação com dias anteriores
-        - Principais fontes de tráfego do dia
+        **Recursos disponíveis:**
+        * Identificar os melhores horários para suas vendas
+        * Otimizar suas campanhas de marketing
+        * Entender o comportamento dos seus clientes
+        * Filtrar por mínimo de sessões
         
-        Confira agora mesmo! 🚀
+        Acesse agora mesmo a aba "🔥 Mapa de Calor de Conversão"! 📈
         """)
-        if st.button("Não mostrar novamente", key="today_notice", type="primary"):
-            closed_notices['today_notice'] = True
+        if st.button("Não mostrar novamente", key="heatmap_notice", type="primary"):
+            closed_notices['heatmap_notice'] = True
             save_closed_notices(username, closed_notices)
             st.rerun()
+
+    # Aviso de meta não cadastrada
+    if meta_receita == 0:
+        st.warning("""
+        ⚠️ **Meta do Mês Não Cadastrada**
+        
+        Você ainda não cadastrou sua meta de receita para este mês.
+        Para um melhor acompanhamento do seu desempenho, acesse a aba Configurações e cadastre sua meta mensal.
+        """)
 
 def initialize_notices():
     """Inicializa o estado dos avisos se não existir."""

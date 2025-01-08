@@ -549,3 +549,78 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(pagina_de_entrada, hide_index=1, use_container_width=1)
+
+    
+    conv_rate = df
+    # Adiciona coluna de dia da semana
+    conv_rate['Dia da Semana'] = pd.to_datetime(conv_rate['Data']).dt.day_name()
+    
+    # Agrupa por dia da semana e hora
+    conv_rate = conv_rate.groupby(['Dia da Semana', 'Hora']).agg({
+        'Sessões': 'sum',
+        'Pedidos': 'sum'
+    }).reset_index()
+    
+    # Calcula taxa de conversão
+    conv_rate['Taxa de Conversão'] = (conv_rate['Pedidos'] / conv_rate['Sessões'] * 100).round(2)
+    # Pivota a tabela para criar a matriz
+    conv_rate_matrix = conv_rate.pivot(
+        index='Hora',
+        columns='Dia da Semana',
+        values='Taxa de Conversão'
+    )
+    
+    # Reordena os dias da semana emportuguês
+    dias_ordem = {
+        'Monday': 'Segunda',
+        'Tuesday': 'Terça',
+        'Wednesday': 'Quarta',
+        'Thursday': 'Quinta',
+        'Friday': 'Sexta',
+        'Saturday': 'Sábado',
+        'Sunday': 'Domingo'
+    }
+    conv_rate['Dia da Semana'] = conv_rate['Dia da Semana'].map(dias_ordem)
+    
+    # Cria o heatmap usando Altair com um design mais limpo
+    heatmap = alt.Chart(conv_rate).mark_rect().encode(
+        x=alt.X('Dia da Semana:N', 
+                title=None,  # Remove título do eixo X
+                sort=['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']),
+        y=alt.Y('Hora:O', 
+                title=None,  # Remove título do eixo Y
+                sort=list(range(24))),
+        color=alt.Color('Taxa de Conversão:Q',
+                       scale=alt.Scale(scheme='greens'),  # Usa tons de verde
+                       legend=alt.Legend(
+                           orient='right',
+                           title='Taxa de Conversão (%)',
+                           gradientLength=300
+                       )),
+        tooltip=[
+            alt.Tooltip('Dia da Semana:N', title='Dia'),
+            alt.Tooltip('Hora:O', title='Hora'),
+            alt.Tooltip('Taxa de Conversão:Q', title='Taxa de Conversão', format='.2f'),
+            alt.Tooltip('Sessões:Q', title='Sessões', format=','),
+            alt.Tooltip('Pedidos:Q', title='Pedidos', format=',')
+        ]
+    ).properties(
+        width=650,
+        height=500
+    ).configure_view(
+        strokeWidth=0,  # Remove borda
+    ).configure_axis(
+        labelFontSize=11,
+        grid=False,  # Remove grid
+        domain=False  # Remove linhas dos eixos
+    ).configure_legend(
+        labelFontSize=11,
+        titleFontSize=12,
+        padding=10
+    )
+
+    # Adiciona espaço em branco para melhor alinhamento
+    st.write("")
+    
+    # Exibe o heatmap
+    st.altair_chart(heatmap, use_container_width=True)
