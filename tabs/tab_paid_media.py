@@ -188,7 +188,7 @@ def display_tab_paid_media(client, table, df_ads, username):
 
         """
         qa = execute_query(client, qa)
-        st.write("As sessões a seguir vem de Meta Ads, porém, não estão no padrão de tagueamento.")
+        st.write("As sessões a seguir (últimos 7 dias) vem de Meta Ads, porém, não estão no padrão de tagueamento.")
         st.data_editor(qa, hide_index=1, use_container_width=1)
 
     # Carregar as metas do usuário
