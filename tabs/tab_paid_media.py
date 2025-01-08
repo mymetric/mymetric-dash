@@ -172,6 +172,7 @@ def display_tab_paid_media(client, table, df_ads, username):
                 source `Origem`,
                 medium `Mídia`,
                 campaign `Campanha`,
+                page_location `Página`,
                 count(*) `Sessões`
 
             from `mymetric-hub-shopify.dbt_join.{table}_sessions_gclids`
