@@ -198,41 +198,38 @@ def show_dashboard(client, username):
 
             # Cria as abas
             tab_list = st.tabs(tabs)
-
+            
             # Exemplo de uso das abas
             if "\U0001F441 Visão Geral" in tabs:
                 with tab_list[tabs.index("\U0001F441 Visão Geral")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'visao_geral'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'visao_geral':
+                        st.session_state.current_tab = 'visao_geral'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'visao_geral'})
                     tx_cookies = results["cookies"]["Taxa Perda de Cookies Hoje"].sum()*100
                     display_tab_general(query_general, tx_cookies, results["ads"], username, start_date=start_date, end_date=end_date, **filters)
-
-                    if tx_cookies > 10:
-                        send_discord_message(f"""
-⚠️ **Alerta de Perda de Cookies** ⚠️
-
-**Cliente:** `{username}`
-**Taxa de Perda:** `{tx_cookies:.2f}%`
-**Limite Recomendado:** `30%`
-
-*Este alerta é gerado quando a taxa de perda de cookies está acima do normal.*
-""")
 
             # Aba de Análise do Dia
             if "📊 Análise do Dia" in tabs:
                 with tab_list[tabs.index("📊 Análise do Dia")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'analise_dia'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'analise_dia':
+                        st.session_state.current_tab = 'analise_dia'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'analise_dia'})
                     df_today = results["today"]
                     df_today['Cluster'] = df_today.apply(atribuir_cluster, axis=1)
                     display_tab_today(df_today, results["ads"], username, meta_receita)
 
             if "\U0001F4B0 Mídia Paga" in tabs:
                 with tab_list[tabs.index("\U0001F4B0 Mídia Paga")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'midia_paga'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'midia_paga':
+                        st.session_state.current_tab = 'midia_paga'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'midia_paga'})
                     display_tab_paid_media(client, username, results["ads"], username)
 
             if "\U0001F6D2 Últimos Pedidos" in tabs:
                 with tab_list[tabs.index("\U0001F6D2 Últimos Pedidos")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'ultimos_pedidos'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'ultimos_pedidos':
+                        st.session_state.current_tab = 'ultimos_pedidos'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'ultimos_pedidos'})
                     query_last_orders = f"""
                     SELECT
                         created_at `Horário`,
@@ -260,7 +257,9 @@ def show_dashboard(client, username):
 
             if "\U0001F4F1 WhatsApp Leads" in tabs:
                 with tab_list[tabs.index("\U0001F4F1 WhatsApp Leads")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'whatsapp_leads'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'whatsapp_leads':
+                        st.session_state.current_tab = 'whatsapp_leads'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'whatsapp_leads'})
                     df_whatsapp = results["whatsapp"]
                     section_title("WhatsApp Leads")
                     st.data_editor(df_whatsapp, hide_index=True, use_container_width=True)
@@ -274,17 +273,23 @@ def show_dashboard(client, username):
 
             if "\U0001F381 Produtos Cadastrados" in tabs:
                 with tab_list[tabs.index("\U0001F381 Produtos Cadastrados")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'produtos_cadastrados'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'produtos_cadastrados':
+                        st.session_state.current_tab = 'produtos_cadastrados'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'produtos_cadastrados'})
                     display_tab_gringa_product_submited(client, start_date, end_date, **filters)
 
             if "🎓 Mestre" in tabs:
                 with tab_list[tabs.index("🎓 Mestre")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'mestre'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'mestre':
+                        st.session_state.current_tab = 'mestre'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'mestre'})
                     display_tab_master(client)
 
             if "\U0001F4E6 Configurações" in tabs:
                 with tab_list[tabs.index("\U0001F4E6 Configurações")]:
-                    log_event(st.session_state.username, 'tab_view', {'tab': 'configuracoes'})
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'configuracoes':
+                        st.session_state.current_tab = 'configuracoes'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'configuracoes'})
                     display_tab_settings(username)
 
         else:
