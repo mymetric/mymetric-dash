@@ -7,11 +7,15 @@ from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
 from helpers.components import send_discord_message
 from analytics.logger import log_event
+from pathlib import Path
+import base64
 
 st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
 
-# Logo URL
-logo_url = "https://i.imgur.com/cPslqoR.png"
+# Logo path
+logo_path = Path(__file__).parent / "logo.svg"
+with open(logo_path, "rb") as f:
+    logo_contents = f.read()
 
 # Cria o cliente da API
 credentials = service_account.Credentials.from_service_account_info(
@@ -26,16 +30,17 @@ def check_password():
         st.session_state.username = None
         st.session_state.login_time = None
 
+    # Sempre mostra o logo
+    st.sidebar.markdown(
+        f"""
+        <div>
+            <img src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width:450px; height:130px; object-fit: cover;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     if not st.session_state.authenticated:
-        st.sidebar.markdown(
-            f"""
-            <div>
-                <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")
         
@@ -78,16 +83,6 @@ if check_password():
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
         user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
-
-        # Display the header with the logo
-        st.sidebar.markdown(
-            f"""
-            <div>
-                <img src="{logo_url}" alt="Logo" style="width:450px; height:90px; object-fit: cover;">
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
         selected_user = st.sidebar.selectbox("Escolha um usuário", options=user_names)
         st.sidebar.write(f"Selecionado: {selected_user}")
