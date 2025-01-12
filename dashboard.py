@@ -13,6 +13,7 @@ from tabs.tab_today import display_tab_today
 from tabs.tab_master import display_tab_master
 from helpers.config import load_table_metas
 from analytics.logger import log_event
+from custom.holysoup_mautic import display_tab_holysoup_mautic
 
 def load_data(client, username, start_date_str, end_date_str):
     table = username
@@ -162,6 +163,9 @@ def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
 
     if username == "gringa":
         tabs.append("\U0001F381 Produtos Cadastrados")
+        
+    if username in ["holysoup", "holy-soup", "holy_soup"]:
+        tabs.append("✉️ Mautic")
 
     tabs.append("\U0001F4E6 Configurações")
 
@@ -300,6 +304,13 @@ def show_dashboard(client, username):
                         log_event(st.session_state.username, 'tab_view', {'tab': 'mapa_calor'})
                     from tabs.tab_conversion_heatmap import display_conversion_heatmap
                     display_conversion_heatmap(query_general)
+
+            if "✉️ Mautic" in tabs:
+                with tab_list[tabs.index("✉️ Mautic")]:
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'mautic':
+                        st.session_state.current_tab = 'mautic'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'mautic'})
+                    display_tab_holysoup_mautic(client, start_date, end_date, **filters)
 
         else:
             error_msg = f"""
