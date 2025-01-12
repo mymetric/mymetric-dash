@@ -76,6 +76,22 @@ def show_feature_notices(username, meta_receita):
     """Exibe os avisos de novas features com opção de não mostrar novamente."""
     closed_notices = load_closed_notices(username)
     
+    # Aviso de migração para hub.mymetric.app
+    if not closed_notices.get('hub_migration_notice', False):
+        st.info("""
+        ### 🔄 Mudança de Endereço
+        
+        **Atenção:** Este aplicativo agora estará disponível exclusivamente em:
+        
+        **[hub.mymetric.app](https://hub.mymetric.app)**
+        
+        Por favor, atualize seus favoritos e utilize o novo endereço para acessar o MyMetric Hub.
+        """)
+        if st.button("Entendi", key="hub_migration_notice", type="primary"):
+            closed_notices['hub_migration_notice'] = True
+            save_closed_notices(username, closed_notices)
+            st.rerun()
+    
     # Aviso do Mapa de Calor
     if not closed_notices.get('heatmap_notice', False):
         st.info("""
