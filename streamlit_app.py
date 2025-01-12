@@ -38,7 +38,7 @@ def check_password():
     st.sidebar.markdown(
         f"""
         <div>
-            <img src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width:450px; height:130px; object-fit: cover;">
+            <img src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width: 250px;height: 75px;object-fit: cover;margin: 0 auto;display: block;">
         </div>
         """,
         unsafe_allow_html=True
