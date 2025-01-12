@@ -134,12 +134,13 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
 
     # Add progress bar for meta only if we're looking at the current month
     first_day_current_month = current_date.replace(day=1)
+    yesterday = current_date - pd.Timedelta(days=1)
     
     # Check if the selected date range matches current month
     is_current_month = (start_date == first_day_current_month and end_date == current_date)
     
     if meta_receita > 0 and is_current_month:
-        dias_passados = current_date.day
+        dias_passados = yesterday.day
         _, last_day = calendar.monthrange(current_date.year, current_date.month)
         meta_proporcional = meta_receita * (dias_passados / last_day)
         percentual_meta = (total_receita_paga / meta_proporcional) * 100 if meta_proporcional > 0 else 0
