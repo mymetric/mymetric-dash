@@ -17,6 +17,7 @@ from custom.holysoup_mautic import display_tab_holysoup_mautic
 
 # Verificar se está rodando no Streamlit Cloud
 server_address = st.get_option('server.address')
+st.write(server_address)
 if server_address is not None and 'streamlit.app' in server_address:
     st.warning("Por favor, acesse o dashboard através do novo endereço oficial:")
     st.markdown("[https://hub.mymetric.app](https://hub.mymetric.app/)")
