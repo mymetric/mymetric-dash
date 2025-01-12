@@ -10,7 +10,11 @@ from analytics.logger import log_event
 from pathlib import Path
 import base64
 
-st.set_page_config(page_title="MyMetric HUB", page_icon=":bar_chart:", layout="wide")
+st.set_page_config(
+    page_title="MyMetricHUB",
+    page_icon="https://mymetric.com.br/wp-content/uploads/2023/07/cropped-Novo-Logo-Icone-32x32.jpg",
+    layout="wide"
+)
 
 # Logo path
 logo_path = Path(__file__).parent / "logo.svg"
