@@ -4,6 +4,13 @@ from google.oauth2 import service_account
 import pandas as pd
 
 def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
+    # Verificar se está rodando no Streamlit Cloud
+    if 'streamlit.app' in st.get_option('server.address'):
+        st.error("⚠️ Versão não autorizada!")
+        st.warning("Por favor, acesse o dashboard através do endereço oficial:")
+        st.markdown("[https://hub.mymetric.app](https://hub.mymetric.app/)")
+        st.stop()
+        
     st.title("✉️ Mautic")
     
     try:
