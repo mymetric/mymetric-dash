@@ -38,6 +38,41 @@ def display_tab_funnel(client, table, query_general, start_date, end_date, **fil
             # Mostrar período selecionado
             st.caption(f"Período: {start_date} até {end_date}")
 
+            # Explicação das taxas de conversão
+            with st.expander("ℹ️ Entenda as Taxas de Conversão", expanded=False):
+                st.markdown("""
+                    ### Como interpretar as taxas de conversão:
+                    
+                    1. **Taxa View -> Cart** (Visualização para Carrinho):
+                       - Porcentagem de usuários que adicionaram produtos ao carrinho após visualizar um item
+                       - Indica o interesse inicial no produto
+                    
+                    2. **Taxa Cart -> Checkout** (Carrinho para Checkout):
+                       - Porcentagem de usuários que iniciaram o checkout após adicionar ao carrinho
+                       - Mostra quantos carrinhos avançam para a compra
+                    
+                    3. **Taxa Checkout -> Frete** (Checkout para Frete):
+                       - Porcentagem de usuários que preencheram informações de frete após iniciar checkout
+                       - Indica progresso no processo de compra
+                    
+                    4. **Taxa Frete -> Pagamento** (Frete para Pagamento):
+                       - Porcentagem de usuários que avançaram para pagamento após informar frete
+                       - Mostra aceitação das opções de frete
+                    
+                    5. **Taxa Pagamento -> Pedido** (Pagamento para Pedido):
+                       - Porcentagem de usuários que completaram o pedido após informar pagamento
+                       - Indica sucesso na finalização da compra
+                    
+                    6. **Taxa Geral** (Visualização para Pedido):
+                       - Porcentagem total de conversão desde a visualização até o pedido
+                       - Mostra a eficiência geral do funil de vendas
+                    
+                    💡 **Dica**: Taxas muito baixas em uma etapa específica podem indicar:
+                    - Problemas técnicos no rastreamento
+                    - Gargalos no processo de compra
+                    - Oportunidades de otimização
+                """)
+
             # Calcular taxas de conversão
             df['Taxa View -> Cart'] = (df['Adicionar ao Carrinho'] / df['Visualização de Item'] * 100).round(2)
             df['Taxa Cart -> Checkout'] = (df['Iniciar Checkout'] / df['Adicionar ao Carrinho'] * 100).round(2)
