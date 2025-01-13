@@ -72,9 +72,10 @@ def load_data(client, username, start_date_str, end_date_str):
 
     query_cookies = f"""
     SELECT
-        round(sum(case when source = "not captured" then 1 else 0 end)/count(*),2) `Taxa Perda de Cookies Hoje`
+        round(sum(case when source = "not captured" then 1 else 0 end)/count(*),2) `Taxa Perda de Cookies`
     FROM `mymetric-hub-shopify.dbt_join.{table}_orders_sessions`
-    WHERE date(created_at) = current_date("America/Sao_Paulo")
+    WHERE date(created_at) >= date_sub(current_date("America/Sao_Paulo"), interval 1 day)
+        and date(created_at) <= current_date("America/Sao_Paulo")
     GROUP BY ALL
     """
 
@@ -267,7 +268,7 @@ def show_dashboard(client, username):
                     if 'current_tab' not in st.session_state or st.session_state.current_tab != 'visao_geral':
                         st.session_state.current_tab = 'visao_geral'
                         log_event(st.session_state.username, 'tab_view', {'tab': 'visao_geral'})
-                    tx_cookies = results["cookies"]["Taxa Perda de Cookies Hoje"].sum()*100
+                    tx_cookies = results["cookies"]["Taxa Perda de Cookies"].sum()*100
                     display_tab_general(query_general, tx_cookies, results["ads"], username, start_date=start_date, end_date=end_date, **filters)
 
             # Aba de Análise do Dia
