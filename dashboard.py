@@ -4,13 +4,16 @@ from datetime import timedelta, date, datetime
 from concurrent.futures import ThreadPoolExecutor
 from helpers.components import atribuir_cluster, send_discord_message, run_query, section_title
 from filters import date_filters, traffic_filters
+
 from tabs.tab_general import display_tab_general
 from tabs.tab_last_orders import display_tab_last_orders
 from tabs.tab_paid_media import display_tab_paid_media
 from tabs.tab_settings import display_tab_settings
-from custom.gringa_product_submited import display_tab_gringa_product_submited
 from tabs.tab_today import display_tab_today
 from tabs.tab_master import display_tab_master
+from tabs.tab_funnel import display_tab_funnel
+
+from custom.gringa_product_submited import display_tab_gringa_product_submited
 from helpers.config import load_table_metas
 from analytics.logger import log_event
 from custom.holysoup_mautic import display_tab_holysoup_mautic
@@ -152,7 +155,7 @@ def process_filters(query_general):
     }
 
 def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
-    tabs = ["\U0001F441 Visão Geral", "📊 Análise do Dia", "🔥 Mapa de Calor de Conversão"]
+    tabs = ["\U0001F441 Visão Geral", "📊 Análise do Dia", "🎯 Funil de Conversão", "🔥 Mapa de Calor de Conversão"]
     
     tabs.append("\U0001F6D2 Últimos Pedidos")
 
@@ -165,7 +168,7 @@ def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
     if username == "gringa":
         tabs.append("\U0001F381 Produtos Cadastrados")
         
-    if username in ["holysoup", "holy-soup", "holy_soup"]:
+    if username in ["holysoup"]:
         tabs.append("✉️ Mautic")
 
     tabs.append("\U0001F4E6 Configurações")
@@ -305,6 +308,13 @@ def show_dashboard(client, username):
                         log_event(st.session_state.username, 'tab_view', {'tab': 'mapa_calor'})
                     from tabs.tab_conversion_heatmap import display_conversion_heatmap
                     display_conversion_heatmap(query_general)
+            
+            if "🎯 Funil de Conversão" in tabs:
+                with tab_list[tabs.index("🎯 Funil de Conversão")]:
+                    if 'current_tab' not in st.session_state or st.session_state.current_tab != 'funil_conversao':
+                        st.session_state.current_tab = 'funil_conversao'
+                        log_event(st.session_state.username, 'tab_view', {'tab': 'funil_conversao'})
+                    display_tab_funnel(client, username, start_date, end_date, **filters)
 
             if "✉️ Mautic" in tabs:
                 with tab_list[tabs.index("✉️ Mautic")]:
