@@ -179,6 +179,60 @@ def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
     return tabs
 
 def show_dashboard(client, username):
+    # Adicionar CSS personalizado para as abas
+    st.markdown("""
+        <style>
+            /* Estilo geral das abas */
+            .stTabs {
+                background-color: transparent;
+                padding: 0px 0px;
+                border-radius: 10px;
+            }
+            
+            /* Estilo dos botões das abas */
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 8px;
+                padding: 5px 0;
+            }
+            
+            /* Estilo de cada aba */
+            .stTabs [data-baseweb="tab"] {
+                height: 45px;
+                padding: 8px 16px;
+                border-radius: 8px;
+                color: #666;
+                font-weight: 500;
+                background-color: #f8f9fa;
+                border: none;
+                transition: all 0.2s ease;
+            }
+            
+            /* Estilo da aba ativa */
+            .stTabs [aria-selected="true"] {
+                background-color: #e8f0fe !important;
+                color: #1967d2 !important;
+                border-bottom: none !important;
+                font-weight: 600;
+            }
+            
+            /* Hover nas abas */
+            .stTabs [data-baseweb="tab"]:hover {
+                background-color: #e8f0fe;
+                color: #1967d2;
+            }
+            
+            /* Linha indicadora da aba ativa */
+            .stTabs [data-baseweb="tab-highlight"] {
+                display: none;
+            }
+            
+            /* Conteúdo das abas */
+            .stTabs [data-baseweb="tab-panel"] {
+                padding: 15px 0px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     try:
         today = pd.to_datetime("today").date()
         yesterday = today - pd.Timedelta(days=1)
