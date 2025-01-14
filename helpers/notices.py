@@ -3,6 +3,7 @@ from datetime import date, datetime
 import json
 from google.cloud import bigquery
 from google.oauth2 import service_account
+import requests
 
 def get_bigquery_client():
     """Cria um cliente BigQuery com as credenciais corretas."""
@@ -130,3 +131,49 @@ def show_feature_notices(username, meta_receita):
         Você ainda não cadastrou sua meta de receita para este mês.
         Para um melhor acompanhamento do seu desempenho, acesse a aba Configurações e cadastre sua meta mensal.
         """) 
+
+def send_discord_alert(pendencia, username):
+    """Envia alerta formatado para o Discord."""
+    webhook_url = st.secrets["general"]["discord_webhook_url"]
+    
+    # Definir cores baseadas na severidade
+    severity_colors = {
+        'alta': 0xDC3545,  # Vermelho
+        'media': 0xFFC107,  # Amarelo
+        'baixa': 0x17A2B8   # Azul
+    }
+    
+    # Criar emoji baseado na severidade
+    severity_emojis = {
+        'alta': '🔴',
+        'media': '🟡',
+        'baixa': '🔵'
+    }
+    
+    # Formatar a mensagem para o Discord
+    embed = {
+        "title": f"{severity_emojis[pendencia['severidade']]} {pendencia['titulo']}",
+        "description": pendencia['descricao'],
+        "color": severity_colors[pendencia['severidade']],
+        "fields": [
+            {
+                "name": "🎯 Ação Necessária",
+                "value": pendencia['acao'].replace('<a href="', '').replace('" target="_blank" style="color: #0366d6; text-decoration: none;">', ' - ').replace('</a>', ''),
+                "inline": False
+            }
+        ],
+        "footer": {
+            "text": f"MyMetric • {username} • {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        }
+    }
+    
+    # Preparar payload
+    payload = {
+        "embeds": [embed]
+    }
+    
+    try:
+        response = requests.post(webhook_url, json=payload)
+        response.raise_for_status()
+    except Exception as e:
+        pass  # Silently handle any errors in Discord notification 
