@@ -92,6 +92,13 @@ if check_password():
             st.write(f"Selecionado: {selected_user}")
             # Exibe o dashboard como se o usuário selecionado estivesse autenticado
         dashboard.show_dashboard(client, selected_user)
+    elif st.session_state.username == "buildgrowth":
+        # Gera um dropdown para escolher entre holysoup e orthocrin
+        with st.sidebar.expander("Selecionar Cliente", expanded=True):
+            client_options = ["holysoup", "orthocrin"]
+            selected_client = st.selectbox("Escolha o cliente", options=client_options)
+            st.write(f"Cliente selecionado: {selected_client}")
+        dashboard.show_dashboard(client, selected_client)
     else:
         # Exibe o dashboard para o usuário autenticado
         dashboard.show_dashboard(client, st.session_state.username)
