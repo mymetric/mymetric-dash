@@ -18,16 +18,27 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     current_month = datetime.now().strftime("%Y-%m")
     meta_receita = float(metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0))
     
-    # Aplicar filtros ao DataFrame
+    # Criar uma cópia do DataFrame original para o Run Rate (sem filtros)
+    df_run_rate = df.copy()
+    
+    # Aplicar filtros ao DataFrame principal
     df = traffic_filters(df, **filters)
     
-    # Inicializa e mostra os notices
+    # Inicializa notices
     initialize_notices()
-    show_feature_notices(username, meta_receita)
-
-    # Verificar e exibir pendências
+    
+    # Verificar pendências
     pendencias = check_pending_items(username, meta_receita, tx_cookies, df_ads)
-    display_pending_items(pendencias)
+    
+    # Expander para avisos e pendências
+    with st.expander("📬 Avisos e Pendências", expanded=True):
+        # Mostrar avisos de features
+        show_feature_notices(username, meta_receita)
+        
+        # Mostrar pendências se houver
+        if pendencias:
+            st.markdown("---")
+            display_pending_items(pendencias)
 
     # Calcular métricas gerais
     sessoes = df["Sessões"].sum()
@@ -50,17 +61,20 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
         dias_passados = yesterday.day
         _, last_day = calendar.monthrange(current_date.year, current_date.month)
         meta_proporcional = meta_receita * (dias_passados / last_day)
-        percentual_meta = (total_receita_paga / meta_proporcional) * 100 if meta_proporcional > 0 else 0
+        
+        # Usar df_run_rate para cálculos do Run Rate (sem filtros)
+        total_receita_paga_run_rate = df_run_rate["Receita Paga"].sum()
+        percentual_meta = (total_receita_paga_run_rate / meta_proporcional) * 100 if meta_proporcional > 0 else 0
         
         st.header("Run Rate")
 
         # Calcula a projeção de fechamento do mês
-        receita_projetada = total_receita_paga * (last_day / dias_passados) if dias_passados > 0 else 0
+        receita_projetada = total_receita_paga_run_rate * (last_day / dias_passados) if dias_passados > 0 else 0
         
         # Calcula a probabilidade de atingir a meta
-        media_diaria = total_receita_paga / dias_passados if dias_passados > 0 else 0
+        media_diaria = total_receita_paga_run_rate / dias_passados if dias_passados > 0 else 0
         dias_restantes = last_day - dias_passados
-        valor_faltante = meta_receita - total_receita_paga
+        valor_faltante = meta_receita - total_receita_paga_run_rate
         valor_necessario_por_dia = valor_faltante / dias_restantes if dias_restantes > 0 else float('inf')
         
         # Calcula a probabilidade baseada na diferença entre a média diária atual e a necessária
@@ -154,7 +168,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                 - Dias passados: {dias_passados} de {last_day} dias
                 - Proporção do mês: {(dias_passados/last_day*100):.1f}%
                 - Meta proporcional: R$ {meta_proporcional:,.2f}
-                - Receita realizada: R$ {total_receita_paga:,.2f}
+                - Receita realizada: R$ {total_receita_paga_run_rate:,.2f}
                 - Percentual atingido: {percentual_meta:.1f}%
                 - Probabilidade de atingir a meta: {probabilidade:.1f}%
 
@@ -178,7 +192,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
             """)
 
             # Adiciona projeção de fechamento
-            receita_projetada = total_receita_paga * (last_day / dias_passados)
+            receita_projetada = total_receita_paga_run_rate * (last_day / dias_passados)
             st.markdown(f"""
                 ### Projeção de Fechamento
 
