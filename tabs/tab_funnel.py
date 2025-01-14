@@ -24,7 +24,7 @@ def display_tab_funnel(client, table, query_general, start_date, end_date, **fil
                 add_shipping_info `Adicionar Informação de Frete`,
                 add_payment_info `Adicionar Informação de Pagamento`,
                 purchase `Pedido`
-            FROM `mymetric-hub-shopify.dbt.{table}_daily_metrics`
+            FROM `mymetric-hub-shopify.dbt_aggregated.{table}_daily_metrics`
             WHERE event_date BETWEEN '{start_date}' AND '{end_date}'
             ORDER BY event_date
             """
