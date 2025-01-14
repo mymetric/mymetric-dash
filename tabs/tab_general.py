@@ -18,6 +18,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     current_month = datetime.now().strftime("%Y-%m")
     meta_receita = float(metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0))
     
+    # Aplicar filtros ao DataFrame
     df = traffic_filters(df, **filters)
     
     # Inicializa e mostra os notices
@@ -456,3 +457,22 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(pagina_de_entrada, hide_index=1, use_container_width=1)
+
+    # Tabela de Cupons
+    st.header("Cupons")
+    st.write("Análise dos cupons utilizados nos pedidos")
+    
+    cupons = df.groupby(['Cupom']).agg({
+        'Sessões': 'sum', 
+        'Pedidos': 'sum', 
+        'Pedidos Primeiro Clique': 'sum', 
+        'Receita': 'sum', 
+        'Receita Paga': 'sum'
+    }).reset_index()
+    
+    # Adiciona coluna de taxa de conversão
+    cupons['Tx Conversão'] = (cupons['Pedidos'] / cupons['Sessões'] * 100).round(2).astype(str) + '%'
+    cupons['% Receita'] = ((cupons['Receita'] / cupons['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    cupons = cupons.sort_values(by='Pedidos', ascending=False)
+    
+    st.data_editor(cupons, hide_index=1, use_container_width=1)

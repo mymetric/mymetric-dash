@@ -77,26 +77,101 @@ def date_filters(today, yesterday, seven_days_ago, thirty_days_ago):
 
     return start_date, end_date
 
-def traffic_filters(df, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected):
+def traffic_filters(df, cluster_selected=None, origem_selected=None, midia_selected=None, campanha_selected=None, conteudo_selected=None, pagina_de_entrada_selected=None, cupom_selected=None):
+    """
+    Aplica filtros ao DataFrame baseado nas seleções do usuário.
+    Não cria elementos UI - apenas aplica a lógica de filtragem.
+    """
     
-    # Adiciona filtro de cluster
-    if "Selecionar Todos" not in cluster_selected:
+    # Aplicar filtros apenas se houver seleção e não incluir "Selecionar Todos"
+    if cluster_selected and "Selecionar Todos" not in cluster_selected:
         df = df[df['Cluster'].isin(cluster_selected)]
-    
-    # Se "Selecionar Todos" não estiver em origem_selected, aplica o filtro
-    if "Selecionar Todos" not in origem_selected:
+    if origem_selected and "Selecionar Todos" not in origem_selected:
         df = df[df['Origem'].isin(origem_selected)]
-    
-    if "Selecionar Todos" not in midia_selected:
+    if midia_selected and "Selecionar Todos" not in midia_selected:
         df = df[df['Mídia'].isin(midia_selected)]
-    
-    if "Selecionar Todos" not in campanha_selected:
+    if campanha_selected and "Selecionar Todos" not in campanha_selected:
         df = df[df['Campanha'].isin(campanha_selected)]
-    
-    if "Selecionar Todos" not in conteudo_selected:
+    if conteudo_selected and "Selecionar Todos" not in conteudo_selected:
         df = df[df['Conteúdo'].isin(conteudo_selected)]
-    
-    if "Selecionar Todos" not in pagina_de_entrada_selected:
+    if pagina_de_entrada_selected and "Selecionar Todos" not in pagina_de_entrada_selected:
         df = df[df['Página de Entrada'].isin(pagina_de_entrada_selected)]
-
+    if cupom_selected and "Selecionar Todos" not in cupom_selected:
+        df = df[df['Cupom'].isin(cupom_selected)]
+    
     return df
+
+def create_traffic_filters(df):
+    """
+    Cria e retorna os elementos de filtro da sidebar.
+    """
+    with st.sidebar:
+        # Filtros existentes
+        with st.expander("Filtros", expanded=True):
+            # Função para tratar valores nulos na ordenação
+            def sort_with_nulls(series):
+                # Substitui valores nulos por string vazia para ordenação
+                cleaned_series = series.fillna('')
+                return ["Selecionar Todos"] + sorted(cleaned_series.unique().tolist())
+
+            # Adiciona "Selecionar Todos" como primeira opção em cada filtro
+            all_clusters = sort_with_nulls(df['Cluster'])
+            all_origins = sort_with_nulls(df['Origem'])
+            all_media = sort_with_nulls(df['Mídia'])
+            all_campaigns = sort_with_nulls(df['Campanha'])
+            all_content = sort_with_nulls(df['Conteúdo'])
+            all_pages = sort_with_nulls(df['Página de Entrada'])
+            all_coupons = sort_with_nulls(df['Cupom'])
+
+            # Criar os elementos de filtro
+            cluster_selected = st.multiselect(
+                "Cluster",
+                options=all_clusters,
+                default=["Selecionar Todos"]
+            )
+            
+            origem_selected = st.multiselect(
+                "Origem",
+                options=all_origins,
+                default=["Selecionar Todos"]
+            )
+            
+            midia_selected = st.multiselect(
+                "Mídia",
+                options=all_media,
+                default=["Selecionar Todos"]
+            )
+            
+            campanha_selected = st.multiselect(
+                "Campanha",
+                options=all_campaigns,
+                default=["Selecionar Todos"]
+            )
+            
+            conteudo_selected = st.multiselect(
+                "Conteúdo",
+                options=all_content,
+                default=["Selecionar Todos"]
+            )
+            
+            pagina_de_entrada_selected = st.multiselect(
+                "Página de Entrada",
+                options=all_pages,
+                default=["Selecionar Todos"]
+            )
+
+            cupom_selected = st.multiselect(
+                "Cupom",
+                options=all_coupons,
+                default=["Selecionar Todos"]
+            )
+
+            return {
+                'cluster_selected': cluster_selected,
+                'origem_selected': origem_selected,
+                'midia_selected': midia_selected,
+                'campanha_selected': campanha_selected,
+                'conteudo_selected': conteudo_selected,
+                'pagina_de_entrada_selected': pagina_de_entrada_selected,
+                'cupom_selected': cupom_selected
+            }

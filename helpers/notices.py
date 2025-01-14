@@ -112,6 +112,26 @@ def show_feature_notices(username, meta_receita):
             save_closed_notices(username, closed_notices)
             st.rerun()
 
+    # Aviso da feature de Cupons
+    if not closed_notices.get('coupon_notice', False):
+        st.info("""
+        ### 🎟️ Nova Feature: Análise de Cupons
+        
+        Agora você pode analisar o desempenho dos seus cupons de desconto!
+        
+        **Novos recursos:**
+        * Nova tabela de análise de cupons na Visão Geral
+        * Filtro de cupons na barra lateral
+        * Métricas detalhadas por cupom
+        * Análise de conversão e receita por cupom
+        
+        Confira agora mesmo na aba "Visão Geral"! 💡
+        """)
+        if st.button("Não mostrar novamente", key="coupon_notice", type="primary"):
+            closed_notices['coupon_notice'] = True
+            save_closed_notices(username, closed_notices)
+            st.rerun()
+
     # Aviso de meta não cadastrada
     if meta_receita == 0:
         st.warning("""
@@ -124,4 +144,80 @@ def show_feature_notices(username, meta_receita):
 def initialize_notices():
     """Inicializa o estado dos avisos se não existir."""
     if 'closed_notices' not in st.session_state:
-        st.session_state.closed_notices = {} 
+        st.session_state.closed_notices = {}
+
+def show_feature_notices(username, meta_receita):
+    """Exibe os avisos de novas features com opção de não mostrar novamente."""
+    closed_notices = load_closed_notices(username)
+    
+    # Aviso de migração para hub.mymetric.app
+    if not closed_notices.get('hub_migration_notice', False):
+        st.info("""
+        ### 🔄 Mudança de Endereço
+        
+        **Atenção:** Este aplicativo agora estará disponível exclusivamente em:
+        
+        **[hub.mymetric.app](https://hub.mymetric.app)**
+        
+        Por favor, atualize seus favoritos e utilize o novo endereço para acessar o MyMetric Hub.
+        """)
+        if st.button("Entendi", key="hub_migration_notice", type="primary"):
+            closed_notices['hub_migration_notice'] = True
+            save_closed_notices(username, closed_notices)
+            st.rerun()
+    
+    # Aviso do Mapa de Calor
+    if not closed_notices.get('heatmap_notice', False):
+        st.info("""
+        ### 🆕 Nova Feature: Mapa de Calor de Conversão
+        
+        Agora você pode visualizar suas taxas de conversão por hora do dia e dia da semana em um mapa de calor interativo.
+        
+        **Recursos disponíveis:**
+        * Identificar os melhores horários para suas vendas
+        * Otimizar suas campanhas de marketing
+        * Entender o comportamento dos seus clientes
+        * Filtrar por mínimo de sessões
+        
+        Acesse agora mesmo a aba "🔥 Mapa de Calor de Conversão"! 📈
+        """)
+        if st.button("Não mostrar novamente", key="heatmap_notice", type="primary"):
+            closed_notices['heatmap_notice'] = True
+            save_closed_notices(username, closed_notices)
+            st.rerun()
+
+    # Aviso da feature de Cupons
+    if not closed_notices.get('coupon_notice', False):
+        st.success("""
+        ### 🎟️ Nova Feature: Análise de Cupons
+        
+        Agora você pode analisar o desempenho dos seus cupons de desconto!
+        
+        **Novos recursos:**
+        * Nova tabela de análise de cupons na Visão Geral
+        * Filtro de cupons na barra lateral
+        * Métricas detalhadas por cupom
+        * Análise de conversão e receita por cupom
+        
+        Confira agora mesmo na aba "Visão Geral"! 💡
+        """)
+        if st.button("Não mostrar novamente", key="coupon_notice", type="primary"):
+            closed_notices['coupon_notice'] = True
+            save_closed_notices(username, closed_notices)
+            st.rerun()
+
+    # Aviso de meta não cadastrada
+    if meta_receita == 0:
+        st.warning("""
+        ⚠️ **Meta do Mês Não Cadastrada**
+        
+        Você ainda não cadastrou sua meta de receita para este mês.
+        Para um melhor acompanhamento do seu desempenho, acesse a aba Configurações e cadastre sua meta mensal.
+        """)
+
+    if 'notices' in st.session_state:
+        for notice_id, notice in st.session_state.notices.items():
+            if not notice.get('shown', False):
+                st.success(f"**{notice['title']}**\n\n{notice['message']}")
+                if notice.get('dismissible', False):
+                    st.session_state.notices[notice_id]['shown'] = True 

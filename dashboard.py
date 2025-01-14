@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import timedelta, date, datetime
 from concurrent.futures import ThreadPoolExecutor
 from helpers.components import atribuir_cluster, send_discord_message, run_query, section_title
-from filters import date_filters, traffic_filters
+from filters import date_filters, traffic_filters, create_traffic_filters
 
 from tabs.tab_general import display_tab_general
 from tabs.tab_last_orders import display_tab_last_orders
@@ -31,6 +31,7 @@ def load_data(client, username, start_date_str, end_date_str):
         campaign Campanha,
         page_location `Página de Entrada`,
         content `Conteúdo`,
+        coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
         COUNTIF(event_name = 'session') `Sessões`,
         COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
@@ -251,7 +252,9 @@ def show_dashboard(client, username):
             query_general = results["general"]
             query_general['Cluster'] = query_general.apply(atribuir_cluster, axis=1)
 
-            filters = process_filters(query_general)
+            # Criar filtros de tráfego
+            filters = create_traffic_filters(query_general)
+            
             tabs = create_tabs(username, results["ads"], results["whatsapp"], start_date, end_date)
 
             # Carrega as metas do usuário para usar em várias abas

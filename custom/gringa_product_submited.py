@@ -3,7 +3,7 @@ from helpers.components import atribuir_cluster, run_query
 from filters import date_filters, traffic_filters
 
 
-def display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected, origem_selected, midia_selected, campanha_selected, conteudo_selected, pagina_de_entrada_selected):
+def display_tab_gringa_product_submited(client, start_date, end_date, cluster_selected=None, origem_selected=None, midia_selected=None, campanha_selected=None, conteudo_selected=None, pagina_de_entrada_selected=None, cupom_selected=None):
 
     def execute_query(query):
         return run_query(client, query)
