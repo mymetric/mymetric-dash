@@ -86,11 +86,11 @@ if check_password():
     # Verifica se o usuário é 'mymetric' (usuário mestre)
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
-        user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
-
-        selected_user = st.sidebar.selectbox("Escolha um usuário", options=user_names)
-        st.sidebar.write(f"Selecionado: {selected_user}")
-        # Exibe o dashboard como se o usuário selecionado estivesse autenticado
+        with st.sidebar.expander("Conta Mestre", expanded=True):
+            user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
+            selected_user = st.selectbox("Escolha", options=user_names)
+            st.write(f"Selecionado: {selected_user}")
+            # Exibe o dashboard como se o usuário selecionado estivesse autenticado
         dashboard.show_dashboard(client, selected_user)
     else:
         # Exibe o dashboard para o usuário autenticado
