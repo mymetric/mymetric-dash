@@ -130,9 +130,7 @@ def display_tab_funnel(client, table, query_general, start_date, end_date, **fil
             # Atualizar layout geral
             fig.update_layout(
                 height=900,
-                showlegend=False,
-                title_text="Evolução das Taxas de Conversão por Etapa",
-                title_x=0.5
+                showlegend=False
             )
             
             st.plotly_chart(fig, use_container_width=True)

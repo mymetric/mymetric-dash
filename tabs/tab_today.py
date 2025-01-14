@@ -73,11 +73,11 @@ def display_tab_today(df, df_ads, username, meta_receita):
     pedidos_pagos = df["Pedidos Pagos"].sum()
     total_receita_dia = df["Receita Paga"].sum()
     
-    # Pegar hora atual
-    hora_atual = datetime.now().hour
+    # Pegar hora atual em Brasília
+    hora_atual = pd.Timestamp.now(tz='America/Sao_Paulo').hour
     
     # Buscar total do mês
-    hoje = datetime.now()
+    hoje = pd.Timestamp.now(tz='America/Sao_Paulo')
     primeiro_dia = hoje.replace(day=1).strftime('%Y-%m-%d')
     ultimo_dia = hoje.strftime('%Y-%m-%d')
     
@@ -142,6 +142,30 @@ def display_tab_today(df, df_ads, username, meta_receita):
     projecao_receita = total_receita_dia + (media_receita_hora * horas_restantes)
     projecao_pedidos = pedidos + (media_pedidos_hora * horas_restantes)
     projecao_sessoes = sessoes + (media_sessoes_hora * horas_restantes)
+    
+    # Big Numbers com realizado
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        big_number_box(
+            format_currency(total_receita_dia),
+            "Receita Realizada",
+            hint=f"Receita total realizada até {hora_atual:02d}:00"
+        )
+        
+    with col2:
+        big_number_box(
+            f"{pedidos:,.0f}".replace(",", "."), 
+            "Pedidos Realizados",
+            hint=f"Total de pedidos até {hora_atual:02d}:00"
+        )
+        
+    with col3:
+        big_number_box(
+            f"{sessoes:,.0f}".replace(",", "."), 
+            "Sessões Realizadas",
+            hint=f"Total de sessões até {hora_atual:02d}:00"
+        )
     
     # Big Numbers com projeções
     col1, col2, col3 = st.columns(3)
