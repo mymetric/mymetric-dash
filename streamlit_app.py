@@ -33,6 +33,15 @@ def check_password():
         st.session_state.authenticated = False
         st.session_state.username = None
         st.session_state.login_time = None
+    elif st.session_state.login_time:
+        # Verifica se o login ainda é válido (7 dias)
+        if datetime.now() - st.session_state.login_time < timedelta(days=7):
+            return True
+        else:
+            # Reseta a sessão se expirou
+            st.session_state.authenticated = False
+            st.session_state.username = None
+            st.session_state.login_time = None
 
     # Sempre mostra o logo
     st.sidebar.markdown(
@@ -59,14 +68,15 @@ def check_password():
                     # Registra o evento de login
                     log_event(username, 'login')
                     
-                    # Envia mensagem de login para o Discord
-                    login_msg = f"""
-🔐 **Novo Login no Dashboard**
-
-**Usuário:** `{username}`
-**Data/Hora:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`
-"""
-                    send_discord_message(login_msg)
+                    # Envia alerta de login para o Discord
+                    login_alert = {
+                        'titulo': 'Nova Sessão Iniciada',
+                        'descricao': f'O cliente **{username}** iniciou uma nova sessão no dashboard.',
+                        'acao': f'Sessão iniciada em {datetime.now().strftime("%d/%m/%Y às %H:%M:%S")}',
+                        'severidade': 'baixa'
+                    }
+                    from helpers.notices import send_discord_alert
+                    send_discord_alert(login_alert, username)
                     
                     st.rerun()  # Recarrega a página após login
                     break
@@ -87,15 +97,22 @@ if check_password():
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
         with st.sidebar.expander("Conta Mestre", expanded=True):
-            user_names = [user["slug"] for user in users if user["slug"] != "mymetric"]
+            user_names = [user["slug"] for user in users if user["slug"] not in ["mymetric", "buildgrowth", "alvisi"]]
             selected_user = st.selectbox("Escolha", options=user_names)
             st.write(f"Selecionado: {selected_user}")
             # Exibe o dashboard como se o usuário selecionado estivesse autenticado
         dashboard.show_dashboard(client, selected_user)
     elif st.session_state.username == "buildgrowth":
         # Gera um dropdown para escolher entre holysoup e orthocrin
-        with st.sidebar.expander("Selecionar Cliente", expanded=True):
+        with st.sidebar.expander("Conta MCC", expanded=True):
             client_options = ["holysoup", "orthocrin"]
+            selected_client = st.selectbox("Escolha o cliente", options=client_options)
+            st.write(f"Cliente selecionado: {selected_client}")
+        dashboard.show_dashboard(client, selected_client)
+    elif st.session_state.username == "alvisi":
+        # Gera um dropdown para escolher entre holysoup e orthocrin
+        with st.sidebar.expander("Conta MCC", expanded=True):
+            client_options = ["holysoup", "coffeemais"]
             selected_client = st.selectbox("Escolha o cliente", options=client_options)
             st.write(f"Cliente selecionado: {selected_client}")
         dashboard.show_dashboard(client, selected_client)
