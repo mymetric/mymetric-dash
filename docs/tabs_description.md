@@ -12,11 +12,11 @@ Monitore o desempenho do dia atual em tempo real. Compare com a média dos últi
 ## 💰 Mídia Paga
 Avalie o retorno dos seus investimentos em anúncios. Acompanhe ROAS, CPC, CTR e outras métricas importantes por plataforma e campanha. Identifique quais campanhas estão performando melhor.
 
-## 🔥 Mapa de Calor de Conversão
-Descubra os melhores horários e dias para suas vendas através de um mapa de calor interativo. Otimize suas campanhas de marketing com base nos períodos de maior conversão.
-
-## 📦 Últimos Pedidos
-Lista detalhada dos pedidos mais recentes com informações como valor, produtos, origem do tráfego e status do pagamento. Acompanhe em tempo real as vendas realizadas.
+## 🛒 Últimos Pedidos
+Visualize e analise os pedidos mais recentes com detalhes completos. Acompanhe status, valores e origem de cada venda, com filtros por canal e campanhas.
 
 ## ⚙️ Configurações
-Gerencie suas configurações como metas mensais, integrações e preferências do dashboard. Mantenha seus objetivos atualizados para um melhor acompanhamento. 
+Gerencie suas preferências e configurações do dashboard. Defina metas mensais, ajuste filtros padrão e personalize sua experiência.
+
+## 👥 Painel Mestre
+Monitore o uso do sistema, com métricas de usuários ativos, engajamento e análise detalhada por usuário. Acompanhe quais abas são mais acessadas e o padrão de uso do dashboard. 
