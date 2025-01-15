@@ -256,12 +256,22 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
         df_qa = client.query(qa).to_dataframe()
         if not df_qa.empty:
             cobertura = float(df_qa['Cobertura'].iloc[0]) * 100
-            if cobertura < 80:
+            if cobertura < 50:
+                severidade = 'alta'
+                mensagem = 'crítico'
+            elif cobertura < 70:
+                severidade = 'media'
+                mensagem = 'moderado'
+            elif cobertura < 90:
+                severidade = 'baixa'
+                mensagem = 'baixo'
+            
+            if cobertura < 90:
                 pendencia = {
                     'titulo': 'Ajustar Taxa de Tagueamento Meta Ads',
-                    'descricao': f'A cobertura do parâmetro mm_ads está em {cobertura:.1f}%. O ideal é manter acima de 80%.',
+                    'descricao': f'A cobertura do parâmetro mm_ads está em {cobertura:.1f}%, o que representa um problema {mensagem}.',
                     'acao': f'Verifique a implementação do parâmetro mm_ads no Meta Ads. <a href="https://mymetric.notion.site/Parametriza-o-de-Meta-Ads-a32df743c4e046ccade33720f0faec3a" target="_blank" style="color: #0366d6; text-decoration: none;">Saiba como implementar corretamente</a>',
-                    'severidade': 'media'
+                    'severidade': severidade
                 }
                 pendencias.append(pendencia)
                 send_discord_alert(pendencia, username)
