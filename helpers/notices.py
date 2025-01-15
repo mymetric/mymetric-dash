@@ -83,26 +83,6 @@ def show_feature_notices(username, meta_receita):
             save_closed_notices(username, closed_notices)
             st.rerun()
     
-    # Aviso do Mapa de Calor
-    if not closed_notices.get('heatmap_notice', False):
-        st.info("""
-        ### 🆕 Nova Feature: Mapa de Calor de Conversão
-        
-        Agora você pode visualizar suas taxas de conversão por hora do dia e dia da semana em um mapa de calor interativo.
-        
-        **Recursos disponíveis:**
-        * Identificar os melhores horários para suas vendas
-        * Otimizar suas campanhas de marketing
-        * Entender o comportamento dos seus clientes
-        * Filtrar por mínimo de sessões
-        
-        Acesse agora mesmo a aba "🔥 Mapa de Calor de Conversão"! 📈
-        """)
-        if st.button("Não mostrar novamente", key="heatmap_notice", type="primary"):
-            closed_notices['heatmap_notice'] = True
-            save_closed_notices(username, closed_notices)
-            st.rerun()
-
     # Aviso da feature de Cupons
     if not closed_notices.get('coupon_notice', False):
         st.info("""
