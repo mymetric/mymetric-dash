@@ -2,10 +2,63 @@ import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
+from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+import io
+
+def upload_to_drive(df, filename):
+    """Faz upload do DataFrame para o Google Drive e retorna o link de compartilhamento."""
+    try:
+        # Usar as credenciais do service account
+        credentials = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        
+        # Criar serviço do Drive
+        drive_service = build('drive', 'v3', credentials=credentials)
+        
+        # Converter DataFrame para CSV em memória
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_buffer.seek(0)
+        
+        # Preparar o upload
+        media = MediaIoBaseUpload(
+            io.BytesIO(csv_buffer.getvalue().encode()),
+            mimetype='text/csv',
+            resumable=True
+        )
+        
+        # Criar arquivo no Drive
+        file_metadata = {'name': filename}
+        file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        
+        # Configurar permissão de visualização pública
+        permission = {
+            'type': 'anyone',
+            'role': 'reader'
+        }
+        drive_service.permissions().create(
+            fileId=file['id'],
+            body=permission
+        ).execute()
+        
+        # Gerar link de compartilhamento
+        file_id = file['id']
+        return f'https://drive.google.com/file/d/{file_id}/view'
+        
+    except Exception as e:
+        st.error(f"Erro ao fazer upload para o Drive: {str(e)}")
+        return None
 
 def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
-
-        
     st.title("✉️ Mautic")
     
     try:
@@ -60,14 +113,13 @@ def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
                 hide_index=True
             )
             
-            # Botão para download dos dados filtrados
-            csv = df_filtered.to_csv(index=False)
-            st.download_button(
-                label="📥 Exportar para CSV",
-                data=csv,
-                file_name=f'mautic_data_{selected_list.lower().replace(" ", "_")}.csv',
-                mime='text/csv'
-            )
+            # Botão para gerar link do Drive
+            if st.button("🔗 Gerar Link de Exportação"):
+                with st.spinner('Gerando link de exportação...'):
+                    filename = f'mautic_data_{selected_list.lower().replace(" ", "_")}.csv'
+                    drive_link = upload_to_drive(df_filtered, filename)
+                    if drive_link:
+                        st.success(f"Arquivo exportado com sucesso! [Clique aqui para acessar]({drive_link})")
             
     except Exception as e:
         st.error(f"🚨 Erro ao carregar dados: {str(e)}")

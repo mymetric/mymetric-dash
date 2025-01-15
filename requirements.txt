@@ -9,3 +9,4 @@ db-dtypes
 requests
 altair
 plotly
+google-api-python-client
