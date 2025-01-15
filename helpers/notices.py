@@ -176,4 +176,46 @@ def send_discord_alert(pendencia, username):
         response = requests.post(webhook_url, json=payload)
         response.raise_for_status()
     except Exception as e:
+        pass  # Silently handle any errors in Discord notification
+
+def send_critical_error(username, error_message, error_details):
+    """Envia alerta de erro crítico para o Discord."""
+    webhook_url = st.secrets["general"]["discord_webhook_url"]
+    
+    # Formatar a mensagem para o Discord
+    embed = {
+        "title": "⚠️ Erro Crítico no Dashboard",
+        "description": f"Um erro crítico ocorreu que pode impactar o funcionamento do dashboard.",
+        "color": 0xFF0000,  # Vermelho para erro crítico
+        "fields": [
+            {
+                "name": "Cliente",
+                "value": f"`{username}`",
+                "inline": True
+            },
+            {
+                "name": "Erro",
+                "value": f"`{error_message}`",
+                "inline": True
+            },
+            {
+                "name": "Detalhes",
+                "value": error_details,
+                "inline": False
+            }
+        ],
+        "footer": {
+            "text": f"MyMetric • {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        }
+    }
+    
+    # Preparar payload
+    payload = {
+        "embeds": [embed]
+    }
+    
+    try:
+        response = requests.post(webhook_url, json=payload)
+        response.raise_for_status()
+    except Exception as e:
         pass  # Silently handle any errors in Discord notification 
