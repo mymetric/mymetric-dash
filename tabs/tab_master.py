@@ -12,7 +12,7 @@ def display_tab_master(client):
         SELECT
             username,
             COUNT(*) as total_events,
-            COUNT(DISTINCT DATE(created_at)) as days_active,
+            COUNT(DISTINCT DATE(created_at, 'America/Sao_Paulo')) as days_active,
             MIN(created_at) as first_activity,
             MAX(created_at) as last_activity,
             CURRENT_TIMESTAMP() as now
@@ -21,9 +21,9 @@ def display_tab_master(client):
     )
     SELECT
         COUNT(DISTINCT username) as total_users,
-        COUNTIF(DATE(last_activity) = CURRENT_DATE()) as active_today,
-        COUNTIF(DATE_DIFF(CURRENT_DATE(), DATE(last_activity), DAY) <= 7) as active_7d,
-        COUNTIF(DATE_DIFF(CURRENT_DATE(), DATE(last_activity), DAY) <= 30) as active_30d,
+        COUNTIF(DATE(last_activity, 'America/Sao_Paulo') = CURRENT_DATE('America/Sao_Paulo')) as active_today,
+        COUNTIF(DATE_DIFF(CURRENT_DATE('America/Sao_Paulo'), DATE(last_activity, 'America/Sao_Paulo'), DAY) <= 7) as active_7d,
+        COUNTIF(DATE_DIFF(CURRENT_DATE('America/Sao_Paulo'), DATE(last_activity, 'America/Sao_Paulo'), DAY) <= 30) as active_30d,
         AVG(days_active) as avg_active_days,
         AVG(total_events) as avg_events_per_user
     FROM user_activity
@@ -41,58 +41,42 @@ def display_tab_master(client):
             MAX(created_at) as last_activity
         FROM `mymetric-hub-shopify.dbt_config.user_events`
         GROUP BY username
-    )
-    SELECT
-        username as usuario,
-        total_events as total_eventos,
-        login_count as logins,
-        tab_views as views_abas,
-        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', first_activity) as primeira_atividade,
-        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', last_activity) as ultima_atividade,
-        DATE_DIFF(last_activity, first_activity, DAY) + 1 as dias_uso
-    FROM event_counts
-    ORDER BY total_events DESC
-    """
-    
-    # Query para abas mais visitadas
-    query_tab_views = """
-    WITH tab_data AS (
-        SELECT
-            JSON_EXTRACT_SCALAR(event_data, '$.tab') as tab_name
+    ),
+    tab_preferences AS (
+        SELECT 
+            username,
+            JSON_EXTRACT_SCALAR(event_data, '$.tab') as tab_name,
+            COUNT(*) as tab_views
         FROM `mymetric-hub-shopify.dbt_config.user_events`
         WHERE event_type = 'tab_view'
         AND event_data IS NOT NULL
+        AND LOWER(JSON_EXTRACT_SCALAR(event_data, '$.tab')) != 'visao_geral'
+        GROUP BY username, tab_name
+    ),
+    most_viewed_tab AS (
+        SELECT
+            username,
+            ARRAY_AGG(STRUCT(tab_name, tab_views) ORDER BY tab_views DESC LIMIT 1)[OFFSET(0)].tab_name as favorite_tab
+        FROM tab_preferences
+        GROUP BY username
     )
     SELECT
-        IFNULL(tab_name, 'unknown') as aba,
-        COUNT(*) as visualizacoes
-    FROM tab_data
-    GROUP BY tab_name
-    ORDER BY visualizacoes DESC
-    """
-    
-    # Query para últimos logins
-    query_logins = """
-    SELECT
-        username as usuario,
-        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', created_at) as data_hora,
-        JSON_EXTRACT_SCALAR(event_data, '$.city') as cidade,
-        JSON_EXTRACT_SCALAR(event_data, '$.region') as estado,
-        JSON_EXTRACT_SCALAR(event_data, '$.country') as pais,
-        JSON_EXTRACT_SCALAR(event_data, '$.ip') as ip,
-        JSON_EXTRACT_SCALAR(event_data, '$.user_agent') as user_agent
-    FROM `mymetric-hub-shopify.dbt_config.user_events`
-    WHERE event_type = 'login'
-    AND event_data IS NOT NULL
-    ORDER BY created_at DESC
-    LIMIT 1000
+        e.username as usuario,
+        e.total_events as total_eventos,
+        e.login_count as logins,
+        e.tab_views as views_abas,
+        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', e.first_activity, 'America/Sao_Paulo') as primeira_atividade,
+        FORMAT_TIMESTAMP('%d/%m/%Y %H:%M', e.last_activity, 'America/Sao_Paulo') as ultima_atividade,
+        DATE_DIFF(e.last_activity, e.first_activity, DAY) + 1 as dias_uso,
+        IFNULL(t.favorite_tab, 'N/A') as aba_favorita
+    FROM event_counts e
+    LEFT JOIN most_viewed_tab t ON e.username = t.username
+    ORDER BY e.last_activity DESC
     """
     
     # Executa as queries
     df_metrics = run_query(client, query_metrics)
     df_user_metrics = run_query(client, query_user_metrics)
-    df_tab_views = run_query(client, query_tab_views)
-    df_logins = run_query(client, query_logins)
     
     # Renomeia as colunas para exibição
     df_user_metrics = df_user_metrics.rename(columns={
@@ -102,22 +86,8 @@ def display_tab_master(client):
         'views_abas': 'Views de Abas',
         'primeira_atividade': 'Primeira Atividade',
         'ultima_atividade': 'Última Atividade',
-        'dias_uso': 'Dias de Uso'
-    })
-    
-    df_tab_views = df_tab_views.rename(columns={
-        'aba': 'Aba',
-        'visualizacoes': 'Visualizações'
-    })
-    
-    df_logins = df_logins.rename(columns={
-        'usuario': 'Usuário',
-        'data_hora': 'Data/Hora',
-        'cidade': 'Cidade',
-        'estado': 'Estado',
-        'pais': 'País',
-        'ip': 'IP',
-        'user_agent': 'User Agent'
+        'dias_uso': 'Dias de Uso',
+        'aba_favorita': 'Aba Favorita'
     })
     
     # Exibe métricas gerais
@@ -172,12 +142,4 @@ def display_tab_master(client):
     
     # Análise por Usuário
     section_title("👥 Análise por Usuário")
-    st.dataframe(df_user_metrics, hide_index=True, use_container_width=True)
-    
-    # Análise de Abas mais Visitadas
-    section_title("📑 Abas mais Visitadas")
-    st.dataframe(df_tab_views, hide_index=True, use_container_width=True)
-    
-    # Análise de Logins
-    section_title("🔐 Últimos Logins")
-    st.dataframe(df_logins, hide_index=True, use_container_width=True) 
+    st.dataframe(df_user_metrics, hide_index=True, use_container_width=True) 
