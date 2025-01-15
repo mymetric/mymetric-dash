@@ -7,6 +7,7 @@ from datetime import datetime, date
 from helpers.config import load_table_metas
 from helpers.notices import initialize_notices, show_feature_notices
 from helpers.pending import check_pending_items, display_pending_items
+from helpers.performance import check_performance_alerts
 import calendar
 from tabs.tab_today import calculate_daily_goal, format_currency, create_progress_bar
 from google.cloud import bigquery
@@ -27,8 +28,9 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     # Inicializa notices
     initialize_notices()
     
-    # Verificar pendências
+    # Verificar pendências e alertas de performance
     pendencias = check_pending_items(username, meta_receita, tx_cookies, df_ads, df)
+    alertas_performance = check_performance_alerts(username, df)
     
     # Calcular e exibir MyMetric Score com pendências
     if pendencias:
@@ -74,7 +76,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
                     <div>
                         <strong style="color: {cor_score}; font-size: 1.1em;">MyMetric Score</strong>
                         <p style="margin: 5px 0 0 0; color: {cor_score}; font-size: 0.9em;">
-                            Avaliação da qualidade do seu rastreamento e implementação baseado nas pendências
+                            Avaliação da qualidade do seu rastreamento e implementação
                         </p>
                     </div>
                     <span style="
@@ -92,6 +94,43 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
         # Expander para pendências
         with st.expander("📊 Melhore seu Score", expanded=False):
             display_pending_items(pendencias)
+    
+    # Expander para alertas de performance
+    if alertas_performance:
+        with st.expander("📈 Alertas de Performance", expanded=True):
+            for alerta in alertas_performance:
+                if alerta['severidade'] == 'alta':
+                    cor = "#dc3545"  # Vermelho
+                elif alerta['severidade'] == 'media':
+                    cor = "#ffc107"  # Amarelo
+                else:
+                    cor = "#28a745" if 'positivo' in alerta.get('descricao', '').lower() else "#17a2b8"  # Verde para positivo, Azul para outros
+                
+                st.markdown(f"""
+                    <div style="
+                        margin-bottom: 15px;
+                        padding: 15px;
+                        border-radius: 8px;
+                        border-left: 4px solid {cor};
+                        background-color: {cor}10;
+                    ">
+                        <div style="color: {cor}; font-weight: 600; margin-bottom: 8px;">
+                            {alerta['titulo']}
+                        </div>
+                        <div style="color: #666; margin-bottom: 8px;">
+                            {alerta['descricao']}
+                        </div>
+                        <div style="
+                            background-color: #f8f9fa;
+                            padding: 8px;
+                            border-radius: 4px;
+                            font-size: 0.9em;
+                            color: #666;
+                        ">
+                            {alerta['acao']}
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
     
     # Expander para avisos
     with st.expander("📬 Caixa de Entrada", expanded=True):

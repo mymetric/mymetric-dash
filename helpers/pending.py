@@ -2,6 +2,7 @@ import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from helpers.notices import send_discord_alert
+import pandas as pd
 
 def check_zero_metrics(client, username):
     """Verifica métricas zeradas nos últimos dois dias."""
@@ -52,91 +53,6 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
         st.secrets["gcp_service_account"]
     )
     client = bigquery.Client(credentials=credentials)
-    
-    # Verificar taxas de conversão do funil
-    query_funnel = f"""
-    SELECT 
-        view_item `Visualização de Item`,
-        add_to_cart `Adicionar ao Carrinho`,
-        begin_checkout `Iniciar Checkout`,
-        add_shipping_info `Adicionar Informação de Frete`,
-        add_payment_info `Adicionar Informação de Pagamento`,
-        purchase `Pedido`
-    FROM `mymetric-hub-shopify.dbt_aggregated.{username}_daily_metrics`
-    WHERE event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 1 DAY)
-    """
-    
-    df_funnel = client.query(query_funnel).to_dataframe()
-    
-    if not df_funnel.empty:
-        # Calcular taxas de conversão
-        total_view = df_funnel['Visualização de Item'].sum()
-        total_cart = df_funnel['Adicionar ao Carrinho'].sum()
-        total_checkout = df_funnel['Iniciar Checkout'].sum()
-        total_shipping = df_funnel['Adicionar Informação de Frete'].sum()
-        total_payment = df_funnel['Adicionar Informação de Pagamento'].sum()
-        total_purchase = df_funnel['Pedido'].sum()
-        
-        # Calcular taxas
-        if total_view > 0:
-            taxa_cart = (total_cart / total_view * 100)
-            if taxa_cart > 100:
-                pendencia = {
-                    'titulo': 'Taxa de Conversão Anormal no Funil (View -> Cart)',
-                    'descricao': f'A taxa de conversão de Visualização para Carrinho está em {taxa_cart:.1f}%, o que indica um problema de rastreamento.',
-                    'acao': 'Verifique a implementação dos eventos de visualização de produto (view_item) e adicionar ao carrinho (add_to_cart).',
-                    'severidade': 'alta'
-                }
-                pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
-        
-        if total_cart > 0:
-            taxa_checkout = (total_checkout / total_cart * 100)
-            if taxa_checkout > 100:
-                pendencia = {
-                    'titulo': 'Taxa de Conversão Anormal no Funil (Cart -> Checkout)',
-                    'descricao': f'A taxa de conversão de Carrinho para Checkout está em {taxa_checkout:.1f}%, o que indica um problema de rastreamento.',
-                    'acao': 'Verifique a implementação dos eventos de adicionar ao carrinho (add_to_cart) e iniciar checkout (begin_checkout).',
-                    'severidade': 'alta'
-                }
-                pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
-        
-        if total_checkout > 0:
-            taxa_shipping = (total_shipping / total_checkout * 100)
-            if taxa_shipping > 100:
-                pendencia = {
-                    'titulo': 'Taxa de Conversão Anormal no Funil (Checkout -> Shipping)',
-                    'descricao': f'A taxa de conversão de Checkout para Frete está em {taxa_shipping:.1f}%, o que indica um problema de rastreamento.',
-                    'acao': 'Verifique a implementação dos eventos de iniciar checkout (begin_checkout) e informação de frete (add_shipping_info).',
-                    'severidade': 'alta'
-                }
-                pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
-        
-        if total_shipping > 0:
-            taxa_payment = (total_payment / total_shipping * 100)
-            if taxa_payment > 100:
-                pendencia = {
-                    'titulo': 'Taxa de Conversão Anormal no Funil (Shipping -> Payment)',
-                    'descricao': f'A taxa de conversão de Frete para Pagamento está em {taxa_payment:.1f}%, o que indica um problema de rastreamento.',
-                    'acao': 'Verifique a implementação dos eventos de informação de frete (add_shipping_info) e informação de pagamento (add_payment_info).',
-                    'severidade': 'alta'
-                }
-                pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
-        
-        if total_payment > 0:
-            taxa_purchase = (total_purchase / total_payment * 100)
-            if taxa_purchase > 100:
-                pendencia = {
-                    'titulo': 'Taxa de Conversão Anormal no Funil (Payment -> Purchase)',
-                    'descricao': f'A taxa de conversão de Pagamento para Pedido está em {taxa_purchase:.1f}%, o que indica um problema de rastreamento.',
-                    'acao': 'Verifique a implementação dos eventos de informação de pagamento (add_payment_info) e pedido (purchase).',
-                    'severidade': 'alta'
-                }
-                pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
     
     # Verificar métricas zeradas
     zero_metrics = check_zero_metrics(client, username)
@@ -274,8 +190,10 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
         """
         
         df_qa = client.query(qa).to_dataframe()
+        
         if not df_qa.empty:
-            cobertura = float(df_qa['Cobertura'].iloc[0]) * 100
+            cobertura = float(df_qa['Cobertura'].iloc[0] * 100)
+            
             if cobertura < 50:
                 severidade = 'alta'
                 mensagem = 'crítico'
@@ -288,9 +206,9 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
             
             if cobertura < 90:
                 pendencia = {
-                    'titulo': 'Ajustar Taxa de Tagueamento Meta Ads',
-                    'descricao': f'A cobertura do parâmetro mm_ads está em {cobertura:.1f}%, o que representa um problema {mensagem}.',
-                    'acao': f'Verifique a implementação do parâmetro mm_ads no Meta Ads. <a href="https://mymetric.notion.site/Parametriza-o-de-Meta-Ads-a32df743c4e046ccade33720f0faec3a" target="_blank" style="color: #0366d6; text-decoration: none;">Saiba como implementar corretamente</a>',
+                    'titulo': 'Tagueamento do Meta Ads',
+                    'descricao': f'A cobertura do tagueamento está em {cobertura:.1f}%, o que representa um problema {mensagem}.',
+                    'acao': 'Verifique se o parâmetro mm_ads está sendo adicionado corretamente nas URLs.',
                     'severidade': severidade
                 }
                 pendencias.append(pendencia)
