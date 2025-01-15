@@ -30,14 +30,15 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     # Verificar pendências
     pendencias = check_pending_items(username, meta_receita, tx_cookies, df_ads, df)
     
-    # Expander para avisos e pendências
-    with st.expander("📬 Avisos e Pendências", expanded=True):
+    # Expander para avisos
+    with st.expander("📬 Avisos", expanded=True):
         # Mostrar avisos de features
         show_feature_notices(username, meta_receita)
-        
+    
+    # Expander para pendências
+    with st.expander("⚠️ Pendências", expanded=True):
         # Mostrar pendências se houver
         if pendencias:
-            st.markdown("---")
             display_pending_items(pendencias)
 
     # Calcular métricas gerais
