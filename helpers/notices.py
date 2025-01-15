@@ -103,15 +103,6 @@ def show_feature_notices(username, meta_receita):
             save_closed_notices(username, closed_notices)
             st.rerun()
 
-    # Aviso de meta não cadastrada
-    if meta_receita == 0:
-        st.warning("""
-        ⚠️ **Meta do Mês Não Cadastrada**
-        
-        Você ainda não cadastrou sua meta de receita para este mês.
-        Para um melhor acompanhamento do seu desempenho, acesse a aba Configurações e cadastre sua meta mensal.
-        """) 
-
 def send_discord_alert(pendencia, username):
     """Envia alerta formatado para o Discord."""
     webhook_url = st.secrets["general"]["discord_webhook_url"]
