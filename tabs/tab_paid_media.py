@@ -108,8 +108,15 @@ def display_tab_paid_media(client, table, df_ads, username):
     # Order by revenue in descending order
     df_ads_agg = df_ads_agg.sort_values(by='Receita', ascending=False).reset_index(drop=True)
 
+    # Calcular métricas adicionais
+    total_impressoes = df_ads_agg['Impressões'].sum()
+    total_cliques = df_ads_agg['Cliques'].sum()
+    total_transacoes = df_ads_agg['Transações'].sum()
+    ctr = (total_cliques / total_impressoes * 100) if total_impressoes > 0 else 0
+    taxa_conversao = (total_transacoes / total_cliques * 100) if total_cliques > 0 else 0
+    cpc = df_ads_agg['Investimento'].sum() / total_cliques if total_cliques > 0 else 0
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
         
     with col1:
         big_number_box(
@@ -132,11 +139,50 @@ def display_tab_paid_media(client, table, df_ads, username):
             hint="Return On Ad Spend - Retorno sobre o investimento em anúncios (Receita/Investimento). Exemplo: ROAS 3 significa que para cada R$1 investido, retornou R$3 em vendas"
         )
 
-    with col4:
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
         big_number_box(
-            f"R$ {df_ads_agg['CPV'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
-            "CPV",
-            hint="Custo Por Venda - Valor médio gasto em anúncios para conseguir uma venda (Investimento/Transações)"
+            f"{ctr:.2f}%".replace(".", ","),
+            "CTR",
+            hint="Click-Through Rate - Taxa de cliques por impressão (Cliques/Impressões). Quanto maior, melhor a relevância dos seus anúncios"
+        )
+
+    with col2:
+        big_number_box(
+            f"{taxa_conversao:.2f}%".replace(".", ","),
+            "Taxa de Conversão",
+            hint="Porcentagem de cliques que resultaram em vendas (Transações/Cliques)"
+        )
+
+    with col3:
+        big_number_box(
+            f"R$ {cpc:.2f}".replace(".", ","),
+            "CPC",
+            hint="Custo Por Clique - Valor médio pago por cada clique nos anúncios (Investimento/Cliques)"
+        )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        big_number_box(
+            f"{total_impressoes:,.0f}".replace(",", "."),
+            "Impressões",
+            hint="Número total de vezes que seus anúncios foram exibidos"
+        )
+
+    with col2:
+        big_number_box(
+            f"{total_cliques:,.0f}".replace(",", "."),
+            "Cliques",
+            hint="Número total de cliques nos seus anúncios"
+        )
+
+    with col3:
+        big_number_box(
+            f"R$ {df_ads_agg['CPV'].mean():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            "CPV Médio",
+            hint="Custo Por Venda Médio - Média do valor gasto em anúncios para conseguir uma venda"
         )
 
     st.markdown("---")
