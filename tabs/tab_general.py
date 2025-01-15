@@ -28,7 +28,7 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     initialize_notices()
     
     # Verificar pendências
-    pendencias = check_pending_items(username, meta_receita, tx_cookies, df_ads)
+    pendencias = check_pending_items(username, meta_receita, tx_cookies, df_ads, df)
     
     # Expander para avisos e pendências
     with st.expander("📬 Avisos e Pendências", expanded=True):

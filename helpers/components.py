@@ -198,6 +198,8 @@ def big_number_box(data, label, hint=None, bg_color='#C5EBC3'):
         """, unsafe_allow_html=True)
 
 def atribuir_cluster(row):
+    if row['Mídia'] == 'social':
+        return '🟣 Social'
     if row['Origem'] == 'google' and row['Mídia'] == 'cpc':
         return '🟢 Google Ads'
     elif row['Origem'] == 'meta' and row['Mídia'] == 'cpc':

@@ -43,7 +43,7 @@ def check_zero_metrics(client, username):
     
     return zero_metrics
 
-def check_pending_items(username, meta_receita, tx_cookies, df_ads):
+def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
     """Verifica e retorna lista de pendências com base nos dados."""
     pendencias = []
     
@@ -99,6 +99,62 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads):
             st.secrets["gcp_service_account"]
         )
         client = bigquery.Client(credentials=credentials)
+        
+        # Verificar connect rate do Google Ads
+        df_google_ads = df_ads[df_ads['Plataforma'] == 'google_ads']
+        if not df_google_ads.empty and df_google_ads['Cliques'].sum() > 0:
+            google_sessions = df[df['Cluster'] == "🟢 Google Ads"]["Sessões"].sum()
+            google_clicks = df_google_ads['Cliques'].sum()
+            google_connect_rate = (google_sessions / google_clicks * 100)
+            
+            if google_connect_rate < 80:
+                pendencia = {
+                    'titulo': 'Connect Rate Baixo no Google Ads',
+                    'descricao': f'Apenas {google_connect_rate:.1f}% dos cliques estão gerando sessões no Google Ads. ' +
+                                f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}',
+                    'acao': 'Verifique problemas de rastreamento do GA4, bloqueadores de anúncios ou configuração incorreta do GTM.',
+                    'severidade': 'alta'
+                }
+                pendencias.append(pendencia)
+                send_discord_alert(pendencia, username)
+            elif google_connect_rate > 100:
+                pendencia = {
+                    'titulo': 'Connect Rate Alto no Google Ads',
+                    'descricao': f'O número de sessões está {google_connect_rate:.1f}% acima dos cliques no Google Ads. ' +
+                                f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}',
+                    'acao': 'Verifique se há dupla contagem de sessões ou problemas no rastreamento da plataforma.',
+                    'severidade': 'alta'
+                }
+                pendencias.append(pendencia)
+                send_discord_alert(pendencia, username)
+
+        # Verificar connect rate do Meta Ads
+        df_meta_ads = df_ads[df_ads['Plataforma'] == 'meta_ads']
+        if not df_meta_ads.empty and df_meta_ads['Cliques'].sum() > 0:
+            meta_sessions = df[df['Cluster'] == "🔵 Meta Ads"]["Sessões"].sum()
+            meta_clicks = df_meta_ads['Cliques'].sum()
+            meta_connect_rate = (meta_sessions / meta_clicks * 100)
+            
+            if meta_connect_rate < 80:
+                pendencia = {
+                    'titulo': 'Connect Rate Baixo no Meta Ads',
+                    'descricao': f'Apenas {meta_connect_rate:.1f}% dos cliques estão gerando sessões no Meta Ads. ' +
+                                f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}',
+                    'acao': 'Verifique problemas de rastreamento do GA4, bloqueadores de anúncios ou configuração incorreta do GTM.',
+                    'severidade': 'alta'
+                }
+                pendencias.append(pendencia)
+                send_discord_alert(pendencia, username)
+            elif meta_connect_rate > 100:
+                pendencia = {
+                    'titulo': 'Connect Rate Alto no Meta Ads',
+                    'descricao': f'O número de sessões está {meta_connect_rate:.1f}% acima dos cliques no Meta Ads. ' +
+                                f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}',
+                    'acao': 'Verifique se há dupla contagem de sessões ou problemas no rastreamento da plataforma.',
+                    'severidade': 'alta'
+                }
+                pendencias.append(pendencia)
+                send_discord_alert(pendencia, username)
         
         qa = f"""
             select
