@@ -30,16 +30,73 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     # Verificar pendências
     pendencias = check_pending_items(username, meta_receita, tx_cookies, df_ads, df)
     
+    # Calcular e exibir MyMetric Score com pendências
+    if pendencias:
+        # Pontuação base de 10
+        score = 10
+        
+        # Penalidades por severidade
+        for p in pendencias:
+            if p['severidade'] == 'alta':
+                score -= 2  # -2 pontos para pendências críticas
+            elif p['severidade'] == 'media':
+                score -= 1  # -1 ponto para pendências médias
+            elif p['severidade'] == 'baixa':
+                score -= 0.5  # -0.5 pontos para pendências baixas
+        
+        # Garantir que o score não seja negativo
+        score = max(0, score)
+        
+        # Definir cor baseada no score
+        if score >= 8:
+            cor_score = "#28a745"  # Verde
+        elif score >= 6:
+            cor_score = "#17a2b8"  # Azul
+        elif score >= 4:
+            cor_score = "#ffc107"  # Amarelo
+        else:
+            cor_score = "#dc3545"  # Vermelho
+        
+        # Exibir o score
+        st.markdown(f"""
+            <div style="
+                margin-bottom: 20px;
+                padding: 15px;
+                border-radius: 10px;
+                background-color: {cor_score}15;
+                border: 1px solid {cor_score};
+            ">
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                ">
+                    <div>
+                        <strong style="color: {cor_score}; font-size: 1.1em;">MyMetric Score</strong>
+                        <p style="margin: 5px 0 0 0; color: {cor_score}; font-size: 0.9em;">
+                            Avaliação da qualidade do seu rastreamento e implementação baseado nas pendências
+                        </p>
+                    </div>
+                    <span style="
+                        background-color: {cor_score};
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-size: 1.2em;
+                        font-weight: bold;
+                    ">{score:.1f}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Expander para pendências
+        with st.expander("📊 Melhore seu Score", expanded=False):
+            display_pending_items(pendencias)
+    
     # Expander para avisos
-    with st.expander("📬 Avisos", expanded=True):
+    with st.expander("📬 Caixa de Entrada", expanded=True):
         # Mostrar avisos de features
         show_feature_notices(username, meta_receita)
-    
-    # Expander para pendências
-    with st.expander("⚠️ Pendências", expanded=True):
-        # Mostrar pendências se houver
-        if pendencias:
-            display_pending_items(pendencias)
 
     # Calcular métricas gerais
     sessoes = df["Sessões"].sum()

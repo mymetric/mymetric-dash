@@ -63,7 +63,7 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
         add_payment_info `Adicionar Informação de Pagamento`,
         purchase `Pedido`
     FROM `mymetric-hub-shopify.dbt_aggregated.{username}_daily_metrics`
-    WHERE event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 7 DAY)
+    WHERE event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 1 DAY)
     """
     
     df_funnel = client.query(query_funnel).to_dataframe()
@@ -194,13 +194,23 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
             google_clicks = df_google_ads['Cliques'].sum()
             google_connect_rate = (google_sessions / google_clicks * 100)
             
+            if google_connect_rate < 50:
+                severidade = 'alta'
+                mensagem = 'crítico'
+            elif google_connect_rate < 70:
+                severidade = 'media'
+                mensagem = 'moderado'
+            elif google_connect_rate < 80:
+                severidade = 'baixa'
+                mensagem = 'baixo'
+            
             if google_connect_rate < 80:
                 pendencia = {
                     'titulo': 'Connect Rate Baixo no Google Ads',
-                    'descricao': f'Apenas {google_connect_rate:.1f}% dos cliques estão gerando sessões no Google Ads. ' +
+                    'descricao': f'O connect rate está em {google_connect_rate:.1f}%, o que representa um problema {mensagem}. ' +
                                 f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}',
                     'acao': 'Verifique problemas de rastreamento do GA4, bloqueadores de anúncios ou configuração incorreta do GTM.',
-                    'severidade': 'alta'
+                    'severidade': severidade
                 }
                 pendencias.append(pendencia)
                 send_discord_alert(pendencia, username)
@@ -222,13 +232,23 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
             meta_clicks = df_meta_ads['Cliques'].sum()
             meta_connect_rate = (meta_sessions / meta_clicks * 100)
             
+            if meta_connect_rate < 50:
+                severidade = 'alta'
+                mensagem = 'crítico'
+            elif meta_connect_rate < 70:
+                severidade = 'media'
+                mensagem = 'moderado'
+            elif meta_connect_rate < 80:
+                severidade = 'baixa'
+                mensagem = 'baixo'
+            
             if meta_connect_rate < 80:
                 pendencia = {
                     'titulo': 'Connect Rate Baixo no Meta Ads',
-                    'descricao': f'Apenas {meta_connect_rate:.1f}% dos cliques estão gerando sessões no Meta Ads. ' +
+                    'descricao': f'O connect rate está em {meta_connect_rate:.1f}%, o que representa um problema {mensagem}. ' +
                                 f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}',
                     'acao': 'Verifique problemas de rastreamento do GA4, bloqueadores de anúncios ou configuração incorreta do GTM.',
-                    'severidade': 'alta'
+                    'severidade': severidade
                 }
                 pendencias.append(pendencia)
                 send_discord_alert(pendencia, username)
