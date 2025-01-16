@@ -478,6 +478,49 @@ def display_tab_general(df, tx_cookies, df_ads, username, start_date, end_date, 
     st.header("Cluster de Origens")
     st.write("Modelo de atribuição padrão: último clique não direto.")
     
+    with st.expander("ℹ️ Entenda os Clusters", expanded=False):
+        st.markdown("""
+            ### Explicação dos Clusters
+            
+            Os clusters são agrupamentos de origens de tráfego que ajudam a entender melhor a fonte dos seus visitantes:
+            
+            🟢 **Google Ads**
+            - Tráfego pago vindo do Google Ads
+            - Identificado por: origem=google e mídia=cpc
+            
+            🔵 **Meta Ads**
+            - Tráfego pago vindo do Facebook/Instagram Ads
+            - Identificado por: presença do parâmetro fbclid na URL
+            
+            🟣 **Social**
+            - Tráfego orgânico das redes sociais
+            - Identificado por: mídia=social
+            
+            🌳 **Google Orgânico**
+            - Tráfego orgânico do Google
+            - Identificado por: origem=google e mídia=organic
+            
+            🟡 **Direto**
+            - Acessos diretos ao site
+            - Identificado por: origem=direct
+            
+            ✉️ **CRM**
+            - Tráfego vindo de e-mails e comunicações diretas
+            - Identificado por: origem=crm
+            
+            🗒️ **Draft**
+            - Pedidos criados manualmente na Shopify
+            - Identificado por: origem=shopify_draft_order
+            
+            🍪 **Perda de Cookies**
+            - Sessões sem identificação de origem
+            - Identificado por: origem=not captured
+            
+            ◻️ **Outros**
+            - Outras combinações de origem/mídia não classificadas acima
+            - Formato: origem/mídia
+        """)
+        
     aggregated_df = df.groupby(['Cluster']).agg({
         'Sessões': 'sum', 
         'Pedidos': 'sum', 
