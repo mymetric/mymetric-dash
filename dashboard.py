@@ -172,7 +172,7 @@ def create_tabs(username, df_ads, df_whatsapp, start_date, end_date):
         tabs.append("\U0001F381 Produtos Cadastrados")
         
     if username in ["holysoup"]:
-        tabs.append("✉️ Mautic")
+        tabs.append("✉️ CRM")
 
     tabs.append("\U0001F4E6 Configurações")
 
@@ -376,8 +376,8 @@ def show_dashboard(client, username):
             #        from tabs.tab_conversion_heatmap import display_conversion_heatmap
             #        display_conversion_heatmap(query_general)
             
-            if "✉️ Mautic" in tabs:
-                with tab_list[tabs.index("✉️ Mautic")]:
+            if "✉️ CRM" in tabs:
+                with tab_list[tabs.index("✉️ CRM")]:
                     if 'current_tab' not in st.session_state or st.session_state.current_tab != 'mautic':
                         st.session_state.current_tab = 'mautic'
                         log_event(st.session_state.username, 'tab_view', {'tab': 'mautic'})
