@@ -31,6 +31,7 @@ def load_data(client, username, start_date_str, end_date_str):
         campaign Campanha,
         page_location `Página de Entrada`,
         content `Conteúdo`,
+        page_params `Parâmetros de URL`,
         coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
         COUNTIF(event_name = 'session') `Sessões`,

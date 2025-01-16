@@ -198,24 +198,28 @@ def big_number_box(data, label, hint=None, bg_color='#C5EBC3'):
         """, unsafe_allow_html=True)
 
 def atribuir_cluster(row):
-    if row['Mídia'] == 'social':
-        return '🟣 Social'
-    if row['Origem'] == 'google' and row['Mídia'] == 'cpc':
-        return '🟢 Google Ads'
-    elif row['Origem'] == 'meta' and row['Mídia'] == 'cpc':
-        return '🔵 Meta Ads'
-    elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
-        return '🌳 Google Orgânico'
-    elif row['Origem'] == 'direct':
-        return '🟡 Direto'
-    elif row['Origem'] == 'crm':
-        return '✉️ CRM'
-    elif row['Origem'] == 'shopify_draft_order':
-        return '🗒️ Draft'
-    elif row['Origem'] == 'not captured':
-        return '🍪 Perda de Cookies'
-    else:
-        return f"◻️ {row['Origem']} / {row['Mídia']}"
+    try:
+        if row['Mídia'] == 'social':
+            return '🟣 Social'
+        elif 'Parâmetros de URL' in row and 'fbclid' in str(row['Parâmetros de URL']):
+            return '🔵 Meta Ads'
+        elif row['Origem'] == 'google' and row['Mídia'] == 'cpc':
+            return '🟢 Google Ads'
+        elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
+            return '🌳 Google Orgânico'
+        elif row['Origem'] == 'direct':
+            return '🟡 Direto'
+        elif row['Origem'] == 'crm':
+            return '✉️ CRM'
+        elif row['Origem'] == 'shopify_draft_order':
+            return '🗒️ Draft'
+        elif row['Origem'] == 'not captured':
+            return '🍪 Perda de Cookies'
+        else:
+            return f"◻️ {row['Origem']} / {row['Mídia']}"
+    except Exception as e:
+        print(f"Erro ao atribuir cluster: {str(e)}")
+        return "❓ Não classificado"
 
 def send_discord_message(message):
     """Envia uma mensagem para o webhook do Discord."""
