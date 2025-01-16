@@ -7,6 +7,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import io
+import altair as alt
 
 def upload_to_drive(df, filename):
     """Faz upload do DataFrame para o Google Drive e retorna o link de compartilhamento."""
@@ -62,6 +63,56 @@ def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
     st.title("✉️ CRM")
     
     try:
+        # Query para análise de clientes
+        query_clientes = """
+        select
+            date_diff(current_date, last_purchase_date, MONTH) meses,
+            transactions,
+            count(1) clientes
+        from `holy-soup.crm.clientes`
+        where 
+            date_diff(current_date, last_purchase_date, MONTH) <= 12
+            and transactions <= 10
+        group by all
+        order by meses, transactions
+        """
+        
+        df_clientes = client.query(query_clientes).to_dataframe()
+        
+        if not df_clientes.empty:
+            st.header("📊 Análise de Clientes")
+            
+            # Criar um gráfico de bolhas usando Altair
+            # Criar o gráfico
+            chart = alt.Chart(df_clientes).mark_circle(opacity=0.8).encode(
+                x=alt.X('meses:Q', 
+                       title='Meses desde Última Compra',
+                       axis=alt.Axis(tickMinStep=1)),
+                y=alt.Y('transactions:Q', 
+                       title='Total de Compras',
+                       axis=alt.Axis(tickMinStep=1)),
+                size=alt.Size('clientes:Q',
+                            title='Quantidade de Clientes',
+                            scale=alt.Scale(range=[100, 2000])),
+                tooltip=[
+                    alt.Tooltip('meses:Q', title='Meses desde Última Compra'),
+                    alt.Tooltip('transactions:Q', title='Total de Compras'),
+                    alt.Tooltip('clientes:Q', title='Quantidade de Clientes', format=',')
+                ]
+            ).properties(
+                width=700,
+                height=400,
+                title='Distribuição de Clientes por Recência e Frequência'
+            ).configure_mark(
+                color='#17a2b8'
+            )
+            
+            # Exibir o gráfico
+            st.altair_chart(chart, use_container_width=True)
+            
+            # Adicionar espaço entre as seções
+            st.markdown("---")
+        
         with st.spinner('Carregando dados do Mautic...'):
             # Query para buscar dados do HolySoup
             query = """
