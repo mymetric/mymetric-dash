@@ -60,7 +60,7 @@ def upload_to_drive(df, filename):
         return None
 
 def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
-    st.title("✉️ CRM")
+    st.title("✉️ Mautic")
     
     try:
         # Query para análise de clientes
@@ -127,9 +127,6 @@ def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
                 st.warning("Nenhum dado encontrado para HolySoup")
                 return
             
-            # Seção de exportação de segmentos
-            st.header("📤 Exportar Segmentos do Mautic")
-            
             # Dropdown para seleção de lista
             lists = ["Todas as Listas"] + sorted(df['list_name'].unique().tolist())
             selected_list = st.selectbox(
@@ -158,8 +155,9 @@ def display_tab_holysoup_mautic(client, start_date, end_date, **filters):
                 # Considerando que podem haver telefones vazios ou nulos
                 unique_phones = df_filtered['phone'].dropna().nunique()
                 st.metric("Telefones Únicos", f"{unique_phones:,}")
-
+            
             # Exibir tabela bruta com todos os dados
+            st.subheader("👨🏻‍💻 Exportar Contatos")
             st.dataframe(
                 df_filtered,
                 use_container_width=True,
