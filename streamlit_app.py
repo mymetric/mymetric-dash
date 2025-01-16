@@ -21,6 +21,16 @@ logo_path = Path(__file__).parent / "logo.svg"
 with open(logo_path, "rb") as f:
     logo_contents = f.read()
 
+# Sempre mostra o logo
+st.sidebar.markdown(
+    f"""
+    <div>
+        <img src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width: 250px;height: 75px;object-fit: cover;margin: 0 auto;display: block;">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 # Cria o cliente da API
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
@@ -42,16 +52,6 @@ def check_password():
             st.session_state.authenticated = False
             st.session_state.username = None
             st.session_state.login_time = None
-
-    # Sempre mostra o logo
-    st.sidebar.markdown(
-        f"""
-        <div>
-            <img src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width: 250px;height: 75px;object-fit: cover;margin: 0 auto;display: block;">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
     if not st.session_state.authenticated:
         username = st.sidebar.text_input("Usuário")
