@@ -1,8 +1,9 @@
 import requests
+import streamlit as st
 
 def send_discord_message(message, username="Alert Bot"):
 
-    webhook_url = "https://discord.com/api/webhooks/1326136473652695136/BrziCn8gTi8LWY_rVQuH2zpaJCUrUcjanCSIQnKRkY8hM1MfYREWE7ytReJbHCmzePpO"
+    webhook_url = st.secrets.general.discord_webhook_url
 
     """
     Sends a message to a Discord channel using a webhook.
