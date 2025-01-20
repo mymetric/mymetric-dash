@@ -1,20 +1,23 @@
 import streamlit as st
-from helpers.config import save_table_metas, load_table_metas
+
+from views.partials.run_rate import load_table_metas
 from datetime import datetime
 import pandas as pd
-from helpers.components import send_discord_message
+from modules.load_data import save_goals
 
-def display_tab_settings(table):
-    st.header("Configurações")
+def display_tab_config():
+    st.title("🔧 Configurações")
+    st.markdown("""---""")
+
     
     # Carregar configurações existentes usando table
-    current_metas = load_table_metas(table)
+    current_metas = load_table_metas()
+    current_month = datetime.now().strftime("%Y-%m")
+    meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
     
     # Criar campo para seleção do mês
     st.subheader("Meta de Receita Paga")
     
-    # Pegar o mês atual como padrão
-    current_month = datetime.now().strftime("%Y-%m")
     
     # Lista dos últimos 12 meses para seleção
     months = []
@@ -29,7 +32,7 @@ def display_tab_settings(table):
     )
     
     # Pegar o valor atual da meta para o mês selecionado
-    current_value = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('meta_receita_paga', 0)
+    current_value = meta_receita
     
     meta_receita_paga = st.number_input(
         "Meta de Receita Paga (R$)",
@@ -39,8 +42,9 @@ def display_tab_settings(table):
         help="Digite a meta de receita paga",
         value=float(current_value)
     )
-        
+
     if st.button("Salvar Meta"):
+        
         # Garantir que a estrutura existe
         if 'metas_mensais' not in current_metas:
             current_metas['metas_mensais'] = {}
@@ -49,12 +53,13 @@ def display_tab_settings(table):
         current_metas['metas_mensais'][selected_month] = {
             "meta_receita_paga": meta_receita_paga
         }
+
+        save_goals(current_metas)
+
+        st.toast(f"Salvando meta... {meta_receita_paga}")
         
-        save_table_metas(table, current_metas)
+        # save_table_metas(current_metas)
         st.success("Meta salva com sucesso!")
 
-        # Envia mensagem para o Discord
-        mes_formatado = pd.to_datetime(selected_month).strftime("%B/%Y").capitalize()
-        send_discord_message(f"Usuário **{table}** cadastrou meta de R$ {meta_receita_paga:,.2f} para {mes_formatado}.")
         
-        st.rerun()
+        # st.rerun()

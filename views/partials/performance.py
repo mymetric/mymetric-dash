@@ -1,64 +1,13 @@
 import streamlit as st
-from google.cloud import bigquery
-from google.oauth2 import service_account
-from helpers.notices import send_discord_alert
 import pandas as pd
 
-def check_performance_alerts(username, df):
+from modules.load_data import load_performance_alerts
+
+def check_performance_alerts():
     """Verifica e retorna lista de alertas de performance."""
     alertas = []
     
-    # Verificar taxas de conversão do funil
-    credentials = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"]
-    )
-    client = bigquery.Client(credentials=credentials)
-    
-    query_funnel = f"""
-    WITH daily_rates AS (
-        SELECT 
-            event_date,
-            view_item `Visualização de Item`,
-            add_to_cart `Adicionar ao Carrinho`,
-            begin_checkout `Iniciar Checkout`,
-            add_shipping_info `Adicionar Informação de Frete`,
-            add_payment_info `Adicionar Informação de Pagamento`,
-            purchase `Pedido`,
-            SAFE_DIVIDE(add_to_cart, NULLIF(view_item, 0)) * 100 as taxa_cart,
-            SAFE_DIVIDE(begin_checkout, NULLIF(add_to_cart, 0)) * 100 as taxa_checkout,
-            SAFE_DIVIDE(add_shipping_info, NULLIF(begin_checkout, 0)) * 100 as taxa_shipping,
-            SAFE_DIVIDE(add_payment_info, NULLIF(add_shipping_info, 0)) * 100 as taxa_payment,
-            SAFE_DIVIDE(purchase, NULLIF(add_payment_info, 0)) * 100 as taxa_purchase
-        FROM `mymetric-hub-shopify.dbt_aggregated.{username}_daily_metrics`
-        WHERE event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 30 DAY)
-    ),
-    stats AS (
-        SELECT
-            AVG(CASE WHEN taxa_cart IS NOT NULL THEN taxa_cart END) as media_cart,
-            STDDEV(CASE WHEN taxa_cart IS NOT NULL THEN taxa_cart END) as std_cart,
-            AVG(CASE WHEN taxa_checkout IS NOT NULL THEN taxa_checkout END) as media_checkout,
-            STDDEV(CASE WHEN taxa_checkout IS NOT NULL THEN taxa_checkout END) as std_checkout,
-            AVG(CASE WHEN taxa_shipping IS NOT NULL THEN taxa_shipping END) as media_shipping,
-            STDDEV(CASE WHEN taxa_shipping IS NOT NULL THEN taxa_shipping END) as std_shipping,
-            AVG(CASE WHEN taxa_payment IS NOT NULL THEN taxa_payment END) as media_payment,
-            STDDEV(CASE WHEN taxa_payment IS NOT NULL THEN taxa_payment END) as std_payment,
-            AVG(CASE WHEN taxa_purchase IS NOT NULL THEN taxa_purchase END) as media_purchase,
-            STDDEV(CASE WHEN taxa_purchase IS NOT NULL THEN taxa_purchase END) as std_purchase
-        FROM daily_rates
-        WHERE event_date < CURRENT_DATE("America/Sao_Paulo")
-            AND event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 30 DAY)
-    )
-    SELECT 
-        r.*,
-        s.*
-    FROM daily_rates r
-    CROSS JOIN stats s
-    WHERE r.event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 1 DAY)
-    ORDER BY r.event_date DESC
-    LIMIT 1
-    """
-    
-    df_funnel = client.query(query_funnel).to_dataframe()
+    df_funnel = load_performance_alerts()
     
     if not df_funnel.empty:
         etapas = [
@@ -144,8 +93,48 @@ def check_performance_alerts(username, df):
                         'tipo': 'performance'
                     }
                     alertas.append(alerta)
-                    send_discord_alert(alerta, username)
             except Exception as e:
                 st.error(f"Erro ao processar etapa {etapa['nome']}: {str(e)}")
     
     return alertas 
+
+def display_performance():
+    
+    alertas_performance = check_performance_alerts()
+
+    # Expander para alertas de performance
+    if alertas_performance:
+        with st.expander("📈 Alertas de Performance", expanded=True):
+            for alerta in alertas_performance:
+                if alerta['severidade'] == 'alta':
+                    cor = "#dc3545"  # Vermelho
+                elif alerta['severidade'] == 'media':
+                    cor = "#ffc107"  # Amarelo
+                else:
+                    cor = "#28a745" if 'positivo' in alerta.get('descricao', '').lower() else "#17a2b8"  # Verde para positivo, Azul para outros
+                
+                st.markdown(f"""
+                    <div style="
+                        margin-bottom: 15px;
+                        padding: 15px;
+                        border-radius: 8px;
+                        border-left: 4px solid {cor};
+                        background-color: {cor}10;
+                    ">
+                        <div style="color: {cor}; font-weight: 600; margin-bottom: 8px;">
+                            {alerta['titulo']}
+                        </div>
+                        <div style="color: #666; margin-bottom: 8px;">
+                            {alerta['descricao']}
+                        </div>
+                        <div style="
+                            background-color: #f8f9fa;
+                            padding: 8px;
+                            border-radius: 4px;
+                            font-size: 0.9em;
+                            color: #666;
+                        ">
+                            {alerta['acao']}
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)

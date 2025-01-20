@@ -1,26 +1,17 @@
 import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
-from helpers.notices import send_discord_alert
 import pandas as pd
+from modules.load_data import load_check_zero_metrics, load_basic_data, load_paid_media, load_fbclid_coverage
+from views.partials.run_rate import load_table_metas
 
-def check_zero_metrics(client, username):
-    """Verifica métricas zeradas nos últimos dois dias."""
-    query = f"""
-    SELECT 
-        event_date,
-        COALESCE(view_item, 0) as view_item,
-        COALESCE(add_to_cart, 0) as add_to_cart,
-        COALESCE(begin_checkout, 0) as begin_checkout,
-        COALESCE(add_shipping_info, 0) as add_shipping_info,
-        COALESCE(add_payment_info, 0) as add_payment_info,
-        COALESCE(purchase, 0) as purchase
-    FROM `mymetric-hub-shopify.dbt_aggregated.{username}_daily_metrics`
-    WHERE event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 1 DAY)
-    ORDER BY event_date DESC
-    """
+def safe_float_conversion(value):
+    return float(value) if value is not None else 0.0
+
+def check_zero_metrics():
     
-    df = client.query(query).to_dataframe()
+    df = load_check_zero_metrics()
+    
     zero_metrics = []
     
     if not df.empty:
@@ -44,18 +35,29 @@ def check_zero_metrics(client, username):
     
     return zero_metrics
 
-def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
+def check_pending_items():
     """Verifica e retorna lista de pendências com base nos dados."""
     pendencias = []
     
-    # Verificar métricas zeradas
-    credentials = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"]
-    )
-    client = bigquery.Client(credentials=credentials)
+    meta_receita = load_table_metas()
+    zero_metrics = check_zero_metrics()
+
+
+    df = load_basic_data()
+    # Calculate cookie loss rate for today and yesterday
+    df['Data'] = pd.to_datetime(df['Data'])
+    today = pd.Timestamp.now().date()
+    yesterday = today - pd.Timedelta(days=1)
+
+    # Filter for last 2 days
+    df_recent = df[df['Data'].dt.date.isin([today, yesterday])]
     
-    # Verificar métricas zeradas
-    zero_metrics = check_zero_metrics(client, username)
+    # Calculate percentage of not captured sessions
+    total_sessions = df_recent['Pedidos'].sum()
+    not_captured = df_recent[df_recent['Cluster'] == '🍪 Perda de Cookies']['Pedidos'].sum()
+    tx_cookies = (not_captured / total_sessions * 100) if total_sessions > 0 else 0
+
+
     
     if zero_metrics:
         all_metrics = []
@@ -72,7 +74,7 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
                 'severidade': 'alta'
             }
             pendencias.append(pendencia)
-            send_discord_alert(pendencia, username)
+            # send_discord_alert(pendencia, username)
     
     # Verificar meta do mês
     if meta_receita == 0:
@@ -83,7 +85,6 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
             'severidade': 'alta'
         }
         pendencias.append(pendencia)
-        send_discord_alert(pendencia, username)
     
     # Verificar taxa de perda de cookies
     if tx_cookies > 10:
@@ -94,14 +95,12 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
             'severidade': 'alta'
         }
         pendencias.append(pendencia)
-        send_discord_alert(pendencia, username)
     
     # Verificar tagueamento do Meta Ads
+    df_ads = load_paid_media()
+    df = load_basic_data()
+
     if not df_ads.empty:
-        credentials = service_account.Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"]
-        )
-        client = bigquery.Client(credentials=credentials)
         
         # Verificar connect rate do Google Ads
         df_google_ads = df_ads[df_ads['Plataforma'] == 'google_ads']
@@ -129,7 +128,7 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
                     'severidade': severidade
                 }
                 pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
+                
             elif google_connect_rate > 100:
                 pendencia = {
                     'titulo': 'Connect Rate Alto no Google Ads',
@@ -139,7 +138,6 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
                     'severidade': 'alta'
                 }
                 pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
         
         # Verificar connect rate do Meta Ads
         df_meta_ads = df_ads[df_ads['Plataforma'] == 'meta_ads']
@@ -167,7 +165,7 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
                     'severidade': severidade
                 }
                 pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
+
             elif meta_connect_rate > 100:
                 pendencia = {
                     'titulo': 'Connect Rate Alto no Meta Ads',
@@ -177,19 +175,8 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
                     'severidade': 'alta'
                 }
                 pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
-        
-        qa = f"""
-            select
-                sum(case when page_params like "%mm_ads%" then 1 else 0 end) / count(*) `Cobertura`
-            from `mymetric-hub-shopify.dbt_join.{username}_sessions_gclids`
-            where
-                event_date >= date_sub(current_date("America/Sao_Paulo"), interval 7 day)
-                and page_params like "%fbclid%"
-                and medium not like "%social%"
-        """
-        
-        df_qa = client.query(qa).to_dataframe()
+
+        df_qa = load_fbclid_coverage()
         
         if not df_qa.empty:
             cobertura = float(df_qa['Cobertura'].iloc[0] * 100)
@@ -212,7 +199,6 @@ def check_pending_items(username, meta_receita, tx_cookies, df_ads, df):
                     'severidade': severidade
                 }
                 pendencias.append(pendencia)
-                send_discord_alert(pendencia, username)
     
     return pendencias
 
@@ -304,3 +290,70 @@ def display_pending_items(pendencias):
             """, unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True) 
+
+def display_pendings():
+    
+    pendencias = check_pending_items()
+    
+    # Calcular e exibir MyMetric Score com pendências
+    if pendencias:
+        # Pontuação base de 10
+        score = 10
+        
+        # Penalidades por severidade
+        for p in pendencias:
+            if p['severidade'] == 'alta':
+                score -= 2  # -2 pontos para pendências críticas
+            elif p['severidade'] == 'media':
+                score -= 1  # -1 ponto para pendências médias
+            elif p['severidade'] == 'baixa':
+                score -= 0.5  # -0.5 pontos para pendências baixas
+        
+        # Garantir que o score não seja negativo
+        score = max(0, score)
+        
+        # Definir cor baseada no score
+        if score >= 8:
+            cor_score = "#28a745"  # Verde
+        elif score >= 6:
+            cor_score = "#17a2b8"  # Azul
+        elif score >= 4:
+            cor_score = "#ffc107"  # Amarelo
+        else:
+            cor_score = "#dc3545"  # Vermelho
+        
+        # Exibir o score
+        st.markdown(f"""
+            <div style="
+                margin-bottom: 20px;
+                padding: 15px;
+                border-radius: 10px;
+                background-color: {cor_score}15;
+                border: 1px solid {cor_score};
+            ">
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                ">
+                    <div>
+                        <strong style="color: {cor_score}; font-size: 1.1em;">MyMetric Score</strong>
+                        <p style="margin: 5px 0 0 0; color: {cor_score}; font-size: 0.9em;">
+                            Avaliação da qualidade do seu rastreamento e implementação
+                        </p>
+                    </div>
+                    <span style="
+                        background-color: {cor_score};
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-size: 1.2em;
+                        font-weight: bold;
+                    ">{score:.1f}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Expander para pendências
+        with st.expander("📊 Melhore seu Score", expanded=False):
+            display_pending_items(pendencias)

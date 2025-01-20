@@ -1,21 +1,58 @@
 import streamlit as st
-import requests
-import pandas as pd
 
-def section_title(title):
-    """Cria um título de seção com margem padronizada."""
-    st.markdown(f"""
-        <h2 style="margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f2f6;">
-            {title}
-        </h2>
+def tabs_css():
+    st.markdown("""
+        <style>
+            /* Estilo geral das abas */
+            .stTabs {
+                background-color: transparent;
+                padding: 0px 0px;
+                border-radius: 10px;
+            }
+            
+            /* Estilo dos botões das abas */
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 8px;
+                padding: 5px 0;
+            }
+            
+            /* Estilo de cada aba */
+            .stTabs [data-baseweb="tab"] {
+                height: 45px;
+                padding: 8px 16px;
+                border-radius: 8px;
+                color: #666;
+                font-weight: 500;
+                background-color: #f8f9fa;
+                border: none;
+                transition: all 0.2s ease;
+            }
+            
+            /* Estilo da aba ativa */
+            .stTabs [aria-selected="true"] {
+                background-color: #e8f0fe !important;
+                color: #1967d2 !important;
+                border-bottom: none !important;
+                font-weight: 600;
+            }
+            
+            /* Hover nas abas */
+            .stTabs [data-baseweb="tab"]:hover {
+                background-color: #e8f0fe;
+                color: #1967d2;
+            }
+            
+            /* Linha indicadora da aba ativa */
+            .stTabs [data-baseweb="tab-highlight"] {
+                display: none;
+            }
+            
+            /* Conteúdo das abas */
+            .stTabs [data-baseweb="tab-panel"] {
+                padding: 15px 0px;
+            }
+        </style>
     """, unsafe_allow_html=True)
-
-@st.cache_data(ttl=600)
-def run_query(_client, query):
-    query_job = _client.query(query)
-    rows_raw = query_job.result()
-    rows = [dict(row) for row in rows_raw]
-    return pd.DataFrame(rows)
 
 def big_number_box(data, label, hint=None, bg_color='#C5EBC3'):
     # Novo estilo do ícone de informação
@@ -196,63 +233,3 @@ def big_number_box(data, label, hint=None, bg_color='#C5EBC3'):
                 }}
             </style>
         """, unsafe_allow_html=True)
-
-def atribuir_cluster(row):
-    try:
-        if row['Mídia'] == 'social':
-            return '🟣 Social'
-        elif 'Parâmetros de URL' in row and 'fbclid' in str(row['Parâmetros de URL']):
-            return '🔵 Meta Ads'
-        elif row['Origem'] == 'google' and row['Mídia'] == 'cpc':
-            return '🟢 Google Ads'
-        elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
-            return '🌳 Google Orgânico'
-        elif row['Origem'] == 'direct':
-            return '🟡 Direto'
-        elif row['Origem'] == 'crm':
-            return '✉️ CRM'
-        elif row['Origem'] == 'shopify_draft_order':
-            return '🗒️ Draft'
-        elif row['Origem'] == 'not captured':
-            return '🍪 Perda de Cookies'
-        else:
-            return f"◻️ {row['Origem']} / {row['Mídia']}"
-    except Exception as e:
-        print(f"Erro ao atribuir cluster: {str(e)}")
-        return "❓ Não classificado"
-
-def send_discord_message(message):
-    """Envia uma mensagem para o webhook do Discord."""
-    try:
-        # Tenta obter a URL do webhook do Discord das secrets
-        webhook_url = None
-        try:
-            webhook_url = st.secrets["general"]["discord_webhook_url"]
-            print(f"Webhook URL encontrada: {webhook_url[:20]}...")  # Log parcial da URL por segurança
-        except Exception as e:
-            print(f"Erro ao acessar webhook URL: {str(e)}")
-            return
-        
-        # Se não houver webhook configurado, apenas loga a mensagem
-        if not webhook_url:
-            print(f"Discord message (webhook not configured): {message}")
-            return
-            
-        print(f"Tentando enviar mensagem para o Discord: {message[:100]}...")  # Log do início da mensagem
-        
-        data = {
-            "content": message
-        }
-        response = requests.post(webhook_url, json=data)
-        
-        # Log da resposta
-        print(f"Status code da resposta: {response.status_code}")
-        if response.status_code != 204:  # Discord retorna 204 para sucesso
-            print(f"Resposta do Discord: {response.text}")
-            
-        response.raise_for_status()
-        print("Mensagem enviada com sucesso!")
-        
-    except Exception as e:
-        print(f"Erro ao enviar mensagem para o Discord: {str(e)}")
-        # Não mostra o erro para o usuário para não interromper a experiência

@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
-import altair as alt
+from modules.load_data import load_current_month_revenue
 from datetime import datetime
-from helpers.components import big_number_box
 import calendar
+import altair as alt
+from modules.load_data import load_today_data
+from views.partials.run_rate import load_table_metas
+from modules.components import big_number_box
 
 def calculate_daily_goal(meta_receita, total_receita_mes):
     """Calcula a meta diária considerando apenas o valor que falta para bater a meta do mês."""
@@ -64,8 +67,13 @@ def create_progress_bar(current, target, color="#C5EBC3"):
         </div>
     """
 
-def display_tab_today(df, df_ads, username, meta_receita):
-    st.header("Análise do Dia")
+def display_tab_today():
+    st.title("📊 Análise do Dia")
+    st.markdown("""---""")
+
+    df = load_today_data()
+    
+    # st.write(df)
     
     # Calcular métricas totais do dia
     sessoes = df["Sessões"].sum()
@@ -76,29 +84,13 @@ def display_tab_today(df, df_ads, username, meta_receita):
     # Pegar hora atual em Brasília
     hora_atual = pd.Timestamp.now(tz='America/Sao_Paulo').hour
     
-    # Buscar total do mês
-    hoje = pd.Timestamp.now(tz='America/Sao_Paulo')
-    primeiro_dia = hoje.replace(day=1).strftime('%Y-%m-%d')
-    ultimo_dia = hoje.strftime('%Y-%m-%d')
-    
-    query_mes = f"""
-    SELECT SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) as total_mes
-    FROM `mymetric-hub-shopify.dbt_join.{username}_events_long`
-    WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
-    """
-    
-    # Executar a query para buscar o total do mês
-    from google.cloud import bigquery
-    from google.oauth2 import service_account
-    
-    credentials = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"]
-    )
-    client = bigquery.Client(credentials=credentials)
-    
-    df_mes = client.query(query_mes).to_dataframe()
+    df_mes = load_current_month_revenue()
     total_receita_mes = float(df_mes['total_mes'].iloc[0])
     
+    meta_receita = load_table_metas()
+    current_month = datetime.now().strftime("%Y-%m")
+    meta_receita = meta_receita.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+
     # Calcula a meta diária e informações relacionadas
     meta_diaria, valor_faltante, dias_restantes = calculate_daily_goal(meta_receita, total_receita_mes)
     

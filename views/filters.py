@@ -1,7 +1,17 @@
 import pandas as pd
 import streamlit as st
+from modules.load_data import load_detailed_data, load_basic_data
 
-def date_filters(today, yesterday, seven_days_ago, thirty_days_ago):
+def sort_by_sessions(series, df):
+    session_counts = df.groupby(series).Sessões.sum().sort_values(ascending=False)
+    return ["Selecionar Todos"] + session_counts.index.tolist()
+
+def date_filters():
+
+    today = pd.to_datetime("today").date()
+    yesterday = today - pd.Timedelta(days=1)
+    seven_days_ago = today - pd.Timedelta(days=7)
+    thirty_days_ago = today - pd.Timedelta(days=30)
     first_day_of_month = today.replace(day=1)
     
     with st.sidebar:
@@ -75,54 +85,32 @@ def date_filters(today, yesterday, seven_days_ago, thirty_days_ago):
             end_date = custom_end
             st.session_state.active_button = "custom"
 
-    return start_date, end_date
+    st.session_state.start_date = start_date
+    st.session_state.end_date = end_date
 
-def traffic_filters(df, cluster_selected=None, origem_selected=None, midia_selected=None, campanha_selected=None, conteudo_selected=None, pagina_de_entrada_selected=None, cupom_selected=None):
-    """
-    Aplica filtros ao DataFrame baseado nas seleções do usuário.
-    Não cria elementos UI - apenas aplica a lógica de filtragem.
-    """
-    
-    # Aplicar filtros apenas se houver seleção e não incluir "Selecionar Todos"
-    if cluster_selected and "Selecionar Todos" not in cluster_selected:
-        df = df[df['Cluster'].isin(cluster_selected)]
-    if origem_selected and "Selecionar Todos" not in origem_selected:
-        df = df[df['Origem'].isin(origem_selected)]
-    if midia_selected and "Selecionar Todos" not in midia_selected:
-        df = df[df['Mídia'].isin(midia_selected)]
-    if campanha_selected and "Selecionar Todos" not in campanha_selected:
-        df = df[df['Campanha'].isin(campanha_selected)]
-    if conteudo_selected and "Selecionar Todos" not in conteudo_selected:
-        df = df[df['Conteúdo'].isin(conteudo_selected)]
-    if pagina_de_entrada_selected and "Selecionar Todos" not in pagina_de_entrada_selected:
-        df = df[df['Página de Entrada'].isin(pagina_de_entrada_selected)]
-    if cupom_selected and "Selecionar Todos" not in cupom_selected:
-        df = df[df['Cupom'].isin(cupom_selected)]
-    
-    return df
+def traffic_filters():
 
-def create_traffic_filters(df):
-    """
-    Cria e retorna os elementos de filtro da sidebar.
-    """
+    if "cluster_selected" not in st.session_state:
+        st.session_state.cluster_selected = ["Selecionar Todos"]
+        st.session_state.origem_selected = ["Selecionar Todos"]
+        st.session_state.midia_selected = ["Selecionar Todos"]
+        st.session_state.campanha_selected = ["Selecionar Todos"]
+        st.session_state.conteudo_selected = ["Selecionar Todos"]
+        st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+        st.session_state.cupom_selected = ["Selecionar Todos"]
+
+    df = load_basic_data()
+
     with st.sidebar:
+
         # Filtros existentes
-        with st.expander("Filtros", expanded=True):
-            # Função para tratar valores nulos na ordenação
-            def sort_with_nulls(series):
-                # Substitui valores nulos por string vazia para ordenação
-                cleaned_series = series.fillna('')
-                return ["Selecionar Todos"] + sorted(cleaned_series.unique().tolist())
+        with st.expander("Filtros Básicos", expanded=True):
 
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
-            all_clusters = sort_with_nulls(df['Cluster'])
-            all_origins = sort_with_nulls(df['Origem'])
-            all_media = sort_with_nulls(df['Mídia'])
-            all_campaigns = sort_with_nulls(df['Campanha'])
-            all_content = sort_with_nulls(df['Conteúdo'])
-            all_pages = sort_with_nulls(df['Página de Entrada'])
-            all_coupons = sort_with_nulls(df['Cupom'])
-
+            all_clusters = sort_by_sessions('Cluster', df)
+            all_origins = sort_by_sessions('Origem', df)
+            all_media = sort_by_sessions('Mídia', df)
+            
             # Criar os elementos de filtro
             cluster_selected = st.multiselect(
                 "Cluster",
@@ -141,6 +129,26 @@ def create_traffic_filters(df):
                 options=all_media,
                 default=["Selecionar Todos"]
             )
+            
+            st.session_state.cluster_selected = cluster_selected
+            st.session_state.origem_selected = origem_selected
+            st.session_state.midia_selected = midia_selected
+
+def traffic_filters_detailed():
+
+    df = load_detailed_data()
+
+    with st.sidebar:
+        # Filtros existentes
+        with st.expander("Filtros Avançados", expanded=False):
+
+            # Adiciona "Selecionar Todos" como primeira opção em cada filtro
+            all_campaigns = sort_by_sessions('Campanha', df)
+            all_content = sort_by_sessions('Conteúdo', df)
+            all_pages = sort_by_sessions('Página de Entrada', df)
+            all_coupons = sort_by_sessions('Cupom', df)
+            
+            # Criar os elementos de filtro
             
             campanha_selected = st.multiselect(
                 "Campanha",
@@ -165,13 +173,10 @@ def create_traffic_filters(df):
                 options=all_coupons,
                 default=["Selecionar Todos"]
             )
+            
+            st.session_state.campanha_selected = campanha_selected
+            st.session_state.conteudo_selected = conteudo_selected
+            st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
+            st.session_state.cupom_selected = cupom_selected
 
-            return {
-                'cluster_selected': cluster_selected,
-                'origem_selected': origem_selected,
-                'midia_selected': midia_selected,
-                'campanha_selected': campanha_selected,
-                'conteudo_selected': conteudo_selected,
-                'pagina_de_entrada_selected': pagina_de_entrada_selected,
-                'cupom_selected': cupom_selected
-            }
+    

@@ -2,13 +2,13 @@ import streamlit as st
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
-import dashboard  # Importa o arquivo de dashboard
 from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
-from helpers.components import send_discord_message
 from analytics.logger import log_event
 from pathlib import Path
 import base64
+from app import load_app
+from modules.utilities import send_discord_message
 
 st.set_page_config(
     page_title="MyMetricHUB",
@@ -31,11 +31,6 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-# Cria o cliente da API
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"]
-)
-client = bigquery.Client(credentials=credentials)
 
 # Função de autenticação
 def check_password():
@@ -43,6 +38,7 @@ def check_password():
         st.session_state.authenticated = False
         st.session_state.username = None
         st.session_state.login_time = None
+        st.session_state.tablename = None
     elif st.session_state.login_time:
         # Verifica se o login ainda é válido (7 dias)
         if datetime.now() - st.session_state.login_time < timedelta(days=7):
@@ -63,21 +59,9 @@ def check_password():
                 if user["slug"] == username and user["password"] == password:
                     st.session_state.authenticated = True
                     st.session_state.username = username
-                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login
-                    
-                    # Registra o evento de login
-                    log_event(username, 'login')
-                    
-                    # Envia alerta de login para o Discord
-                    login_alert = {
-                        'titulo': 'Nova Sessão Iniciada',
-                        'descricao': f'O cliente **{username}** iniciou uma nova sessão no dashboard.',
-                        'acao': f'Sessão iniciada em {datetime.now().strftime("%d/%m/%Y às %H:%M:%S")}',
-                        'severidade': 'baixa'
-                    }
-                    from helpers.notices import send_discord_alert
-                    send_discord_alert(login_alert, username)
-                    
+                    st.session_state.tablename = username
+                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login             
+                    send_discord_message(f"Login realizado por {username}")
                     st.rerun()  # Recarrega a página após login
                     break
             else:
@@ -100,25 +84,28 @@ if check_password():
             user_names = [user["slug"] for user in users if user["slug"] not in ["mymetric", "buildgrowth", "alvisi"]]
             selected_user = st.selectbox("Escolha", options=user_names)
             st.write(f"Selecionado: {selected_user}")
+            st.session_state.tablename = selected_user
             # Exibe o dashboard como se o usuário selecionado estivesse autenticado
-        dashboard.show_dashboard(client, selected_user)
+        load_app()
     elif st.session_state.username == "buildgrowth":
         # Gera um dropdown para escolher entre holysoup e orthocrin
         with st.sidebar.expander("Conta MCC", expanded=True):
             client_options = ["holysoup", "orthocrin"]
             selected_client = st.selectbox("Escolha o cliente", options=client_options)
             st.write(f"Cliente selecionado: {selected_client}")
-        dashboard.show_dashboard(client, selected_client)
+            st.session_state.tablename = selected_client
+        load_app()
     elif st.session_state.username == "alvisi":
         # Gera um dropdown para escolher entre holysoup e orthocrin
         with st.sidebar.expander("Conta MCC", expanded=True):
             client_options = ["holysoup", "coffeemais"]
             selected_client = st.selectbox("Escolha o cliente", options=client_options)
             st.write(f"Cliente selecionado: {selected_client}")
-        dashboard.show_dashboard(client, selected_client)
+            st.session_state.tablename = selected_client
+        load_app()
     else:
         # Exibe o dashboard para o usuário autenticado
-        dashboard.show_dashboard(client, st.session_state.username)
+        load_app()
 
     # Adiciona o botão de logout na barra lateral
     if st.sidebar.button("Logout"):
