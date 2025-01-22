@@ -534,18 +534,38 @@ def load_gringa_product_submited():
 
     return df
 
-def load_holysoup_mautic_contacts():
+def load_holysoup_mautic_segments():
     if toast_alerts():
-        st.toast("Carregando contatos do Mautic...")
+        st.toast("Carregando segmentos do Mautic...")
 
     query = """
         SELECT 
-            *
+            list_name
         FROM `holy-soup.mautic.export_segment`
+        group by all
     """
 
     df = run_queries([query])[0]
     return df
+
+def load_holysoup_mautic_contacts(list_name):
+    if toast_alerts():
+        st.toast("Carregando contatos do Mautic...")
+
+    query = f"""
+        SELECT 
+            *
+        FROM `holy-soup.mautic.export_segment`
+        WHERE list_name = '{list_name}'
+    """
+
+    st.toast(f"Carregando contatos do Mautic... {list_name}")
+
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return pd.DataFrame(rows)
+
 
 
 
