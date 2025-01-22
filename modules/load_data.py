@@ -217,6 +217,7 @@ def load_goals():
     """
 
     df = run_queries([query])[0]
+
     return df
 
 def load_check_zero_metrics():
