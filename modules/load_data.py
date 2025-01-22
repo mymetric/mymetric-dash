@@ -400,6 +400,9 @@ def load_last_orders():
     """
 
     df = run_queries([query])[0]
+    df['Cluster'] = df.apply(traffic_cluster, axis=1)
+    df = apply_filters(df)
+    
     return df
 
 def save_goals(metas):

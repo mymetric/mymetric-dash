@@ -82,11 +82,12 @@ if check_password():
         # Gera um dropdown para escolher outros usuários
         with st.sidebar.expander("Conta Mestre", expanded=True):
             user_names = [user["slug"] for user in users if user["slug"] not in ["mymetric", "buildgrowth", "alvisi"]]
-            selected_user = st.selectbox("Escolha", options=user_names)
+            selected_user = st.selectbox("Escolha", options=user_names, index=None)
             st.write(f"Selecionado: {selected_user}")
             st.session_state.tablename = selected_user
             # Exibe o dashboard como se o usuário selecionado estivesse autenticado
-        load_app()
+        if selected_user:
+            load_app()
     elif st.session_state.username == "buildgrowth":
         # Gera um dropdown para escolher entre holysoup e orthocrin
         with st.sidebar.expander("Conta MCC", expanded=True):
