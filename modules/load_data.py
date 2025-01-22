@@ -178,7 +178,7 @@ def load_detailed_data():
             campaign Campanha,
             page_location `Página de Entrada`,
             content `Conteúdo`,
-            page_params `Parâmetros de URL`,
+            # page_params `Parâmetros de URL`,
             coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
             COUNTIF(event_name = 'session') `Sessões`,
