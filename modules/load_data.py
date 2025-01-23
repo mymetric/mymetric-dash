@@ -570,6 +570,26 @@ def load_holysoup_mautic_contacts(list_name):
     rows = [dict(row) for row in rows_raw]
     return pd.DataFrame(rows)
 
+def load_holysoup_email_stats():
+    if toast_alerts():
+        st.toast("Carregando estatísticas de e-mails...")
 
+    start_date_str = st.session_state.start_date
+    end_date_str = st.session_state.end_date
 
+    query = f"""
+        SELECT 
+            email_id `ID`,
+            email_name `Nome`,
+            email_date `Data`,
+            email_sent `Enviado`,
+            email_cost `Custo`,
+            email_opened `Abertos`,
+            email_clicks `Cliques`,
+            purchase_revenue `Receita`
+        FROM `holy-soup.email_stats.email_stats`
+        WHERE email_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+    """
 
+    df = run_queries([query])[0]
+    return df
