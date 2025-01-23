@@ -61,7 +61,10 @@ def check_password():
                     st.session_state.username = username
                     st.session_state.tablename = username
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login             
-                    send_discord_message(f"Login realizado por {username}")
+                    
+                    if username != "mymetric":
+                        send_discord_message(f"Login realizado por {username}")
+                    
                     st.rerun()  # Recarrega a página após login
                     break
             else:
