@@ -251,6 +251,9 @@ def load_funnel_data():
 
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
+
+    # Otimização para quando as datas são iguais
+    date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date BETWEEN '{start_date_str}' AND '{end_date_str}'"
     
     query = f"""
     SELECT 
@@ -262,11 +265,25 @@ def load_funnel_data():
         add_payment_info `Adicionar Informação de Pagamento`,
         purchase `Pedido`
     FROM `mymetric-hub-shopify.dbt_aggregated.{tablename}_daily_metrics`
-    WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+    WHERE {date_condition}
     ORDER BY event_date
     """
 
     df = run_queries([query])[0]
+
+    # Garantir que o DataFrame não está vazio e tem todas as colunas necessárias
+    if df.empty:
+        # Criar DataFrame vazio com as colunas necessárias
+        df = pd.DataFrame(columns=[
+            'Data',
+            'Visualização de Item',
+            'Adicionar ao Carrinho',
+            'Iniciar Checkout',
+            'Adicionar Informação de Frete',
+            'Adicionar Informação de Pagamento',
+            'Pedido'
+        ])
+    
     return df
 
 def load_paid_media():
@@ -577,6 +594,9 @@ def load_holysoup_email_stats():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
+    # Otimização para quando as datas são iguais
+    date_condition = f"date(email_date) = '{start_date_str}'" if start_date_str == end_date_str else f"date(email_date) BETWEEN '{start_date_str}' AND '{end_date_str}'"
+
     query = f"""
         SELECT 
             email_id `ID`,
@@ -588,7 +608,7 @@ def load_holysoup_email_stats():
             email_clicks `Cliques`,
             purchase_revenue `Receita`
         FROM `holy-soup.email_stats.email_stats`
-        WHERE date(email_date) BETWEEN '{start_date_str}' AND '{end_date_str}'
+        WHERE {date_condition}
     """
 
     df = run_queries([query])[0]
@@ -601,6 +621,9 @@ def load_holysoup_crm_optout():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
+    # Otimização para quando as datas são iguais
+    date_condition = f"data = '{start_date_str}'" if start_date_str == end_date_str else f"data between '{start_date_str}' and '{end_date_str}'"
+
     query = f"""
         SELECT
             data,
@@ -609,8 +632,7 @@ def load_holysoup_crm_optout():
             rejeicao,
             marcou_como_spam
         FROM `holy-soup.email_stats.optout`
-
-        where data between '{start_date_str}' and '{end_date_str}'
+        WHERE {date_condition}
     """
 
     df = run_queries([query])[0]
