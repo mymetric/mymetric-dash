@@ -199,7 +199,7 @@ def tables(df):
     aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(aggregated_df, hide_index=1, use_container_width=1)
+    st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="general_cluster_origens")
 
 def display_tab_general():
 
