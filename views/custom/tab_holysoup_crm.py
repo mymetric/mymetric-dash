@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout
+from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout, load_detailed_data
 from googleapiclient.http import MediaIoBaseUpload
 import io
 from google.oauth2 import service_account
@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime
 from views.partials.run_rate import load_table_metas
 from modules.load_data import save_goals
+from google.cloud import bigquery
 
 
 def upload_to_drive(df, filename):
@@ -281,7 +282,90 @@ def display_tab_holysoup_crm():
             
             st.altair_chart(unsubscribe_chart, use_container_width=True)
 
+    st.markdown("""---""")
+    st.subheader("📱 Controle de Envios de WhatsApp")
+    with st.expander("Registrar Envios de WhatsApp", expanded=False):
+        # Carregar configurações existentes
+        current_metas = load_table_metas()
         
+        # Lista dos últimos 12 meses para seleção
+        months = []
+        for i in range(12):
+            month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
+            months.append(month)
+        
+        selected_month = st.selectbox(
+            "Mês de Referência",
+            options=months,
+            format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize(),
+            key="whatsapp_month"
+        )
+        
+        # Pegar o valor atual de mensagens de WhatsApp e custo para o mês selecionado
+        current_whatsapp = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('whatsapp_messages', 0)
+        current_cost = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('whatsapp_cost_per_message', 0.0)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            whatsapp_messages = st.number_input(
+                "Quantidade de Mensagens de WhatsApp Enviadas",
+                min_value=0,
+                step=100,
+                help="Digite o número total de mensagens de WhatsApp enviadas no mês",
+                value=int(current_whatsapp)
+            )
+            
+        with col2:
+            cost_per_message = st.number_input(
+                "Custo por Mensagem (R$)",
+                min_value=0.0,
+                step=0.001,
+                format="%.3f",
+                help="Digite o custo por mensagem de WhatsApp",
+                value=float(current_cost)
+            )
+
+        # Calcular métricas do WhatsApp
+        df_detailed = load_detailed_data()
+        whatsapp_revenue = df_detailed[
+            (df_detailed['Cluster'] == '💬 WhatsApp') & 
+            (df_detailed['Pedidos Pagos'] > 0)
+        ]['Receita Paga'].sum()
+        
+        total_cost = whatsapp_messages * cost_per_message
+        roi = ((whatsapp_revenue - total_cost) / total_cost * 100) if total_cost > 0 else 0
+        
+        # Mostrar métricas
+        st.markdown("### Métricas do Mês")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Custo Total", f"R$ {total_cost:,.2f}")
+        with col2:
+            st.metric("Receita", f"R$ {whatsapp_revenue:,.2f}")
+        with col3:
+            st.metric("ROI", f"{roi:,.1f}%")
+
+        if st.button("Salvar Envios de WhatsApp"):
+            # Garantir que a estrutura existe
+            if 'metas_mensais' not in current_metas:
+                current_metas['metas_mensais'] = {}
+                
+            # Atualizar ou criar o registro para o mês selecionado
+            if selected_month not in current_metas['metas_mensais']:
+                current_metas['metas_mensais'][selected_month] = {}
+            
+            # Preservar meta de receita se existir
+            meta_receita = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('meta_receita_paga', 0)
+            current_metas['metas_mensais'][selected_month]['meta_receita_paga'] = meta_receita
+            
+            # Salvar mensagens de WhatsApp e custo
+            current_metas['metas_mensais'][selected_month]['whatsapp_messages'] = whatsapp_messages
+            current_metas['metas_mensais'][selected_month]['whatsapp_cost_per_message'] = cost_per_message
+
+            save_goals(current_metas)
+            st.toast(f"Salvando envios de WhatsApp... {whatsapp_messages}")
+            st.success("Quantidade de envios e custo salvos com sucesso!")
 
     st.subheader("Exportar Segmentos do Mautic")
     with st.expander("Exportar Segmentos do Mautic"):
@@ -313,53 +397,3 @@ def display_tab_holysoup_crm():
                 drive_link = upload_to_drive(df_contacts, filename)
                 if drive_link:
                     st.success(f"Arquivo exportado com sucesso! [Clique aqui para acessar]({drive_link})")
-
-    st.markdown("""---""")
-    st.subheader("📱 Controle de Envios de WhatsApp")
-    with st.expander("Registrar Envios de WhatsApp", expanded=False):
-        # Carregar configurações existentes
-        current_metas = load_table_metas()
-        
-        # Lista dos últimos 12 meses para seleção
-        months = []
-        for i in range(12):
-            month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
-            months.append(month)
-        
-        selected_month = st.selectbox(
-            "Mês de Referência",
-            options=months,
-            format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize(),
-            key="whatsapp_month"
-        )
-        
-        # Pegar o valor atual de mensagens de WhatsApp para o mês selecionado
-        current_whatsapp = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('whatsapp_messages', 0)
-        
-        whatsapp_messages = st.number_input(
-            "Quantidade de Mensagens de WhatsApp Enviadas",
-            min_value=0,
-            step=100,
-            help="Digite o número total de mensagens de WhatsApp enviadas no mês",
-            value=int(current_whatsapp)
-        )
-
-        if st.button("Salvar Envios de WhatsApp"):
-            # Garantir que a estrutura existe
-            if 'metas_mensais' not in current_metas:
-                current_metas['metas_mensais'] = {}
-                
-            # Atualizar ou criar o registro para o mês selecionado
-            if selected_month not in current_metas['metas_mensais']:
-                current_metas['metas_mensais'][selected_month] = {}
-            
-            # Preservar meta de receita se existir
-            meta_receita = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('meta_receita_paga', 0)
-            current_metas['metas_mensais'][selected_month]['meta_receita_paga'] = meta_receita
-            
-            # Salvar mensagens de WhatsApp
-            current_metas['metas_mensais'][selected_month]['whatsapp_messages'] = whatsapp_messages
-
-            save_goals(current_metas)
-            st.toast(f"Salvando envios de WhatsApp... {whatsapp_messages}")
-            st.success("Quantidade de envios salva com sucesso!")
