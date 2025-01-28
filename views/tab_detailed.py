@@ -104,5 +104,6 @@ def tables_detailed(df):
 
 def display_tab_detailed():
     
-    df = load_detailed_data()
-    tables_detailed(df)
+    if st.button("🔄 Carregar Dados"):
+        df = load_detailed_data()
+        tables_detailed(df)

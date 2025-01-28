@@ -588,7 +588,29 @@ def load_holysoup_email_stats():
             email_clicks `Cliques`,
             purchase_revenue `Receita`
         FROM `holy-soup.email_stats.email_stats`
-        WHERE email_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+        WHERE date(email_date) BETWEEN '{start_date_str}' AND '{end_date_str}'
+    """
+
+    df = run_queries([query])[0]
+    return df
+
+def load_holysoup_crm_optout():
+    if toast_alerts():
+        st.toast("Carregando optouts do CRM...")
+
+    start_date_str = st.session_state.start_date
+    end_date_str = st.session_state.end_date
+
+    query = f"""
+        SELECT
+            data,
+            enviado,
+            descadastro,
+            rejeicao,
+            marcou_como_spam
+        FROM `holy-soup.email_stats.optout`
+
+        where data between '{start_date_str}' and '{end_date_str}'
     """
 
     df = run_queries([query])[0]

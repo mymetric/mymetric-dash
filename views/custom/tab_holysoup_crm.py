@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats
+from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout
 from googleapiclient.http import MediaIoBaseUpload
 import io
 from google.oauth2 import service_account
@@ -199,7 +199,86 @@ def display_tab_holysoup_crm():
 
         # Display the data with the new metrics
         st.data_editor(df, hide_index=1, use_container_width=1)
-    
+
+
+        df_optout = load_holysoup_crm_optout()
+
+        # Campo de entrada para filtro mínimo de envios
+        min_enviados = st.number_input(
+            "Filtro mínimo de envios para cálculo das taxas",
+            value=5000,
+            step=1000,
+            help="Apenas dias com envios acima deste valor serão considerados no cálculo das taxas"
+        )
+        
+        # Converter colunas para numérico, tratando possíveis erros
+        numeric_columns = ['enviado', 'descadastro', 'rejeicao']
+        for col in numeric_columns:
+            df_optout[col] = pd.to_numeric(df_optout[col], errors='coerce')
+
+        # Converter a coluna de data
+        df_optout['Data'] = pd.to_datetime(df_optout['data'])
+
+        # Filtrar por mínimo de envios e calcular taxas
+        df_optout['Taxa de Rejeição'] = df_optout.apply(
+            lambda row: (row['rejeicao'] / row['enviado']) if row['enviado'] >= min_enviados else None, 
+            axis=1
+        )
+        df_optout['Taxa de Descadastro'] = df_optout.apply(
+            lambda row: (row['descadastro'] / row['enviado']) if row['enviado'] >= min_enviados else None, 
+            axis=1
+        )
+
+        # Remover linhas onde as taxas são None para o gráfico
+        df_optout_filtered = df_optout.dropna(subset=['Taxa de Rejeição', 'Taxa de Descadastro'])
+        
+        # Criar colunas para os gráficos
+        timeline_col1, timeline_col2 = st.columns(2)
+
+        with timeline_col1:
+            if not df_optout_filtered.empty:
+                # Gráfico de taxa de rejeição
+                bounce_chart = alt.Chart(df_optout_filtered).mark_line(
+                    color='#dc3545',
+                    opacity=0.7
+                ).encode(
+                    x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
+                    y=alt.Y('Taxa de Rejeição:Q',
+                            title='Taxa de Rejeição (%)',
+                            axis=alt.Axis(format='.1%')),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data'),
+                        alt.Tooltip('Taxa de Rejeição:Q', title='Taxa de Rejeição', format='.1%')
+                    ]
+                ).properties(
+                    title='Taxa de Rejeição por Data',
+                    height=400
+                )
+                
+                st.altair_chart(bounce_chart, use_container_width=True)
+
+        with timeline_col2:
+            # Gráfico de taxa de descadastro
+            unsubscribe_chart = alt.Chart(df_optout_filtered).mark_line(
+                color='#ffc107',
+                opacity=0.7
+            ).encode(
+                x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
+                y=alt.Y('Taxa de Descadastro:Q',
+                        title='Taxa de Descadastro (%)',
+                        axis=alt.Axis(format='.1%')),
+                tooltip=[
+                    alt.Tooltip('Data:T', title='Data'),
+                    alt.Tooltip('Taxa de Descadastro:Q', title='Taxa de Descadastro', format='.1%')
+                ]
+            ).properties(
+                title='Taxa de Descadastro por Data',
+                height=400
+            )
+            
+            st.altair_chart(unsubscribe_chart, use_container_width=True)
+
+        
 
     st.subheader("Exportar Segmentos do Mautic")
     with st.expander("Exportar Segmentos do Mautic"):
