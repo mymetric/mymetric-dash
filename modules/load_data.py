@@ -174,6 +174,11 @@ def load_basic_data():
     return df
 
 def load_detailed_data():
+    
+    
+    if st.session_state.get('selected_page') != "💼 Visão Detalhada":
+        return pd.DataFrame()  # Return empty DataFrame if not on detailed tab
+    
     current_time = time.time()
     if toast_alerts():
         st.toast("Carregando dados detalhados...")

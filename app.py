@@ -20,8 +20,8 @@ from views.custom.tab_holysoup_crm import display_tab_holysoup_crm
 from modules.load_data import load_paid_media
 
 def load_app():
-    tabs_css()
 
+    tabs_css()
     date_filters()
     traffic_filters()
 
@@ -46,6 +46,7 @@ def load_app():
 
     # Create radio buttons for navigation
     selected_page = st.radio("", nav_options, horizontal=True)
+    st.session_state.selected_page = selected_page
 
     # Display content based on selection
     if selected_page == "👀 Visão Geral":

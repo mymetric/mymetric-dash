@@ -3,53 +3,13 @@ import streamlit as st
 def tabs_css():
     st.markdown("""
         <style>
-            /* Estilo geral das abas */
-            .stTabs {
-                background-color: transparent;
-                padding: 0px 0px;
-                border-radius: 10px;
+            label[data-baseweb="radio"] {
+                border: 1px solid #ccc !important;
+                padding: 10px !important;
+                margin: 0 5px 0 0;
             }
-            
-            /* Estilo dos botões das abas */
-            .stTabs [data-baseweb="tab-list"] {
-                gap: 8px;
-                padding: 5px 0;
-            }
-            
-            /* Estilo de cada aba */
-            .stTabs [data-baseweb="tab"] {
-                height: 45px;
-                padding: 8px 16px;
-                border-radius: 8px;
-                color: #666;
-                font-weight: 500;
-                background-color: #f8f9fa;
-                border: none;
-                transition: all 0.2s ease;
-            }
-            
-            /* Estilo da aba ativa */
-            .stTabs [aria-selected="true"] {
-                background-color: #e8f0fe !important;
-                color: #1967d2 !important;
-                border-bottom: none !important;
-                font-weight: 600;
-            }
-            
-            /* Hover nas abas */
-            .stTabs [data-baseweb="tab"]:hover {
-                background-color: #e8f0fe;
-                color: #1967d2;
-            }
-            
-            /* Linha indicadora da aba ativa */
-            .stTabs [data-baseweb="tab-highlight"] {
-                display: none;
-            }
-            
-            /* Conteúdo das abas */
-            .stTabs [data-baseweb="tab-panel"] {
-                padding: 15px 0px;
+            label[data-baseweb="radio"] .st-as {
+                display: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
