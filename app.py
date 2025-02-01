@@ -19,10 +19,7 @@ from views.custom.tab_holysoup_crm import display_tab_holysoup_crm
 
 from modules.load_data import load_paid_media
 
-
-
 def load_app():
-
     tabs_css()
 
     date_filters()
@@ -31,57 +28,42 @@ def load_app():
     # Load paid media data
     paid_media = load_paid_media()
 
-    # Define tabs based on data availability
-    tabs = ["👀 Visão Geral"]
+    # Define navigation options based on data availability
+    nav_options = ["👀 Visão Geral"]
 
     if paid_media is not None and not paid_media.empty:
-        tabs.extend(["💰 Mídia Paga"])
+        nav_options.extend(["💰 Mídia Paga"])
 
-    tabs.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia"])
+    nav_options.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia"])
 
     if st.session_state.tablename == 'gringa':
-        tabs.extend(["👜 Produtos Cadastrados"])
+        nav_options.extend(["👜 Produtos Cadastrados"])
 
     if st.session_state.tablename == 'holysoup':
-        tabs.extend(["✉️ CRM"])
+        nav_options.extend(["✉️ CRM"])
 
-    tabs.extend(["💼 Visão Detalhada", "🔧 Configurações"])
+    nav_options.extend(["💼 Visão Detalhada", "🔧 Configurações"])
 
+    # Create radio buttons for navigation
+    selected_page = st.radio("", nav_options, horizontal=True)
 
-    # Create tabs
-    tab_objects = st.tabs(tabs)
-
-    # Display content in tabs
-    with tab_objects[0]:
+    # Display content based on selection
+    if selected_page == "👀 Visão Geral":
         display_tab_general()
-
-    if "💰 Mídia Paga" in tabs:
-        with tab_objects[1]:
-            display_tab_paid_media()
-
-    with tab_objects[tabs.index("🛒 Últimos Pedidos")]:
+    elif selected_page == "💰 Mídia Paga" and "💰 Mídia Paga" in nav_options:
+        display_tab_paid_media()
+    elif selected_page == "🛒 Últimos Pedidos":
         display_tab_last_orders()
-
-    with tab_objects[tabs.index("🎯 Funil de Conversão")]:
+    elif selected_page == "🎯 Funil de Conversão":
         display_tab_funnel()
-
-    with tab_objects[tabs.index("📊 Análise do Dia")]:
+    elif selected_page == "📊 Análise do Dia":
         display_tab_today()
-
-
-
-    if st.session_state.tablename == 'gringa':
-        with tab_objects[tabs.index("👜 Produtos Cadastrados")]:
-            display_tab_gringa_product_submitted()
-
-    if st.session_state.tablename == 'holysoup':
-        with tab_objects[tabs.index("✉️ CRM")]:
-            display_tab_holysoup_crm()
-
-
-    with tab_objects[tabs.index("💼 Visão Detalhada")]:
+    elif selected_page == "👜 Produtos Cadastrados" and st.session_state.tablename == 'gringa':
+        display_tab_gringa_product_submitted()
+    elif selected_page == "✉️ CRM" and st.session_state.tablename == 'holysoup':
+        display_tab_holysoup_crm()
+    elif selected_page == "💼 Visão Detalhada":
         traffic_filters_detailed()
         display_tab_detailed()
-
-    with tab_objects[tabs.index("🔧 Configurações")]:
+    elif selected_page == "🔧 Configurações":
         display_tab_config()
