@@ -7,8 +7,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import time
 import re
-
-
+import base64
 # Function to check and update session state expiration
 def toast_alerts():
     current_time = time.time()
@@ -174,7 +173,6 @@ def load_basic_data():
     return df
 
 def load_detailed_data():
-    
     
     if st.session_state.get('selected_page') != "💼 Visão Detalhada":
         return pd.DataFrame()  # Return empty DataFrame if not on detailed tab
@@ -588,6 +586,7 @@ def load_holysoup_mautic_segments():
     df = run_queries([query])[0]
     return df
 
+@st.cache_data(ttl=300)
 def load_holysoup_mautic_contacts(list_name):
     if toast_alerts():
         st.toast("Carregando contatos do Mautic...")
@@ -601,6 +600,7 @@ def load_holysoup_mautic_contacts(list_name):
 
     st.toast(f"Carregando contatos do Mautic... {list_name}")
 
+    
     query_job = client.query(query)
     rows_raw = query_job.result()
     rows = [dict(row) for row in rows_raw]
@@ -656,3 +656,66 @@ def load_holysoup_crm_optout():
 
     df = run_queries([query])[0]
     return df
+
+def load_users():
+    
+    tablename = st.session_state.tablename
+
+    query = f"""
+        SELECT
+            email,
+            admin,
+            access_control,
+        FROM `mymetric-hub-shopify.dbt_config.users`
+        WHERE tablename = '{tablename}'
+    """
+
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return pd.DataFrame(rows)
+
+def save_users(email, password):
+    tablename = st.session_state.tablename
+    # Encode password using base64
+    encoded_password = base64.b64encode(password.encode()).decode()
+
+    query = f"""
+        MERGE `mymetric-hub-shopify.dbt_config.users` AS target
+        USING (SELECT '{tablename}' as tablename, '{email}' as email, '{encoded_password}' as password) AS source
+        ON target.tablename = source.tablename AND target.email = source.email
+        WHEN MATCHED THEN
+            UPDATE SET email = source.email, password = source.password
+        WHEN NOT MATCHED THEN
+            INSERT (tablename, email, password, admin, access_control)
+            VALUES ('{tablename}', '{email}', '{encoded_password}', false, '[]')
+    """
+
+    try:
+        client.query(query)
+        st.success("Usuário salvo com sucesso!")
+    except Exception as e:
+        st.error(f"Erro ao salvar metas: {str(e)}")
+
+def delete_user(email, tablename):
+    """
+    Delete a user from the database
+    
+    Args:
+        email (str): Email of the user to delete
+        tablename (str): Current table name from session state
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        query = f"""
+            DELETE FROM `mymetric-hub-shopify.dbt_config.users` 
+            WHERE tablename = '{tablename}'
+            AND email = '{email}'
+        """
+        client.query(query)
+        return True
+    except Exception as e:
+        print(f"Error deleting user: {str(e)}")
+        return False

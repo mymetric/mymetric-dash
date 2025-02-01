@@ -3,13 +3,11 @@ import streamlit as st
 from views.partials.run_rate import load_table_metas
 from datetime import datetime
 import pandas as pd
-from modules.load_data import save_goals
+from modules.load_data import save_goals, load_users, save_users, delete_user
+import random
+import string
 
-def display_tab_config():
-    st.title("🔧 Configurações")
-    st.markdown("""---""")
-
-    
+def goals_config():
     # Carregar configurações existentes usando table
     current_metas = load_table_metas()
     current_month = datetime.now().strftime("%Y-%m")
@@ -63,3 +61,73 @@ def display_tab_config():
 
         
         # st.rerun()
+    
+def display_tab_config():
+    st.title("🔧 Configurações")
+    st.markdown("""---""")
+
+
+    st.subheader("Cadastro de Usuários")
+
+    email = st.text_input("Email do usuário", key="email")
+    
+    # Validar email
+    is_valid_email = True if "@" in email and "." in email.split("@")[1] else False
+    
+    password = None
+    if email and is_valid_email:
+        # Gerar senha aleatória com 12 caracteres
+        # Garantir que a senha atenda aos requisitos mínimos
+        while True:
+            password = ''.join(random.choices(
+                string.ascii_uppercase + 
+                string.ascii_lowercase + 
+                string.digits + 
+                string.punctuation, k=12))
+            
+            # Validar se atende todos os critérios
+            has_upper = any(c.isupper() for c in password)
+            has_lower = any(c.islower() for c in password)
+            has_digit = any(c.isdigit() for c in password)
+            has_special = any(not c.isalnum() for c in password)
+            
+            if all([has_upper, has_lower, has_digit, has_special]):
+                break
+        
+        st.text_input("Senha gerada", value=password, type="password", key="password", disabled=True)
+        st.info(f"Senha gerada automaticamente, salve ela em um local seguro: {password}")
+    
+    if email and not is_valid_email:
+        st.error("Por favor insira um email válido")
+
+    if st.button("Salvar") and password:
+        save_users(email, password)
+
+    users = load_users()
+    
+    if not users.empty:
+        st.subheader("Usuários Cadastrados")
+        
+        # Formatar a tabela para exibição
+        display_df = users.copy()
+        display_df.columns = ['Email', 'Admin', 'Controle de Acesso']
+        display_df['Admin'] = display_df['Admin'].map({True: 'Sim', False: 'Não'})
+        
+        # Adicionar coluna de ações
+        for index, row in display_df.iterrows():
+            col1, col2 = st.columns([4,1])
+            with col1:
+                st.write(f"**Email:** {row['Email']}")
+                st.write(f"Admin: {row['Admin']} | Controle de Acesso: {row['Controle de Acesso']}")
+            with col2:
+                if st.button("🗑️ Deletar", key=f"delete_{row['Email']}", type="primary"):
+                    if delete_user(row['Email'], st.session_state.tablename):
+                        st.success(f"Usuário {row['Email']} deletado com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("Erro ao deletar usuário")
+            st.divider()
+
+    goals_config()
+    
+    
