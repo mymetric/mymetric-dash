@@ -53,9 +53,9 @@ def check_pending_items():
     df_recent = df[df['Data'].dt.date.isin([today, yesterday])]
     
     # Calculate percentage of not captured sessions
-    total_sessions = df_recent['Pedidos'].sum()
+    pedidos = df_recent['Pedidos'].sum()
     not_captured = df_recent[df_recent['Cluster'] == '🍪 Perda de Cookies']['Pedidos'].sum()
-    tx_cookies = (not_captured / total_sessions * 100) if total_sessions > 0 else 0
+    tx_cookies = (not_captured / pedidos * 100) if pedidos > 10 else 0
 
 
     

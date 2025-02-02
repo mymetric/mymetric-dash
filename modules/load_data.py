@@ -10,26 +10,7 @@ import re
 import base64
 # Function to check and update session state expiration
 def toast_alerts():
-    current_time = time.time()
-    
-    # Primeira execução
-    if 'toast_alerts' not in st.session_state:
-        st.session_state.toast_alerts = current_time
-        return True
-    
-    time_elapsed = current_time - st.session_state.toast_alerts
-    
-    # Se passou mais de 30 minutos, permite mostrar e reseta o timer
-    if time_elapsed > 1800:  # 30 minutos
-        st.session_state.toast_alerts = current_time
-        return True
-    
-    # Se está dentro do primeiro minuto, permite mostrar
-    if time_elapsed < 60:  # 1 minuto
-        return True
-    
-    # Entre 1 minuto e 30 minutos, não mostra
-    return False
+    return True
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
