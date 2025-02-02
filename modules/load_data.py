@@ -692,7 +692,7 @@ def load_users():
     rows = [dict(row) for row in rows_raw]
     return pd.DataFrame(rows)
 
-def save_users(email, password):
+def save_users(email, password, admin):
     tablename = st.session_state.tablename
     # Encode password using base64
     st.info(f"Guarde a senha gerada em um local seguro: {password}")
@@ -703,10 +703,10 @@ def save_users(email, password):
         USING (SELECT '{tablename}' as tablename, '{email}' as email, '{encoded_password}' as password) AS source
         ON target.tablename = source.tablename AND target.email = source.email
         WHEN MATCHED THEN
-            UPDATE SET email = source.email, password = source.password
+            UPDATE SET email = source.email, password = source.password, admin = {admin}cria
         WHEN NOT MATCHED THEN
             INSERT (tablename, email, password, admin, access_control)
-            VALUES ('{tablename}', '{email}', '{encoded_password}', false, '[]')
+            VALUES ('{tablename}', '{email}', '{encoded_password}', {admin}, '[]')
     """
 
     try:

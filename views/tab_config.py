@@ -71,6 +71,7 @@ def display_tab_config():
     st.subheader("Cadastro de Usuários")
 
     email = st.text_input("Email do usuário", key="email")
+    admin = st.checkbox("Administrador", key="admin")
     
     # Validar email
     is_valid_email = True if "@" in email and "." in email.split("@")[1] else False
@@ -101,9 +102,9 @@ def display_tab_config():
         st.error("Por favor insira um email válido")
 
     if st.button("Salvar") and password:
-        save_users(email, password)
+        save_users(email, password, admin)
         st.success("Usuário salvo com sucesso!")
-        time.sleep(4)
+        time.sleep(10)
         st.rerun()
 
     users = load_users()
