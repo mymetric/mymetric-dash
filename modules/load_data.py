@@ -10,7 +10,7 @@ import re
 import base64
 # Function to check and update session state expiration
 def toast_alerts():
-    return True
+    return False
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
@@ -676,7 +676,7 @@ def load_users():
 def save_users(email, password, admin):
     tablename = st.session_state.tablename
     # Encode password using base64
-    st.info(f"Guarde a senha gerada em um local seguro: {password}")
+    st.info(f"Guarde a senha gerada em um local seguro (desaparecerá em 15 segundos): {password}")
     encoded_password = base64.b64encode(password.encode()).decode()
 
     query = f"""
@@ -684,7 +684,7 @@ def save_users(email, password, admin):
         USING (SELECT '{tablename}' as tablename, '{email}' as email, '{encoded_password}' as password) AS source
         ON target.tablename = source.tablename AND target.email = source.email
         WHEN MATCHED THEN
-            UPDATE SET email = source.email, password = source.password, admin = {admin}cria
+            UPDATE SET email = source.email, password = source.password, admin = {admin}
         WHEN NOT MATCHED THEN
             INSERT (tablename, email, password, admin, access_control)
             VALUES ('{tablename}', '{email}', '{encoded_password}', {admin}, '[]')
@@ -695,7 +695,7 @@ def save_users(email, password, admin):
     except Exception as e:
         st.error(f"Erro ao salvar usuário: {str(e)}")
 
-def delete_user(email, tablename):
+def delete_user(email):
     """
     Delete a user from the database
     
@@ -707,6 +707,8 @@ def delete_user(email, tablename):
         bool: True if successful, False otherwise
     """
     try:
+        tablename = st.session_state.tablename
+        
         query = f"""
             DELETE FROM `mymetric-hub-shopify.dbt_config.users` 
             WHERE tablename = '{tablename}'
@@ -715,5 +717,5 @@ def delete_user(email, tablename):
         client.query(query)
         return True
     except Exception as e:
-        print(f"Error deleting user: {str(e)}")
+        st.toast(f"Error deleting user: {str(e)}")
         return False

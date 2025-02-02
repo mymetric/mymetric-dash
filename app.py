@@ -42,7 +42,7 @@ def load_app():
     if st.session_state.tablename == 'holysoup':
         nav_options.extend(["✉️ CRM"])
 
-    if st.session_state.admin == True:
+    if st.session_state.admin is not None and st.session_state.admin is not False:
         nav_options.extend(["🔧 Configurações"])
 
     # Create radio buttons for navigation
