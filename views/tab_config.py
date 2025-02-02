@@ -6,6 +6,7 @@ import pandas as pd
 from modules.load_data import save_goals, load_users, save_users, delete_user
 import random
 import string
+import time
 
 def goals_config():
     # Carregar configurações existentes usando table
@@ -95,13 +96,15 @@ def display_tab_config():
                 break
         
         st.text_input("Senha gerada", value=password, type="password", key="password", disabled=True)
-        st.info(f"Senha gerada automaticamente, salve ela em um local seguro: {password}")
     
     if email and not is_valid_email:
         st.error("Por favor insira um email válido")
 
     if st.button("Salvar") and password:
         save_users(email, password)
+        st.success("Usuário salvo com sucesso!")
+        time.sleep(4)
+        st.rerun()
 
     users = load_users()
     
@@ -122,7 +125,9 @@ def display_tab_config():
             with col2:
                 if st.button("🗑️ Deletar", key=f"delete_{row['Email']}", type="primary"):
                     if delete_user(row['Email'], st.session_state.tablename):
-                        st.success(f"Usuário {row['Email']} deletado com sucesso!")
+                        st.toast(f"Usuário {row['Email']} deletado com sucesso!")
+                        time.sleep(4)
+                        users = load_users()
                         st.rerun()
                     else:
                         st.error("Erro ao deletar usuário")

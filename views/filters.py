@@ -15,7 +15,7 @@ def date_filters():
     first_day_of_month = today.replace(day=1)
     
     with st.sidebar:
-        st.markdown(f"## {st.session_state.username.upper()}")
+        st.markdown(f"## {st.session_state.tablename.upper()}")
 
     # Sempre inicializa com o mês atual
     start_date = first_day_of_month

@@ -34,7 +34,7 @@ def load_app():
     if paid_media is not None and not paid_media.empty:
         nav_options.extend(["💰 Mídia Paga"])
 
-    nav_options.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia"])
+    nav_options.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada"])
 
     if st.session_state.tablename == 'gringa':
         nav_options.extend(["👜 Produtos Cadastrados"])
@@ -42,7 +42,8 @@ def load_app():
     if st.session_state.tablename == 'holysoup':
         nav_options.extend(["✉️ CRM"])
 
-    nav_options.extend(["💼 Visão Detalhada", "🔧 Configurações"])
+    if st.session_state.admin == True:
+        nav_options.extend(["🔧 Configurações"])
 
     # Create radio buttons for navigation
     selected_page = st.radio("", nav_options, horizontal=True)

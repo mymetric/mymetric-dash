@@ -657,6 +657,23 @@ def load_holysoup_crm_optout():
     df = run_queries([query])[0]
     return df
 
+def load_all_users():
+    
+    query = f"""
+        SELECT
+            email,
+            admin,
+            access_control,
+            tablename,
+            password
+        FROM `mymetric-hub-shopify.dbt_config.users`
+    """
+
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return pd.DataFrame(rows)
+
 def load_users():
     
     tablename = st.session_state.tablename
@@ -678,6 +695,7 @@ def load_users():
 def save_users(email, password):
     tablename = st.session_state.tablename
     # Encode password using base64
+    st.info(f"Guarde a senha gerada em um local seguro: {password}")
     encoded_password = base64.b64encode(password.encode()).decode()
 
     query = f"""
@@ -693,9 +711,8 @@ def save_users(email, password):
 
     try:
         client.query(query)
-        st.success("Usuário salvo com sucesso!")
     except Exception as e:
-        st.error(f"Erro ao salvar metas: {str(e)}")
+        st.error(f"Erro ao salvar usuário: {str(e)}")
 
 def delete_user(email, tablename):
     """

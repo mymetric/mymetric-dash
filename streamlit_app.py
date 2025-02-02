@@ -9,6 +9,8 @@ from pathlib import Path
 import base64
 from app import load_app
 from modules.utilities import send_discord_message
+from modules.load_data import load_all_users
+
 
 st.set_page_config(
     page_title="MyMetricHUB",
@@ -39,6 +41,8 @@ def check_password():
         st.session_state.username = None
         st.session_state.login_time = None
         st.session_state.tablename = None
+        st.session_state.admin = None
+
     elif st.session_state.login_time:
         # Verifica se o login ainda é válido (7 dias)
         if datetime.now() - st.session_state.login_time < timedelta(days=7):
@@ -52,6 +56,9 @@ def check_password():
     if not st.session_state.authenticated:
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")
+
+        new_users = load_all_users()
+        new_users = new_users.to_dict(orient="records")
         
         if st.sidebar.button("Entrar"):
             # Loop through the users list to check credentials
@@ -60,11 +67,25 @@ def check_password():
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.tablename = username
+                    st.session_state.admin = True
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login             
                     
                     if username != "mymetric":
                         send_discord_message(f"Login realizado por {username}")
                     
+                    st.rerun()  # Recarrega a página após login
+                    break
+            
+            for user in new_users:
+                
+                encoded_password = base64.b64encode(password.encode()).decode()
+                
+                if user["email"] == username and user["password"] == encoded_password:
+                    st.session_state.authenticated = True
+                    st.session_state.username = username
+                    st.session_state.tablename = user["tablename"]
+                    st.session_state.admin = user["admin"]
+                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login             
                     st.rerun()  # Recarrega a página após login
                     break
             else:
