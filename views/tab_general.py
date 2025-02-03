@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from modules.load_data import load_basic_data, apply_filters
+from modules.load_data import load_basic_data, apply_filters, load_paid_media
 from modules.components import big_number_box
 from views.partials.run_rate import display_run_rate
 from views.partials.pendings import display_pendings
@@ -17,6 +17,16 @@ def big_numbers(df):
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (pedidos_pagos / pedidos) * 100 if total_receita_capturada > 0 else 0
+
+    # Carrega dados de mídia paga
+    df_paid = load_paid_media()
+    total_investimento = df_paid["Investimento"].sum()
+    receita = df_paid["Receita"].sum()
+    investimento_google = df_paid[df_paid["Plataforma"] == "google_ads"]["Investimento"].sum()
+    investimento_meta = df_paid[df_paid["Plataforma"] == "meta_ads"]["Investimento"].sum()
+    tacos = (total_investimento/total_receita_paga * 100) if total_receita_paga > 0 else 0
+    roas_geral = total_receita_paga/total_investimento if total_investimento > 0 else 0
+    roas_especifico = receita/total_investimento if total_investimento > 0 else 0
 
     st.header("Big Numbers")
 
@@ -72,6 +82,57 @@ def big_numbers(df):
             "% Receita Paga/Capturada",
             hint="Percentual da receita total capturada que foi efetivamente paga"
         )
+
+    st.markdown("---")
+    
+    st.subheader("Mídia Paga")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        big_number_box(
+            f"R$ {total_investimento:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Total Investido",
+            hint="Total investido em mídia paga no período (Google Ads + Meta Ads)"
+        )
+    
+    with col2:
+        big_number_box(
+            f"R$ {investimento_google:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Google Ads",
+            hint="Total investido em Google Ads no período"
+        )
+    
+    with col3:
+        big_number_box(
+            f"R$ {investimento_meta:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            "Meta Ads",
+            hint="Total investido em Meta Ads (Facebook/Instagram) no período"
+        )
+    
+    with col4:
+        big_number_box(
+            f"{tacos:.2f}%", 
+            "TACoS",
+            hint="Percentual de investimento em relação à receita total"
+        )
+    
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        big_number_box(
+            f"{roas_geral:.2f}", 
+            "ROAS Geral",
+            hint="Considera a receita geral do e-commerce"
+        )
+
+    with col2:
+        big_number_box(
+            f"{roas_especifico:.2f}", 
+            "ROAS Específico",
+            hint="Considera apenas o que foi atribuído em last click a Mídia Paga"
+        )
+
+    
     
     st.markdown("---")
 
