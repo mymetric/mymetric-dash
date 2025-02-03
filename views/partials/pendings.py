@@ -127,7 +127,8 @@ def check_pending_items():
                 pendencia = {
                     'titulo': 'Connect Rate Baixo no Google Ads',
                     'descricao': f'O connect rate está em {google_connect_rate:.1f}%, o que representa um problema {mensagem}. ' +
-                                f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}',
+                                f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}\n\n' +
+                                'ℹ️ Esta pendência não afeta seu MyMetric Score.',
                     'acao': 'Verifique problemas de rastreamento do GA4, bloqueadores de anúncios ou configuração incorreta do GTM.',
                     'severidade': severidade
                 }
@@ -137,7 +138,8 @@ def check_pending_items():
                 pendencia = {
                     'titulo': 'Connect Rate Alto no Google Ads',
                     'descricao': f'O número de sessões está {google_connect_rate:.1f}% acima dos cliques no Google Ads. ' +
-                                f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}',
+                                f'Cliques: {google_clicks:,.0f}, Sessões: {google_sessions:,.0f}\n\n' +
+                                'ℹ️ Esta pendência não afeta seu MyMetric Score.',
                     'acao': 'Verifique se há dupla contagem de sessões ou problemas no rastreamento da plataforma.',
                     'severidade': 'alta'
                 }
@@ -164,7 +166,8 @@ def check_pending_items():
                 pendencia = {
                     'titulo': 'Connect Rate Baixo no Meta Ads',
                     'descricao': f'O connect rate está em {meta_connect_rate:.1f}%, o que representa um problema {mensagem}. ' +
-                                f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}',
+                                f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}\n\n' +
+                                'ℹ️ Esta pendência não afeta seu MyMetric Score.',
                     'acao': 'Verifique problemas de rastreamento do GA4, bloqueadores de anúncios ou configuração incorreta do GTM.',
                     'severidade': severidade
                 }
@@ -174,7 +177,8 @@ def check_pending_items():
                 pendencia = {
                     'titulo': 'Connect Rate Alto no Meta Ads',
                     'descricao': f'O número de sessões está {meta_connect_rate:.1f}% acima dos cliques no Meta Ads. ' +
-                                f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}',
+                                f'Cliques: {meta_clicks:,.0f}, Sessões: {meta_sessions:,.0f}\n\n' +
+                                'ℹ️ Esta pendência não afeta seu MyMetric Score.',
                     'acao': 'Verifique se há dupla contagem de sessões ou problemas no rastreamento da plataforma.',
                     'severidade': 'alta'
                 }
@@ -309,12 +313,14 @@ def display_pendings():
             # Penalidade extra para meta não cadastrada
             if p['titulo'] == 'Cadastrar Meta do Mês':
                 score -= 3  # Penalidade maior por não ter meta cadastrada
-            elif p['severidade'] == 'alta':
-                score -= 2  # -2 pontos para pendências críticas
-            elif p['severidade'] == 'media':
-                score -= 1  # -1 ponto para pendências médias
-            elif p['severidade'] == 'baixa':
-                score -= 0.5  # -0.5 pontos para pendências baixas
+            # Penalidades padrão para outros problemas (exceto connect rate)
+            elif 'Connect Rate' not in p['titulo']:  # Ignora problemas de connect rate no score
+                if p['severidade'] == 'alta':
+                    score -= 2  # -2 pontos para pendências críticas
+                elif p['severidade'] == 'media':
+                    score -= 1  # -1 ponto para pendências médias
+                elif p['severidade'] == 'baixa':
+                    score -= 0.5  # -0.5 pontos para pendências baixas
         
         # Garantir que o score não seja negativo
         score = max(0, score)
