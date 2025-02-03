@@ -4,7 +4,6 @@ from google.oauth2 import service_account
 from google.cloud import bigquery
 from users import users  # Importa o array de usuários e senhas
 from datetime import datetime, timedelta
-from analytics.logger import log_event
 from pathlib import Path
 import base64
 from app import load_app
