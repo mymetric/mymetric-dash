@@ -4,6 +4,7 @@ from google.oauth2 import service_account
 import pandas as pd
 from modules.load_data import load_check_zero_metrics, load_basic_data, load_paid_media, load_fbclid_coverage
 from views.partials.run_rate import load_table_metas
+from datetime import datetime
 
 def safe_float_conversion(value):
     return float(value) if value is not None else 0.0
@@ -40,6 +41,9 @@ def check_pending_items():
     pendencias = []
     
     meta_receita = load_table_metas()
+    current_month = datetime.now().strftime("%Y-%m")
+    meta_receita = meta_receita.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+
     zero_metrics = check_zero_metrics()
 
 
@@ -302,7 +306,10 @@ def display_pendings():
         
         # Penalidades por severidade
         for p in pendencias:
-            if p['severidade'] == 'alta':
+            # Penalidade extra para meta não cadastrada
+            if p['titulo'] == 'Cadastrar Meta do Mês':
+                score -= 3  # Penalidade maior por não ter meta cadastrada
+            elif p['severidade'] == 'alta':
                 score -= 2  # -2 pontos para pendências críticas
             elif p['severidade'] == 'media':
                 score -= 1  # -1 ponto para pendências médias
