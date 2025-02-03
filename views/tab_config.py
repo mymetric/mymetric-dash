@@ -7,6 +7,7 @@ from modules.load_data import save_goals, load_users, save_users, delete_user
 import random
 import string
 import time
+from modules.utilities import send_discord_message
 
 def goals_config():
     # Carregar configurações existentes usando table
@@ -71,8 +72,8 @@ def display_tab_config():
     st.subheader("Cadastro de Usuários")
 
     with st.form(key="cadastro_usuario"):
-        email = st.text_input("Email do usuário", key="email")
-        admin = st.checkbox("Administrador", key="admin")
+        email = st.text_input("Email do usuário", key="new_user_email")
+        admin = st.checkbox("Administrador", key="new_user_admin")
         
         # Validar email
         is_valid_email = True if "@" in email and "." in email.split("@")[1] else False
@@ -105,6 +106,8 @@ def display_tab_config():
         submit_button = st.form_submit_button("Salvar")
         if submit_button and password:
             save_users(email, password, admin)
+            tablename = st.session_state.tablename
+            send_discord_message(f"Usuário {email} cadastrado em {tablename}!")
             st.success("Usuário salvo com sucesso!")
             time.sleep(15)
             st.rerun()
@@ -122,13 +125,13 @@ def display_tab_config():
         # Adicionar coluna de ações
         for index, row in display_df.iterrows():
             form_key = f"delete_form_{index}_{row['Email']}"  # Chave única mais específica
-            with st.form(key=form_key, clear_on_submit=True):  # Adicionado clear_on_submit
+            with st.form(key=form_key):  # Cria um formulário que limpa após envio
                 col1, col2 = st.columns([4,1])
                 with col1:
                     st.write(f"**Email:** {row['Email']}")
                     st.write(f"Admin: {row['Admin']} | Controle de Acesso: {row['Controle de Acesso']}")
                 with col2:
-                    submit = st.form_submit_button("🗑️ Deletar", type="primary", use_container_width=True)
+                    submit = st.form_submit_button("🗑️ Deletar", use_container_width=True)
                     if submit:
                         
                         try:
@@ -139,8 +142,10 @@ def display_tab_config():
                                 users = load_users()
                                 time.sleep(1)
                                 st.rerun()
+                                
                             else:
                                 st.error("Erro ao deletar usuário")
+                        
                         except Exception as e:
                             st.error(f"Erro durante a deleção: {str(e)}")
                             st.write(f"Debug: Stack trace completo:", e)

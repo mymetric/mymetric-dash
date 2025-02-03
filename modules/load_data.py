@@ -10,7 +10,10 @@ import re
 import base64
 # Function to check and update session state expiration
 def toast_alerts():
-    return False
+    if st.session_state.username == 'mymetric':
+        return True
+    else:
+        return False
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]

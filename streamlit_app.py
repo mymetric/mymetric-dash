@@ -43,16 +43,6 @@ def check_password():
         st.session_state.tablename = None
         st.session_state.admin = None
 
-    elif st.session_state.login_time:
-        # Verifica se o login ainda é válido (7 dias)
-        if datetime.now() - st.session_state.login_time < timedelta(days=7):
-            return True
-        else:
-            # Reseta a sessão se expirou
-            st.session_state.authenticated = False
-            st.session_state.username = None
-            st.session_state.login_time = None
-
     if not st.session_state.authenticated:
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")

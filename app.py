@@ -25,6 +25,8 @@ def load_app():
     date_filters()
     traffic_filters()
 
+    is_admin = st.session_state.admin
+
     # Load paid media data
     paid_media = load_paid_media()
 
@@ -42,9 +44,9 @@ def load_app():
     if st.session_state.tablename == 'holysoup':
         nav_options.extend(["✉️ CRM"])
 
-    if st.session_state.admin is not None and st.session_state.admin is not False:
+    if is_admin:
         nav_options.extend(["🔧 Configurações"])
-
+        
     # Create radio buttons for navigation
     selected_page = st.radio("", nav_options, horizontal=True)
     st.session_state.selected_page = selected_page
