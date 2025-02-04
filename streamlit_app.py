@@ -9,6 +9,7 @@ import base64
 from app import load_app
 from modules.utilities import send_discord_message
 from modules.load_data import load_all_users
+from streamlit_cookies_controller import CookieController
 
 
 st.set_page_config(
@@ -16,6 +17,17 @@ st.set_page_config(
     page_icon="https://mymetric.com.br/wp-content/uploads/2023/07/cropped-Novo-Logo-Icone-32x32.jpg",
     layout="wide"
 )
+
+# def get_cookies():
+controller = CookieController()
+authenticated = controller.get("mm_authenticated")
+if authenticated:
+    st.session_state.authenticated = authenticated
+    st.session_state.username = controller.get("mm_username")
+    st.session_state.tablename = controller.get("mm_tablename")
+    st.session_state.admin = controller.get("mm_admin")
+
+
 
 # Logo path
 logo_path = Path(__file__).parent / "logo.svg"
@@ -35,16 +47,18 @@ st.sidebar.markdown(
 
 # Função de autenticação
 def check_password():
+    
     if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-        st.session_state.username = None
-        st.session_state.login_time = None
-        st.session_state.tablename = None
-        st.session_state.admin = None
+            st.session_state.authenticated = False
+            st.session_state.username = None
+            st.session_state.login_time = None
+            st.session_state.tablename = None
+            st.session_state.admin = None
 
     if not st.session_state.authenticated:
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")
+
 
         new_users = load_all_users()
         new_users = new_users.to_dict(orient="records")
@@ -53,11 +67,13 @@ def check_password():
             # Loop through the users list to check credentials
             for user in users:
                 if user["slug"] == username and user["password"] == password:
+                    
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.tablename = username
                     st.session_state.admin = True
-                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login             
+                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login
+                    
                     
                     if username != "mymetric":
                         send_discord_message(f"Login realizado por {username}")
@@ -70,11 +86,14 @@ def check_password():
                 encoded_password = base64.b64encode(password.encode()).decode()
                 
                 if user["email"] == username and user["password"] == encoded_password:
+                    expires_at = datetime.now() + timedelta(days=1)
+                    
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.tablename = user["tablename"]
                     st.session_state.admin = user["admin"]
-                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login             
+                    st.session_state.login_time = datetime.now()  # Armazena o tempo do login
+                    
                     st.rerun()  # Recarrega a página após login
                     break
             else:
@@ -87,6 +106,12 @@ def logout():
     st.session_state.authenticated = False
     st.session_state.username = None
     st.session_state.login_time = None
+
+    controller = CookieController()
+    controller.remove("mm_authenticated")
+    controller.remove("mm_username")
+    controller.remove("mm_tablename")
+    controller.remove("mm_admin")
 
 # Executa a função de autenticação
 if check_password():
@@ -125,3 +150,4 @@ if check_password():
     if st.sidebar.button("Logout"):
         logout()
         st.rerun()  # Recarrega a página após o logout
+        

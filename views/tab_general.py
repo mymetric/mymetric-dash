@@ -8,6 +8,9 @@ from views.partials.run_rate import display_run_rate
 from views.partials.pendings import display_pendings
 from views.partials.performance import display_performance
 from views.partials.notices import display_notices
+from streamlit_cookies_controller import CookieController
+
+
 def big_numbers(df):
 
     sessoes = df["Sessões"].sum()
@@ -275,4 +278,13 @@ def display_tab_general():
     big_numbers(df)
     tables(df)
 
-    
+    def set_cookies():
+        controller = CookieController()
+        if "authenticated" in st.session_state:
+            max_age=8*60*60
+            controller.set("mm_authenticated", st.session_state.authenticated, max_age = max_age)
+            controller.set("mm_username", st.session_state.username, max_age = max_age)
+            controller.set("mm_tablename", st.session_state.tablename, max_age = max_age)
+            controller.set("mm_admin", st.session_state.admin, max_age = max_age)
+
+    set_cookies()
