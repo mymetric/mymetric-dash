@@ -10,3 +10,4 @@ requests
 altair
 plotly
 google-api-python-client
+streamlit-cookies-controller
