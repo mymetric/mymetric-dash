@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout, load_detailed_data
+from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout, load_basic_data
 from googleapiclient.http import MediaIoBaseUpload
 import io
 from google.oauth2 import service_account
@@ -68,7 +68,7 @@ def display_tab_holysoup_crm():
     st.markdown("""---""")
 
     df = load_holysoup_email_stats()
-    df_detailed = load_detailed_data()
+    df_detailed = load_basic_data()
 
     # Calcular métricas do WhatsApp
     whatsapp_revenue = df_detailed[
@@ -381,7 +381,7 @@ def display_tab_holysoup_crm():
                 )
 
             # Calcular métricas do WhatsApp
-            df_detailed = load_detailed_data()
+            df_detailed = load_basic_data()
             whatsapp_revenue = df_detailed[
                 (df_detailed['Cluster'] == '💬 WhatsApp') & 
                 (df_detailed['Pedidos Pagos'] > 0)
