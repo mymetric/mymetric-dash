@@ -761,7 +761,10 @@ def load_coupons():
         WHERE tablename = '{tablename}'
     """
 
-    return run_queries([query])[0]
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return pd.DataFrame(rows)
 
 def delete_coupon(coupon_code):
     tablename = st.session_state.tablename
