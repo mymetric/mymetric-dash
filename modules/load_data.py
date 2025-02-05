@@ -219,9 +219,10 @@ def load_goals():
         LIMIT 1
     """
 
-    df = run_queries([query])[0]
-
-    return df
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    rows = [dict(row) for row in rows_raw]
+    return pd.DataFrame(rows)
 
 def load_check_zero_metrics():
     if toast_alerts():
