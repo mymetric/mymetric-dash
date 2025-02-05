@@ -725,3 +725,53 @@ def delete_user(email):
     except Exception as e:
         st.toast(f"Error deleting user: {str(e)}")
         return False
+
+def save_coupons(coupon_code, coupon_category):
+    
+    tablename = st.session_state.tablename
+    user = st.session_state.username
+
+    query = f"""
+        MERGE `mymetric-hub-shopify.dbt_config.coupons` AS target
+        USING (SELECT '{tablename}' as tablename, '{coupon_code}' as coupon_code) AS source
+        ON target.tablename = source.tablename AND target.coupon_code = source.coupon_code
+        WHEN MATCHED THEN
+            UPDATE SET coupon_category = coupon_category, user = user
+        WHEN NOT MATCHED THEN
+            INSERT (created_at, tablename, user, coupon_code, coupon_category)
+            VALUES (CURRENT_TIMESTAMP(), '{tablename}', '{user}', '{coupon_code}', '{coupon_category}')
+    """
+
+    try:
+        client.query(query)
+    except Exception as e:
+        st.error(f"Erro ao salvar usuário: {str(e)}")
+
+def load_coupons():
+
+    if toast_alerts():
+        st.toast("Carregando cupons...")
+
+    tablename = st.session_state.tablename
+    query = f"""
+        SELECT
+            coupon_code `Cupom`,
+            coupon_category `Categoria`
+        FROM `mymetric-hub-shopify.dbt_config.coupons`
+        WHERE tablename = '{tablename}'
+    """
+
+    return run_queries([query])[0]
+
+def delete_coupon(coupon_code):
+    tablename = st.session_state.tablename
+    query = f"""
+        DELETE FROM `mymetric-hub-shopify.dbt_config.coupons`
+        WHERE tablename = '{tablename}' AND coupon_code = '{coupon_code}'
+    """
+    try:
+        client.query(query)
+        return True
+    except Exception as e:
+        st.toast(f"Error deleting user: {str(e)}")
+        return False

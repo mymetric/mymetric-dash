@@ -12,6 +12,7 @@ from views.tab_funnel import display_tab_funnel
 from views.tab_paid_media import display_tab_paid_media
 from views.tab_config import display_tab_config
 from views.tab_last_orders import display_tab_last_orders
+from views.tab_coupons import display_tab_coupons
 
 # Custom Tabs
 from views.custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
@@ -36,7 +37,7 @@ def load_app():
     if paid_media is not None and not paid_media.empty:
         nav_options.extend(["💰 Mídia Paga"])
 
-    nav_options.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada"])
+    nav_options.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada", "🎫 Cupons"])
 
     if st.session_state.tablename == 'gringa':
         nav_options.extend(["👜 Produtos Cadastrados"])
@@ -71,3 +72,5 @@ def load_app():
         display_tab_detailed()
     elif selected_page == "🔧 Configurações":
         display_tab_config()
+    elif selected_page == "🎫 Cupons":
+        display_tab_coupons()
