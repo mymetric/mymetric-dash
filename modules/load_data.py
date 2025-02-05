@@ -39,7 +39,9 @@ def traffic_cluster(row):
               'zoppy' in str(row['Origem']).lower() or 
               'zoppy' in str(row['Mídia']).lower()):
             return '💬 WhatsApp'
-        elif row['Origem'] == 'crm':
+        elif ('crm' in str(row['Origem']).lower() or
+              'mautic' in str(row['Origem']).lower() or
+              'email' in str(row['Origem']).lower()):
             return '✉️ E-mail'
         elif row['Origem'] == 'shopify_draft_order':
             return '🗒️ Draft'
