@@ -325,6 +325,7 @@ def load_fbclid_coverage():
 
     tablename = st.session_state.tablename
 
+
     query = f"""
         SELECT
             sum(case when page_params like "%mm_ads%" then 1 else 0 end) / count(*) `Cobertura`
@@ -778,3 +779,30 @@ def delete_coupon(coupon_code):
     except Exception as e:
         st.toast(f"Error deleting user: {str(e)}")
         return False
+
+def load_leads_popup():
+
+    if toast_alerts():
+        st.toast("Carregando leads via popup...")
+
+    tablename = st.session_state.tablename
+    start_date = st.session_state.start_date
+    end_date = st.session_state.end_date
+
+    query = f"""
+        SELECT
+        
+        date_received_at `Data`,
+        count(distinct email) `E-mails`
+
+        FROM `mymetric-hub-shopify.dbt_granular.popup_subscribe`
+        where event_name like "%{tablename}%"
+        and date(date_received_at) between "{start_date}" and "{end_date}"
+
+        group by all
+
+        order by 1 desc
+    """
+
+    df = run_queries([query])[0]
+    return df

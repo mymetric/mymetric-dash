@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from modules.load_data import load_basic_data, apply_filters, load_paid_media
+from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup
 from modules.components import big_number_box
 from views.partials.run_rate import display_run_rate
 from views.partials.pendings import display_pendings
@@ -20,6 +20,7 @@ def big_numbers(df):
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (pedidos_pagos / pedidos) * 100 if total_receita_capturada > 0 else 0
+    leads = load_leads_popup()
 
     st.header("Big Numbers")
 
@@ -75,6 +76,14 @@ def big_numbers(df):
             "% Receita Paga/Capturada",
             hint="Percentual da receita total capturada que foi efetivamente paga"
         )
+    
+    if leads is not None and not leads.empty:
+        with col4:
+            big_number_box(
+                f"{leads['E-mails'].sum():,.0f}".replace(",", "."), 
+                "Leads",
+                hint="Total de leads capturados via popup no período"
+            )
 
     st.markdown("---")
     

@@ -97,7 +97,10 @@ def goals_config():
     # Carregar configurações existentes usando table
     current_metas = load_table_metas()
     current_month = datetime.now().strftime("%Y-%m")
-    meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+    if current_metas:
+        meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+    else:
+        meta_receita = 0
     
     # Lista dos últimos 12 meses para seleção
     months = []

@@ -206,7 +206,8 @@ def check_pending_items():
                 pendencia = {
                     'titulo': 'Tagueamento do Meta Ads',
                     'descricao': f'A cobertura do tagueamento está em {cobertura:.1f}%, o que representa um problema {mensagem}.',
-                    'acao': 'Verifique se o parâmetro mm_ads está sendo adicionado corretamente nas URLs.',
+                    'acao': 'Verifique se o parâmetro mm_ads está sendo adicionado corretamente nas URLs. ' +
+                           'Acesse nosso [tutorial de implementação](https://mymetric.com.br/tutorial-meta-ads) para mais detalhes.',
                     'severidade': severidade
                 }
                 pendencias.append(pendencia)
