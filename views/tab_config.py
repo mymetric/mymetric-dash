@@ -3,72 +3,13 @@ import streamlit as st
 from views.partials.run_rate import load_table_metas
 from datetime import datetime
 import pandas as pd
-from modules.load_data import save_goals, load_users, save_users, delete_user
+from modules.load_data import save_goals, load_users, save_users, delete_user, save_coupons, load_coupons, delete_coupon
 import random
 import string
 import time
 from modules.utilities import send_discord_message
 
-def goals_config():
-    # Carregar configurações existentes usando table
-    current_metas = load_table_metas()
-    current_month = datetime.now().strftime("%Y-%m")
-    meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
-    
-    # Criar campo para seleção do mês
-    st.subheader("Meta de Receita Paga")
-    
-    
-    # Lista dos últimos 12 meses para seleção
-    months = []
-    for i in range(12):
-        month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
-        months.append(month)
-    
-    selected_month = st.selectbox(
-        "Mês de Referência",
-        options=months,
-        format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize()
-    )
-    
-    # Pegar o valor atual da meta para o mês selecionado
-    current_value = meta_receita
-    
-    meta_receita_paga = st.number_input(
-        "Meta de Receita Paga (R$)",
-        min_value=0.0,
-        step=1000.0,
-        format="%.2f",
-        help="Digite a meta de receita paga",
-        value=float(current_value)
-    )
-
-    if st.button("Salvar Meta"):
-        
-        # Garantir que a estrutura existe
-        if 'metas_mensais' not in current_metas:
-            current_metas['metas_mensais'] = {}
-            
-        # Atualizar ou criar a meta para o mês selecionado
-        current_metas['metas_mensais'][selected_month] = {
-            "meta_receita_paga": meta_receita_paga
-        }
-
-        save_goals(current_metas)
-
-        st.toast(f"Salvando meta... {meta_receita_paga}")
-        
-        # save_table_metas(current_metas)
-        st.success("Meta salva com sucesso!")
-
-        
-        # st.rerun()
-    
-def display_tab_config():
-    st.title("🔧 Configurações")
-    st.markdown("""---""")
-
-
+def users_config():
     st.subheader("Cadastro de Usuários")
 
     with st.form(key="cadastro_usuario"):
@@ -133,7 +74,6 @@ def display_tab_config():
                 with col2:
                     submit = st.form_submit_button("🗑️ Deletar", use_container_width=True)
                     if submit:
-                        
                         try:
                             delete_result = delete_user(row['Email'])
                             
@@ -151,6 +91,164 @@ def display_tab_config():
                             st.write(f"Debug: Stack trace completo:", e)
             st.divider()
 
-    goals_config()
+def goals_config():
+    st.subheader("Meta de Receita Paga")
+    
+    # Carregar configurações existentes usando table
+    current_metas = load_table_metas()
+    current_month = datetime.now().strftime("%Y-%m")
+    meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+    
+    # Lista dos últimos 12 meses para seleção
+    months = []
+    for i in range(12):
+        month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
+        months.append(month)
+    
+    selected_month = st.selectbox(
+        "Mês de Referência",
+        options=months,
+        format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize()
+    )
+    
+    # Pegar o valor atual da meta para o mês selecionado
+    current_value = meta_receita
+    
+    meta_receita_paga = st.number_input(
+        "Meta de Receita Paga (R$)",
+        min_value=0.0,
+        step=1000.0,
+        format="%.2f",
+        help="Digite a meta de receita paga",
+        value=float(current_value)
+    )
+
+    if st.button("Salvar Meta"):
+        # Garantir que a estrutura existe
+        if 'metas_mensais' not in current_metas:
+            current_metas['metas_mensais'] = {}
+            
+        # Atualizar ou criar a meta para o mês selecionado
+        current_metas['metas_mensais'][selected_month] = {
+            "meta_receita_paga": meta_receita_paga
+        }
+
+        save_goals(current_metas)
+        st.toast(f"Salvando meta... {meta_receita_paga}")
+        st.success("Meta salva com sucesso!")
+
+def coupons_config():
+    st.subheader("Gerenciamento de Cupons")
+    
+    # Form para adicionar novo cupom
+    with st.form("novo_cupom"):
+        coupon_code = st.text_input("Código do Cupom")
+        coupon_category = st.text_input("Categoria do Cupom")
+        
+        submitted = st.form_submit_button("Salvar Cupom")
+        if submitted and coupon_code and coupon_category:
+            save_coupons(coupon_code, coupon_category)
+            st.success(f"Cupom {coupon_code} salvo com sucesso!")
+            st.rerun()
+    
+    st.divider()
+    
+    # Exibir lista de cupons existentes
+    coupons = load_coupons()
+    
+    if not coupons.empty:
+        # Adicionar campos de busca
+        search_code = st.text_input("🔍 Buscar por código", placeholder="Digite o código do cupom...")
+        search_category = st.text_input("🔍 Buscar por categoria", placeholder="Digite a categoria...")
+        
+        # Filtrar cupons baseado na busca
+        if search_code or search_category:
+            filtered_coupons = coupons[
+                (coupons['Cupom'].str.contains(search_code, case=False, na=False)) &
+                (coupons['Categoria'].str.contains(search_category, case=False, na=False))
+            ]
+        else:
+            filtered_coupons = coupons
+        
+        # Mostrar estatísticas
+        total_coupons = len(filtered_coupons)
+        st.caption(f"Total de cupons encontrados: {total_coupons}")
+        
+        # Estilo CSS para os cards
+        st.markdown("""
+        <style>
+        .coupon-card {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .coupon-info {
+            display: flex;
+            align-items: center;
+        }
+        .coupon-code {
+            color: #0066cc;
+            font-family: monospace;
+            font-size: 1.1em;
+            padding: 0.2rem 0.4rem;
+            background-color: #e9ecef;
+            border-radius: 0.3rem;
+        }
+        .coupon-category {
+            color: #666;
+            margin-left: 1rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Exibir cupons em cards
+        for index, row in filtered_coupons.iterrows():
+            col1, col2 = st.columns([6, 1])
+            with col1:
+                st.markdown(f"""
+                <div class="coupon-card">
+                    <div class="coupon-info">
+                        <span class="coupon-code">{row['Cupom']}</span>
+                        <span class="coupon-category">📁 {row['Categoria']}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                if st.button("🗑️", key=f"delete_{row['Cupom']}", help="Deletar cupom", type="secondary"):
+                    if delete_coupon(row['Cupom']):
+                        st.success(f"Cupom {row['Cupom']} deletado com sucesso!")
+                        coupons = load_coupons()
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao deletar o cupom {row['Cupom']}")
+    else:
+        st.info("Nenhum cupom cadastrado.")
+
+def display_tab_config():
+    st.title("🔧 Configurações")
+    st.markdown("""---""")
+
+    # Criar tabs para cada seção
+    tab_users, tab_goals, tab_coupons = st.tabs([
+        "👥 Usuários",
+        "💰 Metas",
+        "🎫 Cupons"
+    ])
+    
+    # Conteúdo da tab de usuários
+    with tab_users:
+        users_config()
+    
+    # Conteúdo da tab de metas
+    with tab_goals:
+        goals_config()
+    
+    # Conteúdo da tab de cupons
+    with tab_coupons:
+        coupons_config()
     
     
