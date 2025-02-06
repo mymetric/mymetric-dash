@@ -42,7 +42,10 @@ def check_pending_items():
     
     meta_receita = load_table_metas()
     current_month = datetime.now().strftime("%Y-%m")
-    meta_receita = meta_receita.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+    if meta_receita:
+        meta_receita = meta_receita.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
+    else:
+        meta_receita = 0
 
     zero_metrics = check_zero_metrics()
 
