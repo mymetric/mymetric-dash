@@ -15,6 +15,8 @@ def display_meta_ads_analysis():
         de acordo com o modelo de atribuição configurado no Facebook/Instagram Ads.
     """)
     
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    
     # Carregar dados específicos do Meta Ads
     df_meta = load_meta_ads()
     
@@ -127,6 +129,8 @@ def display_meta_ads_analysis():
             hint="Custo Por Mil Impressões no Meta Ads"
         )
 
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+
     # Gráfico de tendência diária
     st.subheader("📈 Tendência Diária")
     
@@ -215,8 +219,11 @@ def display_meta_ads_analysis():
         
         st.altair_chart(chart, use_container_width=True)
 
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+
     # Análise por Campanha
     st.subheader("📑 Desempenho por Campanha")
+    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
     campaign_options = ["Todas"] + sorted(df_meta['campaign_name'].unique().tolist())
     selected_campaign = st.selectbox("Filtrar Campanha:", campaign_options, key='campaign_filter')
@@ -273,8 +280,11 @@ def display_meta_ads_analysis():
         use_container_width=True
     )
     
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+
     # Análise por Grupo de Anúncios
     st.subheader("📑 Desempenho por Grupo de Anúncios")
+    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
     # Apenas um filtro para Grupos de Anúncios
     adset_options = ["Todos"] + sorted(df_meta['adset_name'].unique().tolist())
@@ -332,8 +342,11 @@ def display_meta_ads_analysis():
         use_container_width=True
     )
     
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+
     # Análise por Anúncio
     st.subheader("📑 Desempenho por Anúncio")
+    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
     # Apenas um filtro para Anúncios
     ad_options = ["Todos"] + sorted(df_meta['ad_name'].unique().tolist())
