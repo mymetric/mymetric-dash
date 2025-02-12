@@ -94,7 +94,7 @@ def check_performance_alerts():
                     }
                     alertas.append(alerta)
             except Exception as e:
-                # st.toast(f"Faltam dados na etapa {etapa['nome']}")
+                print(f"Faltam dados na etapa {etapa['nome']}")
     
     return alertas 
 
