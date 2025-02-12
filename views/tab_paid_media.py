@@ -5,6 +5,101 @@ from modules.components import big_number_box
 from datetime import datetime
 import pandas as pd
 
+def analyze_meta_insights(df_meta):
+    """Analisa dados do Meta Ads para extrair insights relevantes"""
+    st.subheader("🔍 Insights Automáticos")
+    
+    # 1. Análise de Campanhas Eficientes
+    campaign_performance = df_meta.groupby('campaign_name').agg({
+        'spend': 'sum',
+        'purchase_value': 'sum',
+        'purchases': 'sum',
+        'clicks': 'sum',
+        'impressions': 'sum'
+    }).reset_index()
+    
+    # Calcular métricas
+    campaign_performance['roas'] = (campaign_performance['purchase_value'] / campaign_performance['spend']).round(2)
+    campaign_performance['cpc'] = (campaign_performance['spend'] / campaign_performance['clicks']).round(2)
+    campaign_performance['conv_rate'] = (campaign_performance['purchases'] / campaign_performance['clicks'] * 100).round(2)
+    
+    # Identificar campanhas eficientes (alto ROAS e baixo CPC)
+    efficient_campaigns = campaign_performance[
+        (campaign_performance['roas'] > campaign_performance['roas'].mean()) &
+        (campaign_performance['cpc'] < campaign_performance['cpc'].mean()) &
+        (campaign_performance['spend'] > 100)  # Mínimo de investimento
+    ]
+    
+    if not efficient_campaigns.empty:
+        roas_medio = campaign_performance['roas'].mean()
+        cpc_medio = campaign_performance['cpc'].mean()
+        
+        msg = f"""
+        🎯 **Campanhas de Melhor Performance**
+
+        Encontramos {len(efficient_campaigns)} campanhas com:
+        • ROAS acima de {roas_medio:.2f} (média geral)
+        • CPC abaixo de `R$`{cpc_medio:.2f} (média geral)
+        • Investimento mínimo de `R$`100,00
+
+        Campanhas em destaque:
+        {', '.join(efficient_campaigns['campaign_name'].tolist())}
+        """
+        st.success(msg.replace(".", ","))
+    
+    # 2. Análise de Oportunidades de Otimização
+    optimization_opportunities = campaign_performance[
+        (campaign_performance['spend'] > 100) &
+        (campaign_performance['roas'] < campaign_performance['roas'].mean()) &
+        (campaign_performance['conv_rate'] > campaign_performance['conv_rate'].mean())
+    ]
+    
+    if not optimization_opportunities.empty:
+        msg = f"""
+        💡 **Oportunidades de Otimização**
+
+        Campanhas com boa taxa de conversão mas ROAS abaixo da média:
+        {', '.join(optimization_opportunities['campaign_name'].tolist())}
+
+        Estas campanhas convertem bem, mas o valor médio das vendas está baixo.
+        
+        Sugestões:
+        • Revisar estratégia de preços/produtos anunciados
+        • Ajustar segmentação para públicos com maior poder de compra
+        • Analisar se o custo por clique não está muito alto
+        """
+        st.warning(msg)
+    
+    # 3. Análise de Custos
+    df_daily = df_meta.groupby('date').agg({
+        'spend': 'sum',
+        'impressions': 'sum'
+    }).reset_index()
+    
+    df_daily['cpm'] = (df_daily['spend'] / df_daily['impressions'] * 1000).round(2)
+    
+    if len(df_daily) >= 7:
+        recent_cpm = df_daily['cpm'].tail(7)
+        cpm_trend = (recent_cpm.iloc[-1] - recent_cpm.iloc[0]).round(2)
+        
+        if cpm_trend > 0:
+            msg = f"""
+            📊 **Alerta de Custos**
+
+            O CPM aumentou R$ {cpm_trend:.2f} nos últimos 7 dias.
+            
+            Possíveis causas:
+            • Saturação do público-alvo
+            • Aumento da concorrência
+            • Necessidade de renovar criativos
+
+            Sugestões:
+            • Testar novos públicos semelhantes
+            • Atualizar criativos dos anúncios
+            • Revisar estratégia de lances
+            """
+            st.warning(msg.replace(".", ","))
+
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
     st.subheader("📊 Análise Meta Ads")
@@ -128,6 +223,10 @@ def display_meta_ads_analysis():
             "CPM",
             hint="Custo Por Mil Impressões no Meta Ads"
         )
+
+    # Adicionar análise de insights após os big numbers
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    analyze_meta_insights(df_meta)
 
     st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
 
