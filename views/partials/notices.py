@@ -24,6 +24,14 @@ def display_notices():
                 """, unsafe_allow_html=True)
 
         display_notice(
+            "Análise de Meta Ads",
+            "13 de fevereiro de 2025",
+            "Agora é possível analisar os dados do Meta Ads na aba de Análise de Mídia Paga.",
+            "2025-02-13",
+            extra_days=7
+        )
+        
+        display_notice(
             "Cadastro de Cupons",
             "6 de fevereiro de 2025",
             "Agora é possível organizar cupons por áreas como CRM, cupons de Mídia Paga, Influenciadores ou o que você desejar. Você encontra essa funcionalidade na aba de Configurações.",

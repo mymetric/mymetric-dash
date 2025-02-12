@@ -806,3 +806,32 @@ def load_leads_popup():
 
     df = run_queries([query])[0]
     return df
+
+def load_meta_ads():
+    if toast_alerts():
+        st.toast("Carregando dados do Meta Ads...")
+
+    tablename = st.session_state.tablename
+    start_date = st.session_state.start_date
+    end_date = st.session_state.end_date
+
+    query = f"""
+        select
+
+            date_start date,
+            campaign_name,
+            adset_name,
+            ad_name,
+            spend,
+            impressions,
+            clicks,
+            purchase_quantity purchases,
+            purchase_revenue purchase_value
+
+        from `mymetric-hub-shopify.dbt_granular.{tablename}_meta_ads_campaigns`
+        where date(date_start) between "{start_date}" and "{end_date}"
+
+        """
+
+    df = run_queries([query])[0]
+    return df
