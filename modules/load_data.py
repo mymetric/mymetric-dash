@@ -290,6 +290,42 @@ def load_funnel_data():
     
     return df
 
+def load_enhanced_ecommerce_funnel():
+    if toast_alerts():
+        st.toast("Carregando funnel...")
+
+    tablename = st.session_state.tablename
+    
+    start_date_str = st.session_state.start_date
+    end_date_str = st.session_state.end_date
+
+    query = f"""
+        select
+
+            event_date `Data`,
+            item_id `ID do Produto`,
+            item_name `Nome do Produto`,
+            view_item `Visualização de Item`,
+            add_to_cart `Adicionar ao Carrinho`,
+            begin_checkout `Iniciar Checkout`,
+            add_payment_info `Adicionar Informação de Pagamento`,
+            add_shipping_info `Adicionar Informação de Frete`,
+            purchase `Pedido`,
+            view_item_to_add_to_cart_rate `Taxa de Visualização para Adição ao Carrinho`,
+            add_to_cart_to_begin_checkout_rate `Taxa de Adição ao Carrinho para Início de Checkout`,
+            begin_checkout_to_add_shipping_info_rate `Taxa de Início de Checkout para Adição de Informação de Frete`,
+            add_shipping_info_to_add_payment_info_rate `Taxa de Adição de Informação de Frete para Adição de Informação de Pagamento`,
+            add_payment_info_to_purchase_rate `Taxa de Adição de Informação de Pagamento para Pedido`,
+            view_item_to_purchase_rate `Taxa de Visualização de Item para Pedido`	
+
+        from `dbt_aggregated.{tablename}_enhanced_ecommerce_funnel`
+
+        where event_date between '{start_date_str}' and '{end_date_str}'
+    """
+
+    df = run_queries([query])[0]
+    return df
+
 def load_paid_media():
     
     if toast_alerts():
