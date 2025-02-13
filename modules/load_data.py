@@ -318,7 +318,7 @@ def load_enhanced_ecommerce_funnel():
             add_payment_info_to_purchase_rate `Taxa de Adição de Informação de Pagamento para Pedido`,
             view_item_to_purchase_rate `Taxa de Visualização de Item para Pedido`	
 
-        from `dbt_aggregated.{tablename}_enhanced_ecommerce_funnel`
+        from `mymetric-hub-shopify.dbt_aggregated.{tablename}_enhanced_ecommerce_funnel`
 
         where event_date between '{start_date_str}' and '{end_date_str}'
     """
