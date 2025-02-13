@@ -411,7 +411,11 @@ def display_meta_ads_analysis():
 
 def display_general_view(df_ads):
     """Exibe visão geral da mídia paga"""
-    st.markdown("""---""")
+
+    st.subheader("📊 Visão Geral da Mídia Paga")
+    st.info("""
+        ℹ️ Os resultados apresentados nesta aba são baseados na atribuição de último clique não direto, cruzando dados de Google e Meta Ads, Google Analytics e Plataforma de E-commerce.
+    """)
 
     # Unique options for dropdown filters
     platform_options = ["All"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
