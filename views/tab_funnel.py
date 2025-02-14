@@ -1,10 +1,56 @@
 import streamlit as st
-from modules.load_data import load_funnel_data, load_detailed_data
+from modules.load_data import load_funnel_data, load_detailed_data, load_enhanced_ecommerce_funnel
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import altair as alt
 
+def items_performance():
+    st.subheader("🎯 Análise de Produtos")
+    col1, col2 = st.columns(2)
+    with col1:
+        desvios = st.number_input('Desvios padrão para alertas:', min_value=0.1, max_value=3.0, value=0.5, step=0.1, help='Número de desvios padrão abaixo da média para gerar alerta')
+    with col2:
+        min_cart_adds = st.number_input('Mínimo de adições ao carrinho:', min_value=1, value=10, step=1, help='Número mínimo de adições ao carrinho para considerar na análise')
+
+    df = load_enhanced_ecommerce_funnel()
+
+    df = df[df['Adicionar ao Carrinho'] >= min_cart_adds]
+        
+    # Calcular média e desvio padrão da taxa de adição ao carrinho por produto
+    df_stats = df.groupby('Nome do Produto')['Taxa de Visualização para Adição ao Carrinho'].agg(['mean', 'std']).reset_index()
+    df_stats.columns = ['Nome do Produto', 'Média', 'Desvio Padrão']
+
+    # Pegar apenas dados de hoje
+    df_hoje = df[df['Data'] == df['Data'].max()]
+    
+    # Filtrar apenas produtos que tiveram adições ao carrinho hoje
+    df_hoje = df_hoje[df_hoje['Adicionar ao Carrinho'] > 0]
+
+    # Juntar com as estatísticas
+    df_hoje = df_hoje.merge(df_stats, on='Nome do Produto', how='left')
+
+    # Identificar produtos com taxa abaixo de 2 desvios padrão
+    df_anomalias = df_hoje[
+        (df_hoje['Taxa de Visualização para Adição ao Carrinho'] < (df_hoje['Média'] - desvios * df_hoje['Desvio Padrão'])) &
+        (df_hoje['Desvio Padrão'].notna()) & 
+        (df_hoje['Desvio Padrão'] > 0)
+    ][['Nome do Produto', 'Taxa de Visualização para Adição ao Carrinho', 'Média', 'Desvio Padrão', 'Adicionar ao Carrinho']]
+
+    if not df_anomalias.empty:
+        st.warning('⚠️ Produtos com taxa de adição ao carrinho anormalmente baixa hoje:')
+        st.dataframe(
+            df_anomalias.sort_values('Adicionar ao Carrinho', ascending=False).style.format({
+                'Taxa de Visualização para Adição ao Carrinho': '{:.2%}',
+                'Média': '{:.2%}',
+                'Desvio Padrão': '{:.2%}',
+                'Adicionar ao Carrinho': '{:.0f}'
+            }),
+            hide_index=True,
+            use_container_width=True
+        )
+    else:
+        st.success('✅ Nenhum produto com taxa de adição ao carrinho anormalmente baixa hoje')
 
 def display_tab_funnel():
         
@@ -223,3 +269,7 @@ def display_tab_funnel():
             </div>
         """, unsafe_allow_html=True)
         
+
+
+        st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
+        items_performance()

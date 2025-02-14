@@ -98,41 +98,6 @@ def check_performance_alerts():
     
     return alertas 
 
-def display_performance():
-    """Exibe alertas e insights de performance"""
-    
-    with st.expander("📈 Performance", expanded=True):
-        # Seção 1: Alertas de Performance do Funil
-        alertas_performance = check_performance_alerts()
-        
-        if alertas_performance:
-            st.subheader("⚠️ Alertas do Funil de Conversão")
-            for alerta in alertas_performance:
-                card_type = {
-                    'alta': 'danger',
-                    'media': 'warning',
-                    'baixa': 'success' if 'positivo' in alerta.get('descricao', '').lower() else 'info'
-                }.get(alerta['severidade'], 'info')
-                
-                render_insight_card(
-                    alerta['titulo'],
-                    alerta['descricao'],
-                    alerta['acao'],
-                    card_type
-                )
-        
-        # Seção 2: Insights do Meta Ads
-        try:
-            from modules.load_data import load_meta_ads
-            df_meta = load_meta_ads()
-            
-            if not df_meta.empty:
-                st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
-                analyze_meta_insights(df_meta)
-                
-        except Exception as e:
-            st.error(f"Erro ao carregar insights do Meta Ads: {str(e)}")
-
 def render_insight_card(title: str, content: str, suggestions: str = None, card_type: str = "success"):
     """Renderiza um card de insight com estilo padronizado"""
     colors = {
@@ -337,3 +302,38 @@ Melhor Taxa de Conversão:
                     suggestions,
                     "danger"
                 )
+
+def display_performance():
+    """Exibe alertas e insights de performance"""
+    
+    with st.expander("📈 Performance", expanded=True):
+        # Seção 1: Alertas de Performance do Funil
+        alertas_performance = check_performance_alerts()
+        
+        if alertas_performance:
+            st.subheader("⚠️ Alertas do Funil de Conversão")
+            for alerta in alertas_performance:
+                card_type = {
+                    'alta': 'danger',
+                    'media': 'warning',
+                    'baixa': 'success' if 'positivo' in alerta.get('descricao', '').lower() else 'info'
+                }.get(alerta['severidade'], 'info')
+                
+                render_insight_card(
+                    alerta['titulo'],
+                    alerta['descricao'],
+                    alerta['acao'],
+                    card_type
+                )
+        
+        # Seção 2: Insights do Meta Ads
+        try:
+            from modules.load_data import load_meta_ads
+            df_meta = load_meta_ads()
+            
+            if not df_meta.empty:
+                st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
+                analyze_meta_insights(df_meta)
+                
+        except Exception as e:
+            st.error(f"Erro ao carregar insights do Meta Ads: {str(e)}")
