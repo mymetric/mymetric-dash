@@ -141,7 +141,7 @@ def load_basic_data():
 
             COUNTIF(event_name = 'session') `Sessões`,
             COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
-            SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
+            SUM(CASE WHEN event_name = 'purchase' then value - total_discounts + shipping_value end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
             SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
             COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
@@ -186,7 +186,7 @@ def load_detailed_data():
 
             COUNTIF(event_name = 'session') `Sessões`,
             COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
-            SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
+            SUM(CASE WHEN event_name = 'purchase' then value - total_discounts + shipping_value end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
             SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
             COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
