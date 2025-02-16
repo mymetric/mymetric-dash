@@ -280,7 +280,6 @@ def display_tab_general():
     df = load_basic_data()
     df = apply_filters(df)
     
-    display_notices()
     display_pendings()
     display_performance()
     display_run_rate(df)
