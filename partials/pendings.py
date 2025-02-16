@@ -3,7 +3,7 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
 from modules.load_data import load_check_zero_metrics, load_basic_data, load_paid_media, load_fbclid_coverage
-from views.partials.run_rate import load_table_metas
+from partials.run_rate import load_table_metas
 from datetime import datetime
 
 def safe_float_conversion(value):

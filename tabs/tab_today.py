@@ -5,7 +5,7 @@ from datetime import datetime
 import calendar
 import altair as alt
 from modules.load_data import load_today_data
-from views.partials.run_rate import load_table_metas
+from partials.run_rate import load_table_metas
 from modules.components import big_number_box
 
 def calculate_daily_goal(meta_receita, total_receita_mes):

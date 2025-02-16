@@ -1,6 +1,6 @@
 import streamlit as st
 
-from views.partials.run_rate import load_table_metas
+from partials.run_rate import load_table_metas
 from datetime import datetime
 import pandas as pd
 from modules.load_data import save_goals, load_users, save_users, delete_user, save_coupons, load_coupons, delete_coupon, save_event_name
@@ -8,7 +8,7 @@ import random
 import string
 import time
 from modules.utilities import send_message
-from views.partials.notices import display_notices
+from partials.notices import display_notices
 
 def users_config():
     st.subheader("Cadastro de Usuários")

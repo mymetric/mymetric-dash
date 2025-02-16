@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
-from users import users  # Importa o array de usuários e senhas
+from core import users
 from datetime import datetime, timedelta
 from pathlib import Path
 import base64
-from app import load_app
+from core.app import load_app
 from modules.utilities import send_message
 from modules.load_data import load_all_users, save_event_name
 from streamlit_cookies_controller import CookieController
@@ -30,7 +30,7 @@ if authenticated:
 
 
 # Logo path
-logo_path = Path(__file__).parent / "logo.svg"
+logo_path = Path(__file__).parent / "images/logo.svg"
 with open(logo_path, "rb") as f:
     logo_contents = f.read()
 
@@ -59,10 +59,11 @@ def check_password():
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")
 
-
+        users = users.load_users()
         new_users = load_all_users()
         new_users = new_users.to_dict(orient="records")
         
+
         if st.sidebar.button("Entrar"):
             # Loop through the users list to check credentials
             for user in users:
@@ -120,6 +121,7 @@ if check_password():
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
         with st.sidebar.expander("Conta Mestre", expanded=True):
+            users = users.load_users()
             user_names = [user["slug"] for user in users if user["slug"] not in ["mymetric", "buildgrowth", "alvisi"]]
             selected_user = st.selectbox("Escolha", options=user_names, index=None)
             st.write(f"Selecionado: {selected_user}")

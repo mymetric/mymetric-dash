@@ -4,7 +4,7 @@ import altair as alt
 from modules.components import big_number_box
 from datetime import datetime
 import pandas as pd
-from views.partials.performance import analyze_meta_insights
+from partials.performance import analyze_meta_insights
 
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""

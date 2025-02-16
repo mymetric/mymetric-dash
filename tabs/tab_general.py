@@ -4,10 +4,10 @@ import altair as alt
 
 from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup
 from modules.components import big_number_box
-from views.partials.run_rate import display_run_rate
-from views.partials.pendings import display_pendings
-from views.partials.performance import display_performance
-from views.partials.notices import display_notices
+from partials.run_rate import display_run_rate
+from partials.pendings import display_pendings
+from partials.performance import display_performance
+from partials.notices import display_notices
 from streamlit_cookies_controller import CookieController
 
 

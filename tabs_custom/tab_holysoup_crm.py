@@ -8,7 +8,7 @@ from modules.components import big_number_box
 import altair as alt
 import pandas as pd
 from datetime import datetime
-from views.partials.run_rate import load_table_metas
+from partials.run_rate import load_table_metas
 from modules.load_data import save_goals
 from google.cloud import bigquery
 
