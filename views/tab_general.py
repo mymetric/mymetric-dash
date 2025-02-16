@@ -255,8 +255,7 @@ def tables(df):
         
     aggregated_df = df.groupby(['Cluster']).agg({
         'Sessões': 'sum', 
-        'Pedidos': 'sum', 
-        'Pedidos Primeiro Clique': 'sum', 
+        'Pedidos': 'sum',
         'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum'

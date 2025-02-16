@@ -106,6 +106,18 @@ def traffic_filters():
         # Filtros existentes
         with st.expander("Filtros Básicos", expanded=True):
 
+            # Adiciona opções de atribuição
+            all_attribution = ["Último Clique Não Direto", "Primeiro Clique"]
+            
+            attribution_model = st.radio(
+                "Modelo de Atribuição",
+                options=all_attribution,
+                index=0,
+                help="Escolha o modelo de atribuição para análise dos dados"
+            )
+            
+            st.session_state.attribution_model = attribution_model
+            
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
             all_clusters = sort_by_sessions('Cluster', df)
             all_origins = sort_by_sessions('Origem', df)

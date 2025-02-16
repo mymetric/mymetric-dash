@@ -40,6 +40,13 @@ def display_notices():
                     controller.set(toast_id, "shown", max_age=30*24*60*60)  # 30 dias
 
         display_notice(
+            "Atribuição de Pedidos",
+            "16 de fevereiro de 2025",
+            "Agora é possível escolher entre 'Último Clique Não Direto' e 'Primeiro Clique' como modelo de atribuição de pedidos. Isso é muito útil para quando você está usando o MyMetricHUB várias vezes ao dia sem precisar ficar logando.",
+            "2025-02-16"
+        )
+        
+        display_notice(
             "Análise de Meta Ads",
             "13 de fevereiro de 2025",
             "Agora é possível analisar os dados do Meta Ads na aba de Análise de Mídia Paga.",

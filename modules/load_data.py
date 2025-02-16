@@ -154,6 +154,12 @@ def load_basic_data():
 
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
+
+    attribution_model = st.session_state.attribution_model
+    if attribution_model == 'Último Clique Não Direto':
+        attribution_model = 'purchase'
+    elif attribution_model == 'Primeiro Clique':
+        attribution_model = 'fs_purchase'
     
     query = f"""
         SELECT
@@ -167,11 +173,10 @@ def load_basic_data():
             # coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
             COUNTIF(event_name = 'session') `Sessões`,
-            COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
-            SUM(CASE WHEN event_name = 'purchase' then value - total_discounts + shipping_value end) `Receita`,
-            COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
-            COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
+            SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
@@ -198,6 +203,12 @@ def load_detailed_data():
 
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
+
+    attribution_model = st.session_state.attribution_model
+    if attribution_model == 'Último Clique Não Direto':
+        attribution_model = 'purchase'
+    elif attribution_model == 'Primeiro Clique':
+        attribution_model = 'fs_purchase'
     
     query = f"""
         SELECT
@@ -212,11 +223,10 @@ def load_detailed_data():
             coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
             COUNTIF(event_name = 'session') `Sessões`,
-            COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
-            SUM(CASE WHEN event_name = 'purchase' then value - total_discounts + shipping_value end) `Receita`,
-            COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
-            COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
+            SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
