@@ -326,14 +326,14 @@ def display_performance():
                     card_type
                 )
         
-        # Seção 2: Insights do Meta Ads
-        try:
-            from modules.load_data import load_meta_ads
-            df_meta = load_meta_ads()
+        # # Seção 2: Insights do Meta Ads
+        # try:
+        #     from modules.load_data import load_meta_ads
+        #     df_meta = load_meta_ads()
             
-            if not df_meta.empty:
-                st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
-                analyze_meta_insights(df_meta)
+        #     if not df_meta.empty:
+        #         st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
+        #         analyze_meta_insights(df_meta)
                 
-        except Exception as e:
-            st.error(f"Erro ao carregar insights do Meta Ads: {str(e)}")
+        # except Exception as e:
+        #     st.error(f"Erro ao carregar insights do Meta Ads: {str(e)}")

@@ -6,7 +6,7 @@ def tabs_css():
             label[data-baseweb="radio"] {
                 border: 1px solid #ccc !important;
                 padding: 10px !important;
-                margin: 0 5px 0 0;
+                margin: 0 5px 3px 0;
             }
             label[data-baseweb="radio"] .st-as {
                 display: none !important;

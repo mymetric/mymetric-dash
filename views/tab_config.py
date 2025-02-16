@@ -8,6 +8,7 @@ import random
 import string
 import time
 from modules.utilities import send_discord_message
+from views.partials.notices import display_notices
 
 def users_config():
     st.subheader("Cadastro de Usuários")
@@ -236,13 +237,17 @@ def display_tab_config():
     st.markdown("""---""")
 
     # Criar tabs para cada seção
-    tab_users, tab_goals, tab_coupons = st.tabs([
+    tab_notices, tab_users, tab_goals, tab_coupons = st.tabs([
+        "🔔 Novidades",
         "👥 Usuários",
         "💰 Metas",
         "🎫 Cupons"
     ])
     
     # Conteúdo da tab de usuários
+    with tab_notices:
+        display_notices()
+    
     with tab_users:
         users_config()
     

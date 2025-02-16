@@ -8,11 +8,12 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 import re
 import base64
+import threading
 # Function to check and update session state expiration
 def toast_alerts():
-    if st.session_state.username == 'mymetric':
-        return True
-    else:
+    # if st.session_state.username == 'mymetric':
+        # return True
+    # else:
         return False
 
 credentials = service_account.Credentials.from_service_account_info(
@@ -100,18 +101,44 @@ def extract_table_reference_from_query(query):
     else:
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=24*3600)  # Cache de 24 horas
 def execute_query(query):
-    table_ref = extract_table_reference_from_query(query)
+    """Executa múltiplas queries, mantendo um cache de 24h e atualizando a cada 1h."""
     
-    if table_ref and check_table_exists(client, table_ref):
-        query_job = client.query(query)
-        rows_raw = query_job.result()
-        rows = [dict(row) for row in rows_raw]
-        return pd.DataFrame(rows)
-    else:
-        st.warning(f"Table {table_ref} not found or could not be extracted. Data is not available.")
-        return pd.DataFrame()  # Return an empty DataFrame or handle as needed
+    # Garante que `latest_data` e `last_update` existem no session_state
+    if "latest_data" not in st.session_state:
+        st.session_state["latest_data"] = {}
+    if "last_update" not in st.session_state:
+        st.session_state["last_update"] = {}
+
+    current_time = time.time()
+    last_update = st.session_state["last_update"].get(query, 0)
+    
+    # Verifica se passou 1 hora desde a última atualização
+    if current_time - last_update >= 3600:  # 3600 segundos = 1 hora
+        def update_data():
+            try:
+                query_job = client.query(query)
+                rows_raw = query_job.result()
+                rows = [dict(row) for row in rows_raw]
+                new_data = pd.DataFrame(rows)
+                
+                # Se novos dados foram carregados com sucesso, atualiza o cache
+                if not new_data.empty:
+                    st.session_state["latest_data"][query] = new_data
+                    st.session_state["last_update"][query] = current_time
+            except Exception as e:
+                print(f"Erro ao atualizar dados: {str(e)}")
+
+        # Se não há dados em cache, executa sincronamente
+        if query not in st.session_state["latest_data"]:
+            update_data()
+        else:
+            # Se há dados em cache, atualiza em segundo plano
+            threading.Thread(target=update_data, daemon=True).start()
+    
+    # Retorna os dados em cache (ou os dados iniciais se não houver cache)
+    return st.session_state["latest_data"].get(query, pd.DataFrame())
 
 def run_queries(queries):
     with ThreadPoolExecutor() as executor:
