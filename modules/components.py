@@ -11,6 +11,15 @@ def tabs_css():
             label[data-baseweb="radio"] .st-as {
                 display: none !important;
             }
+                label[data-baseweb="radio"] {
+                transition: all 0.2s ease;
+            }
+            label[data-baseweb="radio"]:has(input:checked) {
+                background-color: rgb(255, 75, 75) !important;
+            }
+            label[data-baseweb="radio"]:has(input:checked) p {
+                color: white !important;
+            }
         </style>
     """, unsafe_allow_html=True)
 
