@@ -20,6 +20,17 @@ def tabs_css():
             label[data-baseweb="radio"]:has(input:checked) p {
                 color: white !important;
             }
+            .stSidebar label[data-baseweb="radio"] {
+                padding: 3px 10px !important;
+                width: 100% !important;
+            }
+            .stSidebar label[data-baseweb="radio"] div {
+                width: 100% !important;
+            }
+            .stSidebar label[data-baseweb="radio"] div p {
+                width: 100% !important;
+                text-align: center !important;
+            }  
         </style>
     """, unsafe_allow_html=True)
 

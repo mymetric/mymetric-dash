@@ -155,7 +155,8 @@ def load_basic_data():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
-    attribution_model = st.session_state.attribution_model
+    attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
+
     if attribution_model == 'Último Clique Não Direto':
         attribution_model = 'purchase'
     elif attribution_model == 'Primeiro Clique':
@@ -204,7 +205,8 @@ def load_detailed_data():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
-    attribution_model = st.session_state.attribution_model
+    attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
+    
     if attribution_model == 'Último Clique Não Direto':
         attribution_model = 'purchase'
     elif attribution_model == 'Primeiro Clique':

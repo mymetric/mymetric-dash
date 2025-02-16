@@ -42,10 +42,10 @@ def display_notices():
         display_notice(
             "Atribuição de Pedidos",
             "16 de fevereiro de 2025",
-            "Agora é possível escolher entre 'Último Clique Não Direto' e 'Primeiro Clique' como modelo de atribuição de pedidos. Isso é muito útil para quando você está usando o MyMetricHUB várias vezes ao dia sem precisar ficar logando.",
+            "Agora é possível escolher entre 'Último Clique Não Direto' e 'Primeiro Clique' como modelo de atribuição de pedidos.",
             "2025-02-16"
         )
-        
+
         display_notice(
             "Análise de Meta Ads",
             "13 de fevereiro de 2025",
