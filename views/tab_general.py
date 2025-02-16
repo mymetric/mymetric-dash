@@ -167,18 +167,12 @@ def tables(df):
         y=alt.Y('Receita Paga:Q', axis=alt.Axis(title='Receita Paga')),
         tooltip=['Data', 'Receita Paga']
     )
-
-    # Adiciona interatividade de zoom e pan
-    zoom_pan = alt.selection_interval(bind='scales')
-
     # Combine os dois gráficos (linha e barras) com dois eixos Y e interatividade
     combined_chart = alt.layer(
         bar_receita,
         line_sessions
     ).resolve_scale(
         y='independent'  # Escalas independentes para as duas métricas
-    ).add_selection(
-        zoom_pan  # Adiciona a interação de zoom e pan
     ).properties(
         width=700,
         height=400,
