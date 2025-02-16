@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import base64
 from app import load_app
-from modules.utilities import send_discord_message
+from modules.utilities import send_message
 from modules.load_data import load_all_users, save_event_name
 from streamlit_cookies_controller import CookieController
 
@@ -77,8 +77,8 @@ def check_password():
                     save_event_name(event_name="login", event_params={})
                     
                     if username != "mymetric":
-                        send_discord_message(f"Login realizado por {username}")
-                    
+                        send_message(f"🔐 Novo login detectado!\n\nUsuário: {username}\nData/Hora: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+
                     st.rerun()  # Recarrega a página após login
                     break
             
