@@ -8,7 +8,7 @@ from pathlib import Path
 import base64
 from app import load_app
 from modules.utilities import send_discord_message
-from modules.load_data import load_all_users
+from modules.load_data import load_all_users, save_event_name
 from streamlit_cookies_controller import CookieController
 
 
@@ -74,6 +74,7 @@ def check_password():
                     st.session_state.admin = True
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login
                     
+                    save_event_name(event_name="login", event_params={})
                     
                     if username != "mymetric":
                         send_discord_message(f"Login realizado por {username}")

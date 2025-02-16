@@ -206,7 +206,7 @@ def load_detailed_data():
     end_date_str = st.session_state.end_date
 
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
-    
+
     if attribution_model == 'Último Clique Não Direto':
         attribution_model = 'purchase'
     elif attribution_model == 'Primeiro Clique':
@@ -910,3 +910,31 @@ def load_meta_ads():
 
     df = run_queries([query])[0]
     return df
+
+def save_event_name(event_name, event_params):
+
+    tablename = st.session_state.tablename
+    user = st.session_state.username
+    event_params = json.dumps(event_params)
+
+    query = f"""
+        INSERT INTO `mymetric-hub-shopify.dbt_config.events` (
+            created_at,
+            tablename,
+            user,
+            event_name,
+            event_params
+        )
+        VALUES (
+            CURRENT_TIMESTAMP(),
+            '{tablename}',
+            '{user}',
+            '{event_name}',
+            '{event_params}'
+        )
+    """
+
+    try:
+        client.query(query)
+    except Exception as e:
+        st.error(f"Erro ao salvar evento: {str(e)}")

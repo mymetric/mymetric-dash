@@ -17,7 +17,7 @@ from views.tab_last_orders import display_tab_last_orders
 from views.custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
 from views.custom.tab_holysoup_crm import display_tab_holysoup_crm
 
-from modules.load_data import load_paid_media
+from modules.load_data import load_paid_media, save_event_name
 
 def load_app():
 
@@ -53,21 +53,31 @@ def load_app():
 
     # Display content based on selection
     if selected_page == "👀 Visão Geral":
+        save_event_name(event_name="tab_view", event_params={"tab": "general"})
         display_tab_general()
+        
     elif selected_page == "💰 Mídia Paga" and "💰 Mídia Paga" in nav_options:
+        save_event_name(event_name="tab_view", event_params={"tab": "paid_media"})
         display_tab_paid_media()
     elif selected_page == "🛒 Últimos Pedidos":
+        save_event_name(event_name="tab_view", event_params={"tab": "last_orders"})
         display_tab_last_orders()
     elif selected_page == "🎯 Funil de Conversão":
+        save_event_name(event_name="tab_view", event_params={"tab": "funnel"})
         display_tab_funnel()
     elif selected_page == "📊 Análise do Dia":
+        save_event_name(event_name="tab_view", event_params={"tab": "today"})
         display_tab_today()
     elif selected_page == "👜 Produtos Cadastrados" and st.session_state.tablename == 'gringa':
+        save_event_name(event_name="tab_view", event_params={"tab": "gringa_product_submitted"})
         display_tab_gringa_product_submitted()
     elif selected_page == "✉️ CRM" and st.session_state.tablename == 'holysoup':
+        save_event_name(event_name="tab_view", event_params={"tab": "holysoup_crm"})
         display_tab_holysoup_crm()
     elif selected_page == "💼 Visão Detalhada":
+        save_event_name(event_name="tab_view", event_params={"tab": "detailed"})
         traffic_filters_detailed()
         display_tab_detailed()
     elif selected_page == "🔧 Configurações":
+        save_event_name(event_name="tab_view", event_params={"tab": "config"})
         display_tab_config()
