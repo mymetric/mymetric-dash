@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
-from core import users
+from core.users import load_users
 from datetime import datetime, timedelta
 from pathlib import Path
 import base64
@@ -59,7 +59,7 @@ def check_password():
         username = st.sidebar.text_input("Usuário")
         password = st.sidebar.text_input("Senha", type="password")
 
-        users = users.load_users()
+        users = load_users()
         new_users = load_all_users()
         new_users = new_users.to_dict(orient="records")
         
