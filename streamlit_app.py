@@ -121,7 +121,7 @@ if check_password():
     if st.session_state.username == "mymetric":
         # Gera um dropdown para escolher outros usuários
         with st.sidebar.expander("Conta Mestre", expanded=True):
-            users = users.load_users()
+            users = load_users()
             user_names = [user["slug"] for user in users if user["slug"] not in ["mymetric", "buildgrowth", "alvisi"]]
             selected_user = st.selectbox("Escolha", options=user_names, index=None)
             st.write(f"Selecionado: {selected_user}")
