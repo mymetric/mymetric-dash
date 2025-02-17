@@ -12,12 +12,13 @@ from tabs.tab_funnel import display_tab_funnel
 from tabs.tab_paid_media import display_tab_paid_media
 from tabs.tab_config import display_tab_config
 from tabs.tab_last_orders import display_tab_last_orders
+from tabs.tab_leads import display_tab_leads
 
 # Custom Tabs
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
 from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
 
-from modules.load_data import load_paid_media, save_event_name
+from modules.load_data import load_paid_media, load_popup_leads, save_event_name
 
 def load_app():
 
@@ -29,14 +30,18 @@ def load_app():
 
     # Load paid media data
     paid_media = load_paid_media()
+    popup_leads = load_popup_leads()
 
     # Define navigation options based on data availability
     nav_options = ["👀 Visão Geral"]
 
     if paid_media is not None and not paid_media.empty:
         nav_options.extend(["💰 Mídia Paga"])
+    
+    if popup_leads is not None and not popup_leads.empty:
+        nav_options.extend(["👨🏻‍💻 Leads"])
 
-    nav_options.extend(["🛒 Últimos Pedidos", "🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada"])
+    nav_options.extend(["🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada"])
 
     if st.session_state.tablename == 'gringa':
         nav_options.extend(["👜 Produtos Cadastrados"])
@@ -60,6 +65,11 @@ def load_app():
     elif selected_page == "💰 Mídia Paga" and "💰 Mídia Paga" in nav_options:
         save_event_name(event_name="tab_view", event_params={"tab": "paid_media"})
         display_tab_paid_media()
+    
+    elif selected_page == "👨🏻‍💻 Leads" and "👨🏻‍💻 Leads" in nav_options:
+        save_event_name(event_name="tab_view", event_params={"tab": "popup_leads"})
+        display_tab_leads()
+
     elif selected_page == "🛒 Últimos Pedidos":
         save_event_name(event_name="tab_view", event_params={"tab": "last_orders"})
         display_tab_last_orders()

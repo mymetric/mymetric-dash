@@ -938,3 +938,51 @@ def save_event_name(event_name, event_params):
         client.query(query)
     except Exception as e:
         st.error(f"Erro ao salvar evento: {str(e)}")
+
+
+def load_popup_leads():
+
+    tablename = st.session_state.tablename
+
+    query = f"""
+
+        with
+
+        leads as (
+
+        select
+
+        datetime(received_at, "America/Sao_Paulo") subscribe_timestamp,
+        name,
+        phone,
+        email
+
+        from `mymetric-hub-shopify.dbt_granular.popup_subscribe`
+
+        where
+
+        event_name like "%{tablename}%"
+
+        order by received_at desc
+
+        )
+
+
+        select
+
+        a.subscribe_timestamp `Data do Cadastro`,
+        a.name `Nome`,
+        a.phone `Telefone`,
+        a.email `E-mail`,
+        b.created_at `Data da Compra`
+
+        from leads a
+
+        left join `mymetric-hub-shopify.dbt_granular.{tablename}_orders_dedup` b on a.email = b.email
+
+        order by subscribe_timestamp desc
+
+    """
+
+    df = run_queries([query])[0]
+    return df
