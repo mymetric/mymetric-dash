@@ -15,7 +15,10 @@ def date_filters():
     first_day_of_month = today.replace(day=1)
     
     with st.sidebar:
-        st.markdown(f"## {st.session_state.tablename.upper()}")
+        if st.session_state.username == "mymetric":
+            st.markdown(f"## MYMETRIC")
+        else:
+            st.markdown(f"## {st.session_state.tablename.upper()}")
 
     # Sempre inicializa com o mês atual
     start_date = first_day_of_month
@@ -103,9 +106,7 @@ def traffic_filters():
 
     with st.sidebar:
 
-        # Filtros existentes
-        with st.expander("Filtros Básicos", expanded=True):
-
+        with st.expander("Modelos de Atribuição", expanded=True):
             # Adiciona opções de atribuição
             all_attribution = ["Último Clique Não Direto", "Primeiro Clique"]
             
@@ -117,6 +118,35 @@ def traffic_filters():
             )
             
             st.session_state.attribution_model = attribution_model
+
+            # Inicializa o estado se não existir
+            if 'show_attribution_info' not in st.session_state:
+                st.session_state.show_attribution_info = False
+
+            # Botão para mostrar/ocultar
+            if st.button('Sobre Modelos de Atribuição'):
+                st.session_state.show_attribution_info = not st.session_state.show_attribution_info
+
+            # Conteúdo que será mostrado/ocultado
+            if st.session_state.show_attribution_info:
+                st.markdown("""
+                    ### ℹ️ Modelos de Atribuição
+                    
+                    Os modelos de atribuição determinam como o crédito por uma conversão é distribuído entre os diferentes pontos de contato:
+                    
+                    🎯 **Último Clique Não Direto**
+                    - Atribui 100% do crédito ao último canal não direto que o usuário interagiu antes da conversão
+                    - Ignora acessos diretos posteriores
+                    - Mais comum para análise de campanhas de curto prazo
+                    
+                    1️⃣ **Primeiro Clique**
+                    - Atribui 100% do crédito ao primeiro canal que trouxe o usuário ao site
+                    - Valoriza a descoberta inicial
+                    - Útil para entender quais canais são mais eficientes em trazer novos usuários
+                """)
+
+        # Filtros existentes
+        with st.expander("Filtros Básicos", expanded=True):
             
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
             all_clusters = sort_by_sessions('Cluster', df)

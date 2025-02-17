@@ -65,7 +65,6 @@ def tables_detailed(df):
 
     # Tabela de Cluster de Origens
     st.header("Cluster de Origens")
-    st.write("Modelo de atribuição padrão: último clique não direto.")
     
     with st.expander("ℹ️ Entenda os Clusters", expanded=False):
         st.markdown("""
@@ -118,9 +117,21 @@ def tables_detailed(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    aggregated_df['Tx Conversão'] = (aggregated_df['Pedidos'] / aggregated_df['Sessões'] * 100).round(2).astype(str) + '%'
-    aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    aggregated_df['Tx Conversão'] = aggregated_df.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = aggregated_df['Receita'].sum()
+    if total_receita > 0:
+        aggregated_df['% Receita'] = aggregated_df.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        aggregated_df['% Receita'] = '0%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="detailed_cluster_origens")
@@ -138,9 +149,21 @@ def tables_detailed(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    aggregated_df['Tx Conversão'] = (aggregated_df['Pedidos'] / aggregated_df['Sessões'] * 100).round(2).astype(str) + '%'
-    aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    aggregated_df['Tx Conversão'] = aggregated_df.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = aggregated_df['Receita'].sum()
+    if total_receita > 0:
+        aggregated_df['% Receita'] = aggregated_df.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        aggregated_df['% Receita'] = '0%'
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="detailed_origem_midia")
@@ -156,9 +179,21 @@ def tables_detailed(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    campaigns['Tx Conversão'] = (campaigns['Pedidos'] / campaigns['Sessões'] * 100).round(2).astype(str) + '%'
-    campaigns['% Receita'] = ((campaigns['Receita'] / campaigns['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    campaigns['Tx Conversão'] = campaigns.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = campaigns['Receita'].sum()
+    if total_receita > 0:
+        campaigns['% Receita'] = campaigns.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        campaigns['% Receita'] = '0%'
     campaigns = campaigns.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(campaigns, hide_index=1, use_container_width=1, key="detailed_campanhas")
@@ -175,9 +210,21 @@ def tables_detailed(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    conteudo['Tx Conversão'] = (conteudo['Pedidos'] / conteudo['Sessões'] * 100).round(2).astype(str) + '%'
-    conteudo['% Receita'] = ((conteudo['Receita'] / conteudo['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    conteudo['Tx Conversão'] = conteudo.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = conteudo['Receita'].sum()
+    if total_receita > 0:
+        conteudo['% Receita'] = conteudo.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        conteudo['% Receita'] = '0%'
     conteudo = conteudo.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(conteudo, hide_index=1, use_container_width=1, key="detailed_conteudo")
@@ -194,9 +241,21 @@ def tables_detailed(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    pagina_de_entrada['Tx Conversão'] = (pagina_de_entrada['Pedidos'] / pagina_de_entrada['Sessões'] * 100).round(2).astype(str) + '%'
-    pagina_de_entrada['% Receita'] = ((pagina_de_entrada['Receita'] / pagina_de_entrada['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    pagina_de_entrada['Tx Conversão'] = pagina_de_entrada.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = pagina_de_entrada['Receita'].sum()
+    if total_receita > 0:
+        pagina_de_entrada['% Receita'] = pagina_de_entrada.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        pagina_de_entrada['% Receita'] = '0%'
     pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(pagina_de_entrada, hide_index=1, use_container_width=1, key="detailed_pagina_entrada")
@@ -213,9 +272,21 @@ def tables_detailed(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    cupons['Tx Conversão'] = (cupons['Pedidos'] / cupons['Sessões'] * 100).round(2).astype(str) + '%'
-    cupons['% Receita'] = ((cupons['Receita'] / cupons['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    cupons['Tx Conversão'] = cupons.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = cupons['Receita'].sum()
+    if total_receita > 0:
+        cupons['% Receita'] = cupons.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        cupons['% Receita'] = '0%'
     cupons = cupons.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(cupons, hide_index=1, use_container_width=1, key="detailed_cupons")

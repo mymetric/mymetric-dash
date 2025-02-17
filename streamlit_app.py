@@ -124,7 +124,7 @@ if check_password():
             users = load_users()
             user_names = [user["slug"] for user in users if user["slug"] not in ["mymetric", "buildgrowth", "alvisi"]]
             selected_user = st.selectbox("Escolha", options=user_names, index=None)
-            st.write(f"Selecionado: {selected_user}")
+            # st.write(f"Selecionado: {selected_user}")
             st.session_state.tablename = selected_user
             # Exibe o dashboard como se o usuário selecionado estivesse autenticado
         if selected_user:

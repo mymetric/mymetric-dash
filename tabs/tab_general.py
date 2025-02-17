@@ -208,7 +208,6 @@ def tables(df):
 
     # Tabela de Cluster de Origens
     st.header("Cluster de Origens")
-    st.write("Modelo de atribuição padrão: último clique não direto.")
     
     with st.expander("ℹ️ Entenda os Clusters", expanded=False):
         st.markdown("""
@@ -261,9 +260,22 @@ def tables(df):
         'Receita Paga': 'sum'
     }).reset_index()
     
-    # Adiciona coluna de taxa de conversão
-    aggregated_df['Tx Conversão'] = (aggregated_df['Pedidos'] / aggregated_df['Sessões'] * 100).round(2).astype(str) + '%'
-    aggregated_df['% Receita'] = ((aggregated_df['Receita'] / aggregated_df['Receita'].sum()) * 100).round(2).astype(str) + '%'
+    # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
+    aggregated_df['Tx Conversão'] = aggregated_df.apply(
+        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        axis=1
+    )
+    
+    # Calcula percentual de receita com tratamento para divisão por zero
+    total_receita = aggregated_df['Receita'].sum()
+    if total_receita > 0:
+        aggregated_df['% Receita'] = aggregated_df.apply(
+            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        aggregated_df['% Receita'] = '0%'
+    
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
     st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="general_cluster_origens")
