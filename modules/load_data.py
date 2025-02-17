@@ -965,8 +965,20 @@ def load_popup_leads():
 
         order by received_at desc
 
-        )
+        ),
 
+        orders as (
+
+        select
+
+        max(created_at) purchase_timestamp,
+        email
+
+        from `mymetric-hub-shopify.dbt_granular.{tablename}_orders_dedup`
+
+        group by all
+
+        )
 
         select
 
@@ -974,11 +986,11 @@ def load_popup_leads():
         a.name `Nome`,
         a.phone `Telefone`,
         a.email `E-mail`,
-        b.created_at `Data da Compra`
+        b.purchase_timestamp `Data da Compra`
 
         from leads a
 
-        left join `mymetric-hub-shopify.dbt_granular.{tablename}_orders_dedup` b on a.email = b.email
+        left join orders b on a.email = b.email
 
         order by subscribe_timestamp desc
 

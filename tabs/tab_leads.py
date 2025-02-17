@@ -4,6 +4,7 @@ from modules.load_data import load_popup_leads
 def display_tab_leads():
 
     st.title("👨🏻‍💻 Leads")
+    st.write("Leads coletados a partir do popup de cadastro.")
 
     popup_leads = load_popup_leads()
     col1, col2 = st.columns([1,5])
