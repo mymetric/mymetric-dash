@@ -106,6 +106,41 @@ def traffic_filters():
 
     with st.sidebar:
 
+        # Filtros existentes
+        with st.expander("Filtros Básicos", expanded=True):
+            
+            # Adiciona "Selecionar Todos" como primeira opção em cada filtro
+            all_clusters = sort_by_sessions('Cluster', df)
+            all_origins = sort_by_sessions('Origem', df)
+            all_media = sort_by_sessions('Mídia', df)
+            
+            # Criar os elementos de filtro
+            cluster_selected = st.multiselect(
+                "Cluster",
+                options=all_clusters,
+                default=["Selecionar Todos"]
+            )
+            
+            origem_selected = st.multiselect(
+                "Origem",
+                options=all_origins,
+                default=["Selecionar Todos"]
+            )
+            
+            midia_selected = st.multiselect(
+                "Mídia",
+                options=all_media,
+                default=["Selecionar Todos"]
+            )
+            
+            st.session_state.cluster_selected = cluster_selected
+            st.session_state.origem_selected = origem_selected
+            st.session_state.midia_selected = midia_selected
+
+
+def attribution_filters():
+
+    with st.sidebar:
         with st.expander("Modelos de Atribuição", expanded=True):
             # Adiciona opções de atribuição
             all_attribution = ["Último Clique Não Direto", "Primeiro Clique"]
@@ -144,37 +179,6 @@ def traffic_filters():
                     - Valoriza a descoberta inicial
                     - Útil para entender quais canais são mais eficientes em trazer novos usuários
                 """)
-
-        # Filtros existentes
-        with st.expander("Filtros Básicos", expanded=True):
-            
-            # Adiciona "Selecionar Todos" como primeira opção em cada filtro
-            all_clusters = sort_by_sessions('Cluster', df)
-            all_origins = sort_by_sessions('Origem', df)
-            all_media = sort_by_sessions('Mídia', df)
-            
-            # Criar os elementos de filtro
-            cluster_selected = st.multiselect(
-                "Cluster",
-                options=all_clusters,
-                default=["Selecionar Todos"]
-            )
-            
-            origem_selected = st.multiselect(
-                "Origem",
-                options=all_origins,
-                default=["Selecionar Todos"]
-            )
-            
-            midia_selected = st.multiselect(
-                "Mídia",
-                options=all_media,
-                default=["Selecionar Todos"]
-            )
-            
-            st.session_state.cluster_selected = cluster_selected
-            st.session_state.origem_selected = origem_selected
-            st.session_state.midia_selected = midia_selected
 
 def traffic_filters_detailed():
 

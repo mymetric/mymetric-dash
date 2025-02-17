@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from modules.components import tabs_css
 
-from tabs.filters import date_filters, traffic_filters_detailed, traffic_filters
+from tabs.filters import date_filters, traffic_filters_detailed, traffic_filters, attribution_filters
 from tabs.tab_general import display_tab_general
 from tabs.tab_detailed import display_tab_detailed
 from tabs.tab_today import display_tab_today
@@ -54,6 +54,7 @@ def load_app():
     # Display content based on selection
     if selected_page == "👀 Visão Geral":
         save_event_name(event_name="tab_view", event_params={"tab": "general"})
+        attribution_filters()
         display_tab_general()
         
     elif selected_page == "💰 Mídia Paga" and "💰 Mídia Paga" in nav_options:
@@ -77,6 +78,7 @@ def load_app():
     elif selected_page == "💼 Visão Detalhada":
         save_event_name(event_name="tab_view", event_params={"tab": "detailed"})
         traffic_filters_detailed()
+        attribution_filters()
         display_tab_detailed()
     elif selected_page == "🔧 Configurações":
         save_event_name(event_name="tab_view", event_params={"tab": "config"})
