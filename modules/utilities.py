@@ -1,6 +1,8 @@
 import requests
 import streamlit as st
 
+__all__ = ['send_zapi_message', 'send_discord_message', 'send_message']
+
 def send_zapi_message(message):
     zapi_payload = {
         "phone": "120363322379870288-group",
@@ -42,3 +44,4 @@ def send_discord_message(message, username="Alert Bot"):
 
 def send_message(message):
     send_zapi_message(message)
+    send_discord_message(message)
