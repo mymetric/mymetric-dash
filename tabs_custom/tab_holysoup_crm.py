@@ -177,9 +177,9 @@ def display_tab_holysoup_crm():
             )
         with col2:
             big_number_box(
-                f"R$ {cost_per_message:,.3f}".replace(",", "*").replace(".", ",").replace("*", "."),
-                "Custo por Mensagem",
-                hint="Custo unitário por mensagem de WhatsApp"
+                f"R$ {whatsapp_messages * cost_per_message:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+                "Custo Total",
+                hint="Custo total das mensagens de WhatsApp no período"
             )
         with col3:
             big_number_box(
@@ -295,46 +295,97 @@ def display_tab_holysoup_crm():
 
             with timeline_col1:
                 if not df_optout_filtered.empty:
-                    # Gráfico de taxa de rejeição
-                    bounce_chart = alt.Chart(df_optout_filtered).mark_line(
+                    # Gráfico combinado de taxa e valor absoluto de rejeição
+                    base = alt.Chart(df_optout_filtered).encode(
+                        x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m'))
+                    )
+
+                    # Linha para taxa de rejeição
+                    line_bounce = base.mark_line(
                         color='#dc3545',
                         opacity=0.7
                     ).encode(
-                        x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
                         y=alt.Y('Taxa de Rejeição:Q',
-                                title='Taxa de Rejeição (%)',
-                                axis=alt.Axis(format='.1%')),
+                               title='Taxa de Rejeição (%)',
+                               axis=alt.Axis(format='.1%')),
                         tooltip=[
                             alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('Taxa de Rejeição:Q', title='Taxa de Rejeição', format='.1%'),
+                            alt.Tooltip('rejeicao:Q', title='Rejeições', format=',d')
+                        ]
+                    )
+
+                    # Barras para valor absoluto de rejeições
+                    bar_bounce = base.mark_bar(
+                        color='#dc3545',
+                        opacity=0.3
+                    ).encode(
+                        y=alt.Y('rejeicao:Q',
+                               title='Rejeições (Absoluto)',
+                               axis=alt.Axis(format=',d')),
+                        tooltip=[
+                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('rejeicao:Q', title='Rejeições', format=',d'),
                             alt.Tooltip('Taxa de Rejeição:Q', title='Taxa de Rejeição', format='.1%')
                         ]
+                    )
+
+                    # Combinar os gráficos com escalas diferentes
+                    bounce_chart = alt.layer(line_bounce, bar_bounce).resolve_scale(
+                        y='independent'
                     ).properties(
-                        title='Taxa de Rejeição por Data',
+                        title='Taxa de Rejeição e Rejeições Absolutas por Data',
                         height=400
                     )
                     
                     st.altair_chart(bounce_chart, use_container_width=True)
 
             with timeline_col2:
-                # Gráfico de taxa de descadastro
-                unsubscribe_chart = alt.Chart(df_optout_filtered).mark_line(
-                    color='#ffc107',
-                    opacity=0.7
-                ).encode(
-                    x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
-                    y=alt.Y('Taxa de Descadastro:Q',
-                            title='Taxa de Descadastro (%)',
-                            axis=alt.Axis(format='.1%')),
-                    tooltip=[
-                        alt.Tooltip('Data:T', title='Data'),
-                        alt.Tooltip('Taxa de Descadastro:Q', title='Taxa de Descadastro', format='.1%')
-                    ]
-                ).properties(
-                    title='Taxa de Descadastro por Data',
-                    height=400
-                )
-                
-                st.altair_chart(unsubscribe_chart, use_container_width=True)
+                if not df_optout_filtered.empty:
+                    # Gráfico combinado de taxa e valor absoluto de descadastro
+                    base = alt.Chart(df_optout_filtered).encode(
+                        x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m'))
+                    )
+
+                    # Linha para taxa de descadastro
+                    line_unsub = base.mark_line(
+                        color='#ffc107',
+                        opacity=0.7
+                    ).encode(
+                        y=alt.Y('Taxa de Descadastro:Q',
+                               title='Taxa de Descadastro (%)',
+                               axis=alt.Axis(format='.1%')),
+                        tooltip=[
+                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('Taxa de Descadastro:Q', title='Taxa de Descadastro', format='.1%'),
+                            alt.Tooltip('descadastro:Q', title='Descadastros', format=',d')
+                        ]
+                    )
+
+                    # Barras para valor absoluto de descadastros
+                    bar_unsub = base.mark_bar(
+                        color='#ffc107',
+                        opacity=0.3
+                    ).encode(
+                        y=alt.Y('descadastro:Q',
+                               title='Descadastros (Absoluto)',
+                               axis=alt.Axis(format=',d')),
+                        tooltip=[
+                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('descadastro:Q', title='Descadastros', format=',d'),
+                            alt.Tooltip('Taxa de Descadastro:Q', title='Taxa de Descadastro', format='.1%')
+                        ]
+                    )
+
+                    # Combinar os gráficos com escalas diferentes
+                    unsubscribe_chart = alt.layer(line_unsub, bar_unsub).resolve_scale(
+                        y='independent'
+                    ).properties(
+                        title='Taxa de Descadastro e Descadastros Absolutos por Data',
+                        height=400
+                    )
+                    
+                    st.altair_chart(unsubscribe_chart, use_container_width=True)
 
         st.markdown("""---""")
         st.subheader("📱 Controle de Envios de WhatsApp")
@@ -433,7 +484,7 @@ def display_tab_holysoup_crm():
                 lists
             )
 
-            if selected_list:
+            if selected_list and selected_list != "Todas as Listas":
                 df_contacts = load_holysoup_mautic_contacts(selected_list)
                 total_contacts = len(df_contacts)
                 

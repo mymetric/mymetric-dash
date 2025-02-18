@@ -623,7 +623,7 @@ def load_holysoup_mautic_segments():
     df = run_queries([query])[0]
     return df
 
-@st.cache_data(ttl=300)
+# @st.cache_data(ttl=300)
 def load_holysoup_mautic_contacts(list_name):
     if toast_alerts():
         st.toast("Carregando contatos do Mautic...")
