@@ -101,44 +101,18 @@ def extract_table_reference_from_query(query):
     else:
         return None
 
-@st.cache_data(ttl=24*3600)  # Cache de 24 horas
+@st.cache_data(ttl=3600)  # Cache de 1 hora
 def execute_query(query):
-    """Executa múltiplas queries, mantendo um cache de 24h e atualizando a cada 1h."""
-    
-    # Garante que `latest_data` e `last_update` existem no session_state
-    if "latest_data" not in st.session_state:
-        st.session_state["latest_data"] = {}
-    if "last_update" not in st.session_state:
-        st.session_state["last_update"] = {}
+    """Executa uma query, mantendo um cache de 1h."""
 
-    current_time = time.time()
-    last_update = st.session_state["last_update"].get(query, 0)
-    
-    # Verifica se passou 1 hora desde a última atualização
-    if current_time - last_update >= 3600:  # 3600 segundos = 1 hora
-        def update_data():
-            try:
-                query_job = client.query(query)
-                rows_raw = query_job.result()
-                rows = [dict(row) for row in rows_raw]
-                new_data = pd.DataFrame(rows)
-                
-                # Se novos dados foram carregados com sucesso, atualiza o cache
-                if not new_data.empty:
-                    st.session_state["latest_data"][query] = new_data
-                    st.session_state["last_update"][query] = current_time
-            except Exception as e:
-                print(f"Erro ao atualizar dados: {str(e)}")
-
-        # Se não há dados em cache, executa sincronamente
-        if query not in st.session_state["latest_data"]:
-            update_data()
-        else:
-            # Se há dados em cache, atualiza em segundo plano
-            threading.Thread(target=update_data, daemon=True).start()
-    
-    # Retorna os dados em cache (ou os dados iniciais se não houver cache)
-    return st.session_state["latest_data"].get(query, pd.DataFrame())
+    try:
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao executar query: {str(e)}")
+        return pd.DataFrame()
 
 def run_queries(queries):
     with ThreadPoolExecutor() as executor:
@@ -883,6 +857,7 @@ def load_leads_popup():
     return df
 
 def load_meta_ads():
+    
     if toast_alerts():
         st.toast("Carregando dados do Meta Ads...")
 
@@ -900,13 +875,15 @@ def load_meta_ads():
             spend,
             impressions,
             clicks,
-            purchase_quantity purchases,
+            purchases purchases,
             purchase_revenue purchase_value
 
         from `mymetric-hub-shopify.dbt_granular.{tablename}_meta_ads_campaigns`
         where date(date_start) between "{start_date}" and "{end_date}"
 
         """
+
+    # st.markdown(f"```sql{query}")
 
     df = run_queries([query])[0]
     return df
