@@ -62,7 +62,7 @@ def display_tab_funnel():
         st.markdown("""
             ### Como interpretar as taxas de conversão:
             
-            1. **Taxa View -> Cart** (Visualização para Carrinho):
+            1. **Taxa View Product -> Cart** (Visualização de Produto para Carrinho):
                 - Porcentagem de usuários que adicionaram produtos ao carrinho após visualizar um item
                 - Indica o interesse inicial no produto
             
@@ -70,19 +70,19 @@ def display_tab_funnel():
                 - Porcentagem de usuários que iniciaram o checkout após adicionar ao carrinho
                 - Mostra quantos carrinhos avançam para a compra
             
-            3. **Taxa Checkout -> Frete** (Checkout para Frete):
+            3. **Taxa Checkout -> Dados de Frete** (Checkout para Dados de Frete):
                 - Porcentagem de usuários que preencheram informações de frete após iniciar checkout
                 - Indica progresso no processo de compra
             
-            4. **Taxa Frete -> Pagamento** (Frete para Pagamento):
+            4. **Taxa Dados de Frete -> Dados de Pagamento** (Dados de Frete para Dados de Pagamento):
                 - Porcentagem de usuários que avançaram para pagamento após informar frete
                 - Mostra aceitação das opções de frete
             
-            5. **Taxa Pagamento -> Pedido** (Pagamento para Pedido):
+            5. **Taxa Dados de Pagamento -> Pedido** (Dados de Pagamento para Pedido):
                 - Porcentagem de usuários que completaram o pedido após informar pagamento
                 - Indica sucesso na finalização da compra
             
-            6. **Taxa Geral** (Visualização para Pedido):
+            6. **Taxa View Product -> Pedido** (Visualização de Produto para Pedido):
                 - Porcentagem total de conversão desde a visualização até o pedido
                 - Mostra a eficiência geral do funil de vendas
             
@@ -95,23 +95,23 @@ def display_tab_funnel():
     df = load_funnel_data()
 
     # Calcular taxas de conversão
-    df['Taxa View -> Cart'] = (df['Adicionar ao Carrinho'] / df['Visualização de Item'] * 100).round(2)
+    df['Taxa View Product -> Cart'] = (df['Adicionar ao Carrinho'] / df['Visualização de Item'] * 100).round(2)
     df['Taxa Cart -> Checkout'] = (df['Iniciar Checkout'] / df['Adicionar ao Carrinho'] * 100).round(2)
     df['Taxa Checkout -> Frete'] = (df['Adicionar Informação de Frete'] / df['Iniciar Checkout'] * 100).round(2)
-    df['Taxa Frete -> Pagamento'] = (df['Adicionar Informação de Pagamento'] / df['Adicionar Informação de Frete'] * 100).round(2)
-    df['Taxa Pagamento -> Pedido'] = (df['Pedido'] / df['Adicionar Informação de Pagamento'] * 100).round(2)
-    df['Taxa Geral'] = (df['Pedido'] / df['Visualização de Item'] * 100).round(2)
+    df['Taxa Dados de Frete -> Dados de Pagamento'] = (df['Adicionar Informação de Pagamento'] / df['Adicionar Informação de Frete'] * 100).round(2)
+    df['Taxa Dados de Pagamento -> Pedido'] = (df['Pedido'] / df['Adicionar Informação de Pagamento'] * 100).round(2)
+    df['Taxa View Product -> Pedido'] = (df['Pedido'] / df['Visualização de Item'] * 100).round(2)
 
     # Criar gráficos individuais para cada taxa de conversão
     st.subheader("📈 Taxas de Conversão ao Longo do Tempo")
     
     conversion_rates = [
-        'Taxa View -> Cart',
+        'Taxa View Product -> Cart',
         'Taxa Cart -> Checkout',
         'Taxa Checkout -> Frete',
-        'Taxa Frete -> Pagamento',
-        'Taxa Pagamento -> Pedido',
-        'Taxa Geral'
+        'Taxa Dados de Frete -> Dados de Pagamento',
+        'Taxa Dados de Pagamento -> Pedido',
+        'Taxa View Product -> Pedido'
     ]
 
     # Criar subplots
