@@ -13,6 +13,7 @@ from tabs.tab_paid_media import display_tab_paid_media
 from tabs.tab_config import display_tab_config
 from tabs.tab_last_orders import display_tab_last_orders
 from tabs.tab_leads import display_tab_leads
+from tabs.tab_master import display_tab_master
 
 # Custom Tabs
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
@@ -51,6 +52,9 @@ def load_app():
 
     if is_admin:
         nav_options.extend(["🔧 Configurações"])
+    
+    if st.session_state.username == 'mymetric':
+        nav_options.extend(["🧙🏻‍♂️ Master"])
         
     # Create radio buttons for navigation
     selected_page = st.radio("", nav_options, horizontal=True)
@@ -93,3 +97,6 @@ def load_app():
     elif selected_page == "🔧 Configurações":
         save_event_name(event_name="tab_view", event_params={"tab": "config"})
         display_tab_config()
+    elif selected_page == "🧙🏻‍♂️ Master":
+        save_event_name(event_name="tab_view", event_params={"tab": "master"})
+        display_tab_master()

@@ -975,3 +975,25 @@ def load_popup_leads():
 
     df = run_queries([query])[0]
     return df
+
+def load_last_login():
+
+    query = f"""
+        SELECT
+  
+            tablename `Cliente`,
+            max(created_at) `Último Login`
+
+        FROM `mymetric-hub-shopify.dbt_config.events`
+
+        where
+
+        event_name = "login"
+
+        group by all
+
+        order by `Último Login` desc
+    """
+
+    df = run_queries([query])[0]
+    return df
