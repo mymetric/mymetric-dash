@@ -207,7 +207,7 @@ def check_pending_items():
                     'titulo': 'Tagueamento do Meta Ads',
                     'descricao': f'A cobertura do tagueamento está em {cobertura:.1f}%, o que representa um problema {mensagem}.',
                     'acao': 'Verifique se o parâmetro mm_ads está sendo adicionado corretamente nas URLs. ' +
-                           'Acesse nosso [tutorial de implementação](https://mymetric.com.br/tutorial-meta-ads) para mais detalhes.',
+                           'Acesse nosso [tutorial de implementação](https://mymetric.notion.site/UTMs-para-Meta-Ads-a32df743c4e046ccade33720f0faec3a) para mais detalhes.',
                     'severidade': severidade
                 }
                 pendencias.append(pendencia)

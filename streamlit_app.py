@@ -107,6 +107,12 @@ def check_password():
                     st.session_state.tablename = user["tablename"]
                     st.session_state.admin = user["admin"]
                     st.session_state.login_time = datetime.now()  # Armazena o tempo do login
+
+                    save_event_name(event_name="login", event_params={})
+                    
+                    if username != "mymetric":
+                        send_message(f"🔐 Novo login detectado!\n\nUsuário: {username}\nData/Hora: {datetime.now().astimezone(pytz.timezone('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M:%S')}")
+
                     
                     st.rerun()  # Recarrega a página após login
                     break
