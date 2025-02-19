@@ -10,7 +10,7 @@ from core.app import load_app
 from modules.utilities import send_message
 from modules.load_data import load_all_users, save_event_name
 from streamlit_cookies_controller import CookieController
-
+import pytz
 
 st.set_page_config(
     page_title="MyMetricHUB",
@@ -78,7 +78,7 @@ def check_password():
                     save_event_name(event_name="login", event_params={})
                     
                     if username != "mymetric":
-                        send_message(f"🔐 Novo login detectado!\n\nUsuário: {username}\nData/Hora: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+                        send_message(f"🔐 Novo login detectado!\n\nUsuário: {username}\nData/Hora: {datetime.now().astimezone(pytz.timezone('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M:%S')}")
 
                     st.rerun()  # Recarrega a página após login
                     break
