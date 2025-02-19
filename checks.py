@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 from tabs.filters import traffic_filters
 from modules.utilities import send_message
 from core.users import load_users
+from partials.performance import check_performance_alerts
 
-def make_checks():
+
+def pending_checks():
     current_date = datetime.now()
     st.session_state.start_date = current_date.strftime("%Y-%m-01")
     st.session_state.end_date = (current_date.replace(day=1).replace(month=current_date.month+1 if current_date.month < 12 else 1, 
@@ -21,26 +23,57 @@ def make_checks():
     # Send message for each pending item
     for p in pending:
         severity_emoji = {
-            'alta': '🔴',
-            'media': '🟡', 
-            'baixa': '🔵'
+            'alta': '🔴 Alta',
+            'media': '🟡 Média', 
+            'baixa': '🔵 Baixa'
         }
         
-        message = f"""{severity_emoji[p['severidade']]} Nova Pendência Detectada!
-
-    Cliente: {st.session_state.tablename.upper()}
+        message = f"""Cliente: *{st.session_state.tablename.upper()}*
         
-    Título: {p['titulo']}
-    Severidade: {p['severidade'].upper()}
+*🍪 Nova Pendência Detectada!*
 
-    Descrição:
-    {p['descricao']}
+Severidade: {severity_emoji[p['severidade']]}
 
-    Ação Necessária:
-    {p['acao']}"""
+Título: {p['titulo']}
+
+Descrição:
+{p['descricao']}
+
+Ação Necessária:
+{p['acao']}"""
 
         send_message(message)
 
+
+
+
+def performance_checks():
+
+    alerts = check_performance_alerts()
+
+    for alert in alerts:
+        print(alert)
+        message = f"""Cliente: *{st.session_state.tablename.upper()}*
+
+*⚠️ Alerta de Performance!*
+
+Severidade: {'🔴' if alert["severidade"] == 'alta' else '🟡' if alert["severidade"] == 'media' else '🔵'} {alert["severidade"].upper()}
+
+Título: {alert["titulo"]}
+
+Descrição:
+{alert["descricao"]}
+
+Ação Necessária:
+{alert["acao"]}"""
+
+        send_message(message)
+
+
+# st.session_state.tablename = "gringa"
+
+# pending_checks()
+# performance_checks()
 
 
 users = load_users()
@@ -50,8 +83,6 @@ for user in users:
         break
     print(user['slug'])
     st.session_state.tablename = user['slug']
-    make_checks()
+    pending_checks()
+    performance_checks()
 
-# st.session_state.tablename = "gringa"
-
-# make_checks()

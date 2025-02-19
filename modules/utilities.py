@@ -3,10 +3,9 @@ import streamlit as st
 
 __all__ = ['send_zapi_message', 'send_discord_message', 'send_message']
 
-def send_zapi_message(message):
+def send_zapi_message(message, phone="120363322379870288-group"):
     zapi_payload = {
-        "phone": "120363322379870288-group",
-        # "phone": phone,
+        "phone": phone,
         "message": message
     }
 
