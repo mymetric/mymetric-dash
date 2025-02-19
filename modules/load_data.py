@@ -129,6 +129,8 @@ def load_basic_data():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
+    date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date between '{start_date_str}' and '{end_date_str}'"
+
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
 
     if attribution_model == 'Último Clique Não Direto':
@@ -154,7 +156,7 @@ def load_basic_data():
             SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
-        WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+        WHERE {date_condition}
         GROUP BY ALL
         ORDER BY Pedidos DESC
     """
@@ -178,6 +180,8 @@ def load_detailed_data():
 
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
+
+    date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date between '{start_date_str}' and '{end_date_str}'"
 
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
 
@@ -205,7 +209,7 @@ def load_detailed_data():
             SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
-        WHERE event_date BETWEEN '{start_date_str}' AND '{end_date_str}'
+        WHERE {date_condition}
         GROUP BY ALL
         ORDER BY Pedidos DESC
     """
@@ -380,7 +384,7 @@ def load_fbclid_coverage():
             sum(case when page_params like "%mm_ads%" then 1 else 0 end) / count(*) `Cobertura`
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_sessions_gclids`
         WHERE
-            event_date >= date_sub(current_date("America/Sao_Paulo"), interval 7 day)
+            event_date >= date_sub(current_date("America/Sao_Paulo"), interval 1 day)
             and page_params like "%fbclid%"
             and medium not like "%social%"
     """
