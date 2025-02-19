@@ -34,11 +34,23 @@ logo_path = Path(__file__).parent / "images/logo.svg"
 with open(logo_path, "rb") as f:
     logo_contents = f.read()
 
+# Add hover style for logo
+st.markdown("""
+    <style>
+        .logo {
+            transition: filter 0.5s ease;
+        }
+        .logo:hover {
+            filter: invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Sempre mostra o logo
 st.sidebar.markdown(
     f"""
     <div>
-        <img src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width: 250px;height: 75px;object-fit: cover;margin: 0 auto;display: block;">
+        <img class="logo" src="data:image/svg+xml;base64,{base64.b64encode(logo_contents).decode()}" alt="Logo" style="width: 250px;height: 75px;object-fit: cover;margin: 0 auto;display: block;">
     </div>
     """,
     unsafe_allow_html=True
