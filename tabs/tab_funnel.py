@@ -102,8 +102,11 @@ def display_tab_funnel():
     df['Taxa Dados de Pagamento -> Pedido'] = (df['Pedido'] / df['Adicionar Informação de Pagamento'] * 100).round(2)
     df['Taxa View Product -> Pedido'] = (df['Pedido'] / df['Visualização de Item'] * 100).round(2)
 
-    # Criar gráficos individuais para cada taxa de conversão
-    st.subheader("📈 Taxas de Conversão ao Longo do Tempo")
+    # Calcular desvios da média dos últimos 30 dias
+    st.subheader("📊 Desvios da Média (Últimos 30 dias)")
+    
+    # Criar colunas para os big numbers
+    cols = st.columns(3)
     
     conversion_rates = [
         'Taxa View Product -> Cart',
@@ -114,7 +117,70 @@ def display_tab_funnel():
         'Taxa View Product -> Pedido'
     ]
 
-    # Criar subplots
+    rate_names = {
+        'Taxa View Product -> Cart': 'Visualização → Carrinho',
+        'Taxa Cart -> Checkout': 'Carrinho → Checkout',
+        'Taxa Checkout -> Frete': 'Checkout → Frete',
+        'Taxa Dados de Frete -> Dados de Pagamento': 'Frete → Pagamento',
+        'Taxa Dados de Pagamento -> Pedido': 'Pagamento → Pedido',
+        'Taxa View Product -> Pedido': 'Visualização → Pedido'
+    }
+
+    for idx, rate in enumerate(conversion_rates):
+        # Pegar últimos 30 dias e hoje
+        last_30_days = df.iloc[-31:-1][rate].mean()
+        today_value = df.iloc[-1][rate]
+        std_30_days = df.iloc[-31:-1][rate].std()
+        
+        # Calcular desvio em relação à média
+        deviation_percent = ((today_value - last_30_days) / last_30_days * 100).round(2)
+        
+        # Calcular quantos desvios padrão de diferença
+        if std_30_days > 0:
+            deviation_sigma = (today_value - last_30_days) / std_30_days
+        else:
+            deviation_sigma = 0
+        
+        # Determinar cor e ícone baseado no desvio padrão
+        if deviation_sigma >= 2:
+            color = "#2E7D32"  # Verde escuro
+            bg_color = "#E8F5E9"  # Verde claro bg
+            icon = "↗↗"
+        elif deviation_sigma >= 1.75:
+            color = "#4CAF50"  # Verde claro
+            bg_color = "#F1F8E9"  # Verde muito claro bg
+            icon = "↗"
+        elif deviation_sigma <= -2:
+            color = "#C62828"  # Vermelho escuro
+            bg_color = "#FFEBEE"  # Vermelho claro bg
+            icon = "↘↘"
+        elif deviation_sigma <= -1.75:
+            color = "#EF5350"  # Vermelho claro
+            bg_color = "#FFF3F3"  # Vermelho muito claro bg
+            icon = "↘"
+        else:
+            color = "gray"
+            bg_color = "#f0f2f6"  # Cinza claro padrão
+            icon = "→"
+        
+        # Criar o big number
+        with cols[idx % 3]:
+            st.markdown(f"""
+                <div style='padding: 1rem; background-color: {bg_color}; border-radius: 0.5rem; margin-bottom: 1rem;'>
+                    <div style='font-size: 0.9rem; color: #666;'>{rate_names[rate]}</div>
+                    <div style='font-size: 1.8rem; font-weight: bold;'>{today_value:.2f}%</div>
+                    <div style='color: {color}; font-size: 1rem;'>
+                        {icon} {deviation_percent:+.2f}% vs média 30d
+                        <br/>
+                        <span style='font-size: 0.8rem;'>({deviation_sigma:.1f}σ)</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("""---""")
+    st.subheader("📈 Taxas de Conversão ao Longo do Tempo")
+    
+    # Criar gráficos individuais para cada taxa de conversão
     fig = make_subplots(
         rows=3, 
         cols=2,
