@@ -14,6 +14,7 @@ from tabs.tab_config import display_tab_config
 from tabs.tab_last_orders import display_tab_last_orders
 from tabs.tab_leads import display_tab_leads
 from tabs.tab_master import display_tab_master
+from tabs.tab_rfm import display_tab_rfm
 
 # Custom Tabs
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
@@ -43,6 +44,10 @@ def load_app():
         nav_options.extend(["👨🏻‍💻 Leads"])
 
     nav_options.extend(["🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada"])
+    
+    # Adiciona RFM apenas para oculosshop
+    if st.session_state.tablename == 'oculosshop':
+        nav_options.extend(["👥 RFM"])
 
     if st.session_state.tablename == 'gringa':
         nav_options.extend(["👜 Produtos Cadastrados"])
@@ -100,3 +105,6 @@ def load_app():
     elif selected_page == "🧙🏻‍♂️ Master":
         save_event_name(event_name="tab_view", event_params={"tab": "master"})
         display_tab_master()
+    elif selected_page == "👥 RFM":
+        save_event_name(event_name="tab_view", event_params={"tab": "rfm"})
+        display_tab_rfm()

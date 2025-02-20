@@ -384,7 +384,7 @@ def load_fbclid_coverage():
             sum(case when page_params like "%mm_ads%" then 1 else 0 end) / count(*) `Cobertura`
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_sessions_gclids`
         WHERE
-            event_date >= date_sub(current_date("America/Sao_Paulo"), interval 1 day)
+            event_date >= date_sub(current_date("America/Sao_Paulo"), interval 3 day)
             and page_params like "%fbclid%"
             and medium not like "%social%"
     """
@@ -1000,4 +1000,35 @@ def load_last_login():
     """
 
     df = run_queries([query])[0]
+    return df
+
+def load_rfm_segments():
+    """
+    Carrega dados de segmentação RFM do BigQuery.
+    
+    Returns:
+        pandas.DataFrame: DataFrame com as contagens de clientes por segmento RFM
+    """
+    tablename = st.session_state.tablename
+    
+    query = f"""
+    SELECT
+        customer_id `ID`,
+        first_name `Nome`,
+        last_name `Sobrenome`,
+        email `E-mail`,
+        phone `Telefone`,
+        recency_days `Recência`,  # Manteremos em dias primeiro
+        frequency `Frequência`,
+        monetary `Monetário`,
+        segment_name AS Categoria
+    FROM `mymetric-hub-shopify.dbt_aggregated.{tablename}_rfm`
+    """
+
+    df = run_queries([query])[0]
+    
+    # Converter recência para meses após carregar os dados
+    df['Recência'] = df['Recência'] / 30
+    df = df.rename(columns={'Recência': 'Recência (Meses)'})
+    
     return df
