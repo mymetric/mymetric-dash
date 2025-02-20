@@ -43,7 +43,7 @@ def load_app():
     if popup_leads is not None and not popup_leads.empty:
         nav_options.extend(["👨🏻‍💻 Leads"])
 
-    nav_options.extend(["🎯 Funil de Conversão", "📊 Análise do Dia", "💼 Visão Detalhada"])
+    nav_options.extend(["🎯 Funil de Conversão", "🛒 Últimos Pedidos", "📊 Análise do Dia", "💼 Visão Detalhada"])
     
     # Adiciona RFM apenas para oculosshop
     if st.session_state.tablename == 'oculosshop':
