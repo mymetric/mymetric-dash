@@ -19,6 +19,7 @@ from tabs.tab_rfm import display_tab_rfm
 # Custom Tabs
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
 from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
+from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
 
 from modules.load_data import load_paid_media, load_popup_leads, save_event_name
 
@@ -43,11 +44,13 @@ def load_app():
     if popup_leads is not None and not popup_leads.empty:
         nav_options.extend(["👨🏻‍💻 Leads"])
 
-    nav_options.extend(["🎯 Funil de Conversão", "🛒 Últimos Pedidos", "📊 Análise do Dia", "💼 Visão Detalhada"])
-    
-    # Adiciona RFM apenas para oculosshop
+    nav_options.extend(["🎯 Funil de Conversão", "🛒 Últimos Pedidos", "📊 Análise do Dia", "💼 Visão Detalhada"])    
+
     if st.session_state.tablename == 'oculosshop':
         nav_options.extend(["👥 RFM"])
+
+    if st.session_state.tablename == 'coffeemais':
+        nav_options.extend(["👥 Usuários"])
 
     if st.session_state.tablename == 'gringa':
         nav_options.extend(["👜 Produtos Cadastrados"])
@@ -70,15 +73,12 @@ def load_app():
         save_event_name(event_name="tab_view", event_params={"tab": "general"})
         attribution_filters()
         display_tab_general()
-        
     elif selected_page == "💰 Mídia Paga" and "💰 Mídia Paga" in nav_options:
         save_event_name(event_name="tab_view", event_params={"tab": "paid_media"})
         display_tab_paid_media()
-    
     elif selected_page == "👨🏻‍💻 Leads" and "👨🏻‍💻 Leads" in nav_options:
         save_event_name(event_name="tab_view", event_params={"tab": "popup_leads"})
         display_tab_leads()
-
     elif selected_page == "🛒 Últimos Pedidos":
         save_event_name(event_name="tab_view", event_params={"tab": "last_orders"})
         display_tab_last_orders()
@@ -108,3 +108,6 @@ def load_app():
     elif selected_page == "👥 RFM":
         save_event_name(event_name="tab_view", event_params={"tab": "rfm"})
         display_tab_rfm()
+    elif selected_page == "👥 Usuários":
+        save_event_name(event_name="tab_view", event_params={"tab": "users"})
+        display_tab_coffeemais_users()

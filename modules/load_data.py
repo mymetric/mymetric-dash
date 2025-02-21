@@ -1032,3 +1032,25 @@ def load_rfm_segments():
     df = df.rename(columns={'Recência': 'Recência (Meses)'})
     
     return df
+
+def load_coffeemais_users():
+    
+    query = f"""
+        
+        select
+
+        updated_at `Data de Atualização`,
+        email `E-mail`,
+        pagbrasil_subscription_link `Link da Assinatura`,
+        pagbrasil_payment_date `Data do Pagamento`,
+        pagbrasil_subscription_status `Status da Assinatura`,
+        pagbrasil_order_status `Status do Pedido`
+
+        from `coffee-mais-mkt-data-lake.df_summary.users`
+        
+        order by updated_at desc
+    """
+
+    df = run_queries([query])[0]
+    return df
+        
