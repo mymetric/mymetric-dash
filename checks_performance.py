@@ -83,6 +83,4 @@ for user in users:
         break
     print(user['slug'])
     st.session_state.tablename = user['slug']
-    pending_checks()
     performance_checks()
-
