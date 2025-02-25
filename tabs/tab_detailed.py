@@ -143,7 +143,6 @@ def tables_detailed(df):
     aggregated_df = df.groupby(['Origem', 'Mídia']).agg({
         'Sessões': 'sum', 
         'Pedidos': 'sum', 
-        'Pedidos Primeiro Clique': 'sum', 
         'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum'
@@ -174,7 +173,6 @@ def tables_detailed(df):
     campaigns = df.groupby(['Campanha']).agg({
         'Sessões': 'sum', 
         'Pedidos': 'sum', 
-        'Pedidos Primeiro Clique': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum'
     }).reset_index()
@@ -205,7 +203,6 @@ def tables_detailed(df):
     conteudo = df.groupby(['Conteúdo']).agg({
         'Sessões': 'sum', 
         'Pedidos': 'sum', 
-        'Pedidos Primeiro Clique': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum'
     }).reset_index()
@@ -236,7 +233,6 @@ def tables_detailed(df):
     pagina_de_entrada = df.groupby(['Página de Entrada']).agg({
         'Sessões': 'sum', 
         'Pedidos': 'sum', 
-        'Pedidos Primeiro Clique': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum'
     }).reset_index()
@@ -267,7 +263,6 @@ def tables_detailed(df):
     cupons = df.groupby(['Cupom']).agg({
         'Sessões': 'sum', 
         'Pedidos': 'sum', 
-        'Pedidos Primeiro Clique': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum'
     }).reset_index()
