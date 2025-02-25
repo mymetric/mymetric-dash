@@ -163,16 +163,17 @@ def display_tab_funnel():
             bg_color = "#f0f2f6"  # Cinza claro padrão
             icon = "→"
         
-        # Criar o big number
+        # Criar o big number com média dos últimos 30 dias
         with cols[idx % 3]:
             st.markdown(f"""
                 <div style='padding: 1rem; background-color: {bg_color}; border-radius: 0.5rem; margin-bottom: 1rem;'>
                     <div style='font-size: 0.9rem; color: #666;'>{rate_names[rate]}</div>
                     <div style='font-size: 1.8rem; font-weight: bold;'>{today_value:.2f}%</div>
-                    <div style='color: {color}; font-size: 1rem;'>
+                    <div style='color: {color}; font-size: 0.9rem;'>
                         {icon} {deviation_percent:+.2f}% vs média 30d
-                        <br/>
-                        <span style='font-size: 0.8rem;'>({deviation_sigma:.1f}σ)</span>
+                    </div>
+                    <div style='color: #666; font-size: 0.8rem;'>
+                        Média 30d: {last_30_days:.2f}%
                     </div>
                 </div>
             """, unsafe_allow_html=True)
