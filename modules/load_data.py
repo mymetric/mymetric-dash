@@ -1054,3 +1054,22 @@ def load_coffeemais_users():
     df = run_queries([query])[0]
     return df
         
+
+def load_internal_events():
+
+    query = f"""
+        SELECT
+
+        created_at,
+        tablename,
+        user,
+        event_name,
+        json_extract_scalar(event_params, "$.tab") tab
+
+        FROM `mymetric-hub-shopify.dbt_config.events`
+    """
+
+    df = run_queries([query])[0]
+    return df
+
+
