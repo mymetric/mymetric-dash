@@ -117,5 +117,6 @@ def load_app():
     except Exception as e:
         st.error(f"Erro ao carregar a página: {e}")
         
-        send_message(f"Erro ao carregar a página: {e}\nUsuário: {st.session_state.username}\nTabela: {st.session_state.tablename}")
+        selected_page = st.session_state.selected_page
+        send_message(f"Erro ao carregar a página: {e}\nUsuário: {st.session_state.username}\nTabela: {st.session_state.tablename}\nPágina: {selected_page}")
     
