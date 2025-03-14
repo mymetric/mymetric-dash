@@ -11,8 +11,9 @@ def display_tab_coffeemais_users():
     # Load data
     df = load_coffeemais_users()
     
-    # Converter coluna de data
+    # Converter coluna de data e tratar valores nulos
     df['Data de Atualização'] = pd.to_datetime(df['Data de Atualização'])
+    df['Status da Assinatura'] = df['Status da Assinatura'].fillna('Não Definido')
 
     st.subheader("Assinantes PagBrasil")
     st.write("Dados atualizados uma vez ao dia de manhã")
