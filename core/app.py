@@ -20,6 +20,7 @@ from tabs.tab_rfm import display_tab_rfm
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
 from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
 from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
+from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
 
 from modules.load_data import load_paid_media, load_popup_leads, save_event_name
 from modules.utilities import send_message
@@ -53,6 +54,7 @@ def load_app():
 
         if st.session_state.tablename == 'coffeemais':
             nav_options.extend(["👥 Usuários"])
+            nav_options.extend(["✉️ CRM"])
 
         if st.session_state.tablename == 'gringa':
             nav_options.extend(["👜 Produtos Cadastrados"])
@@ -113,6 +115,10 @@ def load_app():
         elif selected_page == "👥 Usuários":
             save_event_name(event_name="tab_view", event_params={"tab": "users"})
             display_tab_coffeemais_users()
+
+        elif selected_page == "✉️ CRM" and st.session_state.tablename == 'coffeemais':
+            save_event_name(event_name="tab_view", event_params={"tab": "coffeemais_crm"})
+            display_tab_coffeemais_crm()
     
     except Exception as e:
         st.error(f"Erro ao carregar a página: {e}")

@@ -1073,3 +1073,34 @@ def load_internal_events():
     return df
 
 
+def load_coffeemais_crm():
+
+    start_date = st.session_state.start_date
+    end_date = st.session_state.end_date
+
+    query = f"""
+        select
+
+        channel,
+        datetime(min(timestamp)) date_first_sent,
+        datetime(max(timestamp)) date_last_sent,
+        date_diff(datetime(max(timestamp)), datetime(min(timestamp)), DAY) days_between,
+        nome_notificacao name,
+        count(*) sent,
+        count(distinct order_id) orders,
+        sum(revenue) revenue
+
+        from `coffee-mais-mkt-data-lake.dbt_dito.dito_message_sent_results`
+
+        where
+
+        date(timestamp) between "{start_date}" and "{end_date}"
+
+        group by all
+
+        order by sent desc
+        
+    """
+
+    df = run_queries([query])[0]
+    return df
