@@ -39,84 +39,100 @@ def load_app():
         popup_leads = load_popup_leads()
 
         # Define navigation options based on data availability
-        nav_options = ["👀 Visão Geral"]
+        nav_options = ["Visão Geral"]
+
+        nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos"])    
+
+        if popup_leads is not None and not popup_leads.empty:
+            nav_options.extend(["Leads"])
 
         if paid_media is not None and not paid_media.empty:
-            nav_options.extend(["💰 Mídia Paga"])
+            nav_options.extend(["Mídia Paga"])
         
-        if popup_leads is not None and not popup_leads.empty:
-            nav_options.extend(["👨🏻‍💻 Leads"])
+        
 
-        nav_options.extend(["🎯 Funil de Conversão", "🛒 Últimos Pedidos", "📊 Análise do Dia", "💼 Visão Detalhada"])    
 
         if st.session_state.tablename == 'oculosshop':
-            nav_options.extend(["👥 RFM"])
+            nav_options.extend(["RFM"])
 
         if st.session_state.tablename == 'coffeemais':
-            nav_options.extend(["👥 Usuários"])
-            nav_options.extend(["✉️ CRM"])
+            nav_options.extend(["Usuários"])
+            nav_options.extend(["CRM"])
 
         if st.session_state.tablename == 'gringa':
-            nav_options.extend(["👜 Produtos Cadastrados"])
+            nav_options.extend(["Produtos Cadastrados"])
 
         if st.session_state.tablename == 'holysoup':
-            nav_options.extend(["✉️ CRM"])
+            nav_options.extend(["CRM"])
 
         if is_admin:
-            nav_options.extend(["🔧 Configurações"])
+            nav_options.extend(["Configurações"])
         
         if st.session_state.username == 'mymetric':
-            nav_options.extend(["🧙🏻‍♂️ Master"])
+            nav_options.extend(["Master"])
             
         # Create radio buttons for navigation
         selected_page = st.radio("", nav_options, horizontal=True)
         st.session_state.selected_page = selected_page
 
         # Display content based on selection
-        if selected_page == "👀 Visão Geral":
+        if selected_page == "Visão Geral":
             save_event_name(event_name="tab_view", event_params={"tab": "general"})
             attribution_filters()
             display_tab_general()
-        elif selected_page == "💰 Mídia Paga" and "💰 Mídia Paga" in nav_options:
-            save_event_name(event_name="tab_view", event_params={"tab": "paid_media"})
-            display_tab_paid_media()
-        elif selected_page == "👨🏻‍💻 Leads" and "👨🏻‍💻 Leads" in nav_options:
-            save_event_name(event_name="tab_view", event_params={"tab": "popup_leads"})
-            display_tab_leads()
-        elif selected_page == "🛒 Últimos Pedidos":
-            save_event_name(event_name="tab_view", event_params={"tab": "last_orders"})
-            display_tab_last_orders()
-        elif selected_page == "🎯 Funil de Conversão":
-            save_event_name(event_name="tab_view", event_params={"tab": "funnel"})
-            display_tab_funnel()
-        elif selected_page == "📊 Análise do Dia":
-            save_event_name(event_name="tab_view", event_params={"tab": "today"})
-            display_tab_today()
-        elif selected_page == "👜 Produtos Cadastrados" and st.session_state.tablename == 'gringa':
-            save_event_name(event_name="tab_view", event_params={"tab": "gringa_product_submitted"})
-            display_tab_gringa_product_submitted()
-        elif selected_page == "✉️ CRM" and st.session_state.tablename == 'holysoup':
-            save_event_name(event_name="tab_view", event_params={"tab": "holysoup_crm"})
-            display_tab_holysoup_crm()
-        elif selected_page == "💼 Visão Detalhada":
+        
+        elif selected_page == "Visão Detalhada":
             save_event_name(event_name="tab_view", event_params={"tab": "detailed"})
             traffic_filters_detailed()
             attribution_filters()
             display_tab_detailed()
-        elif selected_page == "🔧 Configurações":
+        
+        elif selected_page == "Análise do Dia":
+            save_event_name(event_name="tab_view", event_params={"tab": "today"})
+            display_tab_today()
+
+        elif selected_page == "Mídia Paga" and "Mídia Paga" in nav_options:
+            save_event_name(event_name="tab_view", event_params={"tab": "paid_media"})
+            display_tab_paid_media()
+        
+        elif selected_page == "Leads" and "Leads" in nav_options:
+            save_event_name(event_name="tab_view", event_params={"tab": "popup_leads"})
+            display_tab_leads()
+        
+        elif selected_page == "Pedidos":
+            save_event_name(event_name="tab_view", event_params={"tab": "last_orders"})
+            display_tab_last_orders()
+        
+        elif selected_page == "Taxas de Conversão":
+            save_event_name(event_name="tab_view", event_params={"tab": "funnel"})
+            display_tab_funnel()
+        
+        elif selected_page == "Configurações":
             save_event_name(event_name="tab_view", event_params={"tab": "config"})
             display_tab_config()
-        elif selected_page == "🧙🏻‍♂️ Master":
+        
+        elif selected_page == "Master":
             save_event_name(event_name="tab_view", event_params={"tab": "master"})
             display_tab_master()
-        elif selected_page == "👥 RFM":
+        
+        # CUSTOM TABS
+        elif selected_page == "Produtos Cadastrados" and st.session_state.tablename == 'gringa':
+            save_event_name(event_name="tab_view", event_params={"tab": "gringa_product_submitted"})
+            display_tab_gringa_product_submitted()
+        
+        elif selected_page == "CRM" and st.session_state.tablename == 'holysoup':
+            save_event_name(event_name="tab_view", event_params={"tab": "holysoup_crm"})
+            display_tab_holysoup_crm()
+
+        elif selected_page == "RFM" and st.session_state.tablename == 'oculosshop':
             save_event_name(event_name="tab_view", event_params={"tab": "rfm"})
             display_tab_rfm()
-        elif selected_page == "👥 Usuários":
+        
+        elif selected_page == "Usuários" and st.session_state.tablename == 'coffeemais':
             save_event_name(event_name="tab_view", event_params={"tab": "users"})
             display_tab_coffeemais_users()
-
-        elif selected_page == "✉️ CRM" and st.session_state.tablename == 'coffeemais':
+        
+        elif selected_page == "CRM" and st.session_state.tablename == 'coffeemais':
             save_event_name(event_name="tab_view", event_params={"tab": "coffeemais_crm"})
             display_tab_coffeemais_crm()
     

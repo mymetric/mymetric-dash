@@ -2,7 +2,7 @@ import streamlit as st
 from modules.load_data import load_gringa_product_submited
 
 def display_tab_gringa_product_submitted():
-    st.title("📊 Análise de Cadastros de Produtos")
+    st.title("Análise de Cadastros de Produtos")
     st.markdown("""---""")
 
     df = load_gringa_product_submited()

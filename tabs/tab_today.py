@@ -68,7 +68,7 @@ def create_progress_bar(current, target, color="#C5EBC3"):
     """
 
 def display_tab_today():
-    st.title("📊 Análise do Dia")
+    st.title("Análise do Dia")
     st.markdown("""---""")
 
     df = load_today_data()
@@ -189,47 +189,75 @@ def display_tab_today():
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Criar gráfico de barras para receita por hora
-    bar_hora = alt.Chart(df_hora).mark_bar(color='#C5EBC3').encode(
-        x=alt.X('Hora:O', title='Hora do Dia'),
-        y=alt.Y('Receita Paga:Q', title='Receita'),
-        tooltip=['Hora', 'Receita Paga', 'Pedidos', 'Sessões']
+    bar_hora = alt.Chart(df_hora).mark_bar(color='#E5E7EB', size=20).encode(
+        x=alt.X('Hora:O', 
+                title='Hora do Dia',
+                axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Receita Paga:Q', 
+                axis=alt.Axis(title='Receita',
+                             format='$,.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Hora:O', title='Hora'),
+            alt.Tooltip('Receita Paga:Q', title='Receita', format='$,.2f'),
+            alt.Tooltip('Pedidos:Q', title='Pedidos', format=',d'),
+            alt.Tooltip('Sessões:Q', title='Sessões', format=',d')
+        ]
     )
     
     # Criar linha para receita acumulada
-    line_acumulado = alt.Chart(df_hora).mark_line(color='#D1B1C8', strokeWidth=3).encode(
+    line_acumulado = alt.Chart(df_hora).mark_line(color='#3B82F6', strokeWidth=2.5).encode(
         x=alt.X('Hora:O'),
-        y=alt.Y('Receita Acumulada:Q', title='Receita Acumulada'),
-        tooltip=['Hora', 'Receita Acumulada']
+        y=alt.Y('Receita Acumulada:Q', 
+                axis=alt.Axis(title='Receita Acumulada',
+                             format='$,.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Hora:O', title='Hora'),
+            alt.Tooltip('Receita Acumulada:Q', title='Receita Acumulada', format='$,.2f')
+        ]
     )
     
-    # Combinar os gráficos
+    # Combinar os gráficos com melhorias visuais
     combined_hora = alt.layer(
-        bar_hora, line_acumulado
+        bar_hora, 
+        line_acumulado
     ).resolve_scale(
         y='independent'
     ).properties(
         width=700,
         height=400,
         title=alt.TitleParams(
-            text='Receita por Hora vs Receita Acumulada',
-            fontSize=18,
-            anchor='middle'
+            text='Evolução de Receita por Hora',
+            fontSize=16,
+            font='DM Sans',
+            anchor='start',
+            dy=-10
         )
+    ).configure_axis(
+        grid=True,
+        gridOpacity=0.1,
+        labelFontSize=12,
+        titleFontSize=13,
+        labelFont='DM Sans',
+        titleFont='DM Sans'
+    ).configure_view(
+        strokeWidth=0
     )
     
     # Exibir o gráfico
     st.altair_chart(combined_hora, use_container_width=True)
-    
-    # Adicionar legenda
+
+    # Adiciona legenda manual com design melhorado
     st.markdown("""
-        <div style="display: flex; justify-content: center; gap: 20px; margin-top: -20px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 20px; height: 15px; background-color: #C5EBC3;"></div>
-                <span>Receita por Hora</span>
+        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Receita Acumulada</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 20px; height: 3px; background-color: #D1B1C8;"></div>
-                <span>Receita Acumulada</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Receita por Hora</span>
             </div>
         </div>
     """, unsafe_allow_html=True)

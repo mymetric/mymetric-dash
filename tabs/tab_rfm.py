@@ -11,14 +11,14 @@ def export_to_csv(df):
     return output.getvalue()
 
 def display_tab_rfm():
-    st.title("👥 RFM")
+    st.title("RFM")
     st.markdown("""---""")
     
     # Carregar dados
     df = load_rfm_segments()
     
     if not df.empty:
-        with st.expander("ℹ️ Sobre a Segmentação RFM", expanded=False):
+        with st.expander("Sobre a Segmentação RFM", expanded=False):
             st.markdown("""
                 ### O que é Segmentação RFM?
                 

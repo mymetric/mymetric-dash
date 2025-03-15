@@ -3,43 +3,75 @@ import streamlit as st
 def tabs_css():
     st.markdown("""
         <style>
+            /* Base styles for radio buttons */
             label[data-baseweb="radio"] {
-                border: 1px solid #ccc !important;
-                padding: 10px !important;
-                margin: 0 5px 3px 0;
+                border: 2px solid #e5e7eb !important;
+                background-color: white !important;
+                border-radius: 8px !important;
+                padding: 12px 20px !important;
+                margin: 0 8px 8px 0 !important;
+                transition: all 0.3s ease !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
             }
+
+            /* Hide radio button circle */
             label[data-baseweb="radio"] .st-as {
                 display: none !important;
             }
-                label[data-baseweb="radio"] {
-                transition: all 0.2s ease;
+
+            /* Hover effect */
+            label[data-baseweb="radio"]:hover {
+                border-color: #d1d5db !important;
+                background-color: #f9fafb !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
             }
+
+            /* Selected state */
             label[data-baseweb="radio"]:has(input:checked) {
-                background-color: rgb(255, 75, 75) !important;
+                background-color: #4f46e5 !important;
+                border-color: #4f46e5 !important;
+                box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2) !important;
             }
+
+            /* Text color for selected state */
             label[data-baseweb="radio"]:has(input:checked) p {
                 color: white !important;
+                font-weight: 500 !important;
             }
+
+            /* Text styles */
+            label[data-baseweb="radio"] p {
+                color: #374151 !important;
+                font-size: 0.95rem !important;
+                transition: all 0.3s ease !important;
+            }
+
+            /* Sidebar specific styles */
             .stSidebar label[data-baseweb="radio"] {
-                padding: 3px 10px !important;
+                padding: 8px 16px !important;
                 width: 100% !important;
+                margin: 0 0 4px 0 !important;
             }
+
             .stSidebar label[data-baseweb="radio"] div {
                 width: 100% !important;
             }
+
             .stSidebar label[data-baseweb="radio"] div p {
                 width: 100% !important;
                 text-align: center !important;
-            }  
+                font-size: 0.9rem !important;
+            }
         </style>
     """, unsafe_allow_html=True)
 
-def big_number_box(data, label, hint=None, bg_color='#C5EBC3'):
-    # Novo estilo do ícone de informação
+def big_number_box(data, label, hint=None, bg_color='#F8FAFC'):
+    # Novo estilo do ícone de informação com melhor contraste
     info_icon = """
     <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#666" stroke-width="2"/>
-        <path d="M12 16V12M12 8H12.01" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#64748B" stroke-width="2"/>
+        <path d="M12 16V12M12 8H12.01" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
     </svg>
     """
     
@@ -52,164 +84,294 @@ def big_number_box(data, label, hint=None, bg_color='#C5EBC3'):
         if "," in value:
             whole, cents = value.split(",")
             st.markdown(f"""
-                <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px;position:relative">
+                <div class="big-number-box">
                     {f'<span class="tooltip" data-tooltip="{hint}">{info_icon}</span>' if hint else ''}
-                    <p style="color:#666;line-height:1;font-size:13px;margin:0 0 5px;">{label}</p>
-                    <p style="color:#666;line-height:1;margin:0;">
-                        <span style="font-size:20px">{currency_symbol}</span>
-                        <span style="font-size:33px">{whole}</span>
-                        <span style="font-size:20px">,{cents}</span>
+                    <p class="label">{label}</p>
+                    <p class="value">
+                        <span class="currency">{currency_symbol}</span>
+                        <span class="whole">{whole}</span>
+                        <span class="cents">,{cents}</span>
                     </p>
                 </div>
                 <style>
+                    .big-number-box {{
+                        background-color: {bg_color};
+                        padding: 24px;
+                        border-radius: 12px;
+                        text-align: center;
+                        margin: 8px 4px;
+                        position: relative;
+                        border: 1px solid rgba(226, 232, 240, 0.8);
+                        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    }}
+                    .big-number-box:hover {{
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                    }}
+                    .label {{
+                        color: #64748B;
+                        line-height: 1.2;
+                        font-size: 14px;
+                        font-weight: 500;
+                        margin: 0 0 12px;
+                    }}
+                    .value {{
+                        color: #0F172A;
+                        line-height: 1;
+                        margin: 0;
+                        display: flex;
+                        align-items: baseline;
+                        justify-content: center;
+                        gap: 2px;
+                    }}
+                    .currency {{
+                        font-size: 20px;
+                        font-weight: 500;
+                    }}
+                    .whole {{
+                        font-size: 36px;
+                        font-weight: 600;
+                    }}
+                    .cents {{
+                        font-size: 20px;
+                        font-weight: 500;
+                    }}
                     .tooltip {{
                         position: absolute;
-                        top: 8px;
-                        right: 8px;
+                        top: 12px;
+                        right: 12px;
                         cursor: help;
                         display: inline-flex;
                         align-items: center;
                     }}
                     .info-icon {{
                         transition: transform 0.2s ease;
+                        opacity: 0.6;
                     }}
                     .tooltip:hover .info-icon {{
                         transform: scale(1.1);
+                        opacity: 1;
                     }}
                     .tooltip:hover:after {{
                         content: attr(data-tooltip);
                         position: absolute;
                         bottom: 100%;
                         right: 0;
-                        transform: translateY(-8px);
-                        background: rgba(51, 51, 51, 0.95);
+                        transform: translateY(-4px);
+                        background: rgba(15, 23, 42, 0.95);
                         color: white;
                         padding: 8px 12px;
-                        border-radius: 6px;
-                        font-size: 12px;
+                        border-radius: 8px;
+                        font-size: 13px;
+                        line-height: 1.4;
                         white-space: normal;
                         z-index: 1000;
                         width: max-content;
-                        max-width: 250px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                        backdrop-filter: blur(2px);
+                        max-width: 280px;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                        backdrop-filter: blur(4px);
                     }}
                     .tooltip:hover:before {{
                         content: '';
                         position: absolute;
-                        bottom: -8px;
+                        bottom: -4px;
                         right: 8px;
                         transform: translateY(-100%);
                         border-width: 6px;
                         border-style: solid;
-                        border-color: rgba(51, 51, 51, 0.95) transparent transparent transparent;
+                        border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+                        z-index: 1000;
                     }}
                 </style>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-                <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px;position:relative">
+                <div class="big-number-box">
                     {f'<span class="tooltip" data-tooltip="{hint}">{info_icon}</span>' if hint else ''}
-                    <p style="color:#666;line-height:1;font-size:13px;margin:0 0 5px;">{label}</p>
-                    <p style="color:#666;line-height:1;margin:0;">
-                        <span style="font-size:20px">{currency_symbol}</span>
-                        <span style="font-size:35px">{value}</span>
+                    <p class="label">{label}</p>
+                    <p class="value">
+                        <span class="currency">{currency_symbol}</span>
+                        <span class="whole">{value}</span>
                     </p>
                 </div>
                 <style>
+                    .big-number-box {{
+                        background-color: {bg_color};
+                        padding: 24px;
+                        border-radius: 12px;
+                        text-align: center;
+                        margin: 8px 4px;
+                        position: relative;
+                        border: 1px solid rgba(226, 232, 240, 0.8);
+                        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    }}
+                    .big-number-box:hover {{
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                    }}
+                    .label {{
+                        color: #64748B;
+                        line-height: 1.2;
+                        font-size: 14px;
+                        font-weight: 500;
+                        margin: 0 0 12px;
+                    }}
+                    .value {{
+                        color: #0F172A;
+                        line-height: 1;
+                        margin: 0;
+                        display: flex;
+                        align-items: baseline;
+                        justify-content: center;
+                        gap: 2px;
+                    }}
+                    .currency {{
+                        font-size: 20px;
+                        font-weight: 500;
+                    }}
+                    .whole {{
+                        font-size: 36px;
+                        font-weight: 600;
+                    }}
                     .tooltip {{
                         position: absolute;
-                        top: 8px;
-                        right: 8px;
+                        top: 12px;
+                        right: 12px;
                         cursor: help;
                         display: inline-flex;
                         align-items: center;
                     }}
                     .info-icon {{
                         transition: transform 0.2s ease;
+                        opacity: 0.6;
                     }}
                     .tooltip:hover .info-icon {{
                         transform: scale(1.1);
+                        opacity: 1;
                     }}
                     .tooltip:hover:after {{
                         content: attr(data-tooltip);
                         position: absolute;
                         bottom: 100%;
                         right: 0;
-                        transform: translateY(-8px);
-                        background: rgba(51, 51, 51, 0.95);
+                        transform: translateY(-4px);
+                        background: rgba(15, 23, 42, 0.95);
                         color: white;
                         padding: 8px 12px;
-                        border-radius: 6px;
-                        font-size: 12px;
+                        border-radius: 8px;
+                        font-size: 13px;
+                        line-height: 1.4;
                         white-space: normal;
                         z-index: 1000;
                         width: max-content;
-                        max-width: 250px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                        backdrop-filter: blur(2px);
+                        max-width: 280px;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                        backdrop-filter: blur(4px);
                     }}
                     .tooltip:hover:before {{
                         content: '';
                         position: absolute;
-                        bottom: -8px;
+                        bottom: -4px;
                         right: 8px;
                         transform: translateY(-100%);
                         border-width: 6px;
                         border-style: solid;
-                        border-color: rgba(51, 51, 51, 0.95) transparent transparent transparent;
+                        border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+                        z-index: 1000;
                     }}
                 </style>
             """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-            <div style="background-color:{bg_color};padding:20px;border-radius:10px;text-align:center;margin:5px;position:relative">
+            <div class="big-number-box">
                 {f'<span class="tooltip" data-tooltip="{hint}">{info_icon}</span>' if hint else ''}
-                <p style="color:#666;line-height:1;font-size:13px;margin:0 0 5px;">{label}</p>
-                <p style="color:#666;line-height:1;font-size:35px;margin:0;">{data}</p>
+                <p class="label">{label}</p>
+                <p class="value">
+                    <span class="whole">{data}</span>
+                </p>
             </div>
             <style>
+                .big-number-box {{
+                    background-color: {bg_color};
+                    padding: 24px;
+                    border-radius: 12px;
+                    text-align: center;
+                    margin: 8px 4px;
+                    position: relative;
+                    border: 1px solid rgba(226, 232, 240, 0.8);
+                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }}
+                .big-number-box:hover {{
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                }}
+                .label {{
+                    color: #64748B;
+                    line-height: 1.2;
+                    font-size: 14px;
+                    font-weight: 500;
+                    margin: 0 0 12px;
+                }}
+                .value {{
+                    color: #0F172A;
+                    line-height: 1;
+                    margin: 0;
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: center;
+                }}
+                .whole {{
+                    font-size: 36px;
+                    font-weight: 600;
+                }}
                 .tooltip {{
                     position: absolute;
-                    top: 8px;
-                    right: 8px;
+                    top: 12px;
+                    right: 12px;
                     cursor: help;
                     display: inline-flex;
                     align-items: center;
                 }}
                 .info-icon {{
                     transition: transform 0.2s ease;
+                    opacity: 0.6;
                 }}
                 .tooltip:hover .info-icon {{
                     transform: scale(1.1);
+                    opacity: 1;
                 }}
                 .tooltip:hover:after {{
                     content: attr(data-tooltip);
                     position: absolute;
                     bottom: 100%;
                     right: 0;
-                    transform: translateY(-8px);
-                    background: rgba(51, 51, 51, 0.95);
+                    transform: translateY(-4px);
+                    background: rgba(15, 23, 42, 0.95);
                     color: white;
                     padding: 8px 12px;
-                    border-radius: 6px;
-                    font-size: 12px;
+                    border-radius: 8px;
+                    font-size: 13px;
+                    line-height: 1.4;
                     white-space: normal;
                     z-index: 1000;
                     width: max-content;
-                    max-width: 250px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                    backdrop-filter: blur(2px);
+                    max-width: 280px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                    backdrop-filter: blur(4px);
                 }}
                 .tooltip:hover:before {{
                     content: '';
                     position: absolute;
-                    bottom: -8px;
+                    bottom: -4px;
                     right: 8px;
                     transform: translateY(-100%);
                     border-width: 6px;
                     border-style: solid;
-                    border-color: rgba(51, 51, 51, 0.95) transparent transparent transparent;
+                    border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+                    z-index: 1000;
                 }}
             </style>
         """, unsafe_allow_html=True)

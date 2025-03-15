@@ -8,7 +8,7 @@ from partials.performance import analyze_meta_insights
 
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
-    st.subheader("📊 Análise Meta Ads")
+    st.subheader("Análise Meta Ads")
 
     st.info("""
         ℹ️ Os resultados apresentados nesta aba são baseados na atribuição do Pixel do Meta Ads.
@@ -137,7 +137,7 @@ def display_meta_ads_analysis():
     st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
 
     # Gráfico de tendência diária
-    st.subheader("📈 Tendência Diária")
+    st.subheader("Tendência Diária")
     
     df_daily = df_meta.groupby('date').agg({
         'impressions': 'sum',
@@ -191,16 +191,24 @@ def display_meta_ads_analysis():
         
         # Criar gráfico base
         base = alt.Chart(chart_data).encode(
-            x=alt.X('date:T', title='Data'),
-            color=alt.Color('Métrica:N', legend=alt.Legend(
-                orient='top',
-                title=None
-            ))
+            x=alt.X('date:T', 
+                   title='Data',
+                   axis=alt.Axis(format='%d/%m', labelAngle=0)),
+            color=alt.Color('Métrica:N', 
+                          legend=alt.Legend(
+                              orient='top',
+                              title=None,
+                              labelFont='DM Sans',
+                              labelFontSize=12
+                          ))
         )
         
         # Linha principal
         line = base.mark_line(strokeWidth=2).encode(
-            y=alt.Y('Valor:Q', title='Valor')
+            y=alt.Y('Valor:Q', 
+                   title='Valor',
+                   axis=alt.Axis(format=',.2f',
+                                titlePadding=10))
         )
         
         # Pontos
@@ -215,9 +223,21 @@ def display_meta_ads_analysis():
         
         # Combinar linha e pontos
         chart = (line + points).properties(
-            height=400
+            height=400,
+            title=alt.TitleParams(
+                text='Evolução de Métricas',
+                fontSize=16,
+                font='DM Sans',
+                anchor='start',
+                dy=-10
+            )
         ).configure_axis(
-            grid=False
+            grid=True,
+            gridOpacity=0.1,
+            labelFontSize=12,
+            titleFontSize=13,
+            labelFont='DM Sans',
+            titleFont='DM Sans'
         ).configure_view(
             strokeWidth=0
         )
@@ -227,7 +247,7 @@ def display_meta_ads_analysis():
     st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
 
     # Análise por Campanha
-    st.subheader("📑 Desempenho por Campanha")
+    st.subheader("Desempenho por Campanha")
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
     campaign_options = ["Todas"] + sorted(df_meta['campaign_name'].unique().tolist())
@@ -288,7 +308,7 @@ def display_meta_ads_analysis():
     st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
 
     # Análise por Grupo de Anúncios
-    st.subheader("📑 Desempenho por Grupo de Anúncios")
+    st.subheader("Desempenho por Grupo de Anúncios")
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
     # Apenas um filtro para Grupos de Anúncios
@@ -350,6 +370,7 @@ def display_meta_ads_analysis():
     st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
 
     # Análise por Anúncio
+    st.subheader("Desempenho por Anúncio")
     st.subheader("📑 Desempenho por Anúncio")
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
@@ -437,60 +458,78 @@ def display_general_view(df_ads):
 
     df_grouped = df_ads.groupby('Data').agg({'Receita': 'sum', 'Investimento': 'sum'}).reset_index()
 
-    # Cria o gráfico de Receita com a cor #D1B1C8 (roxo)
-    line_receita = alt.Chart(df_grouped).mark_line(color='#D1B1C8', strokeWidth=3).encode(
-        x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Receita:Q', axis=alt.Axis(title='Receita')),
-        tooltip=['Data', 'Receita']
+    # Formata os valores para o tooltip
+    df_grouped['Receita_fmt'] = df_grouped['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    df_grouped['Investimento_fmt'] = df_grouped['Investimento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+    # Cria o gráfico de Receita com a cor #3B82F6 (azul)
+    line_receita = alt.Chart(df_grouped).mark_line(color='#3B82F6', strokeWidth=2.5).encode(
+        x=alt.X('Data:T', 
+                title='Data',
+                axis=alt.Axis(format='%d/%m', labelAngle=0)),
+        y=alt.Y('Receita:Q', 
+                axis=alt.Axis(title='Receita',
+                             format='$,.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+            alt.Tooltip('Receita_fmt:N', title='Receita')
+        ]
     )
 
-    # Cria o gráfico de Investimento com a cor #C5EBC3 (verde)
-    bar_investimento = alt.Chart(df_grouped).mark_bar(color='#C5EBC3', size=25).encode(
+    # Cria o gráfico de Investimento com barras estilosas
+    bar_investimento = alt.Chart(df_grouped).mark_bar(color='#E5E7EB', size=20).encode(
         x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Investimento:Q', axis=alt.Axis(title='Investimento')),
-        tooltip=['Data', 'Investimento']
+        y=alt.Y('Investimento:Q', 
+                axis=alt.Axis(title='Investimento',
+                             format='$,.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+            alt.Tooltip('Investimento_fmt:N', title='Investimento')
+        ]
     )
 
-    # Adiciona interatividade de zoom e pan
-    zoom_pan = alt.selection_interval(bind='scales')
-
-    # Combine os dois gráficos (linha e barras) com dois eixos Y e interatividade
+    # Combine os dois gráficos com melhorias visuais
     combined_chart = alt.layer(
         bar_investimento,
         line_receita
     ).resolve_scale(
-        y='independent'  # Escalas independentes para as duas métricas
-    ).add_selection(
-        zoom_pan  # Adiciona a interação de zoom e pan
+        y='independent'
     ).properties(
         width=700,
         height=400,
         title=alt.TitleParams(
-            text='Investimento e Receita por Data',
-            fontSize=18,
-            anchor='middle'
+            text='Evolução de Investimento e Receita',
+            fontSize=16,
+            font='DM Sans',
+            anchor='start',
+            dy=-10
         )
     ).configure_axis(
-        grid=False,  # Adiciona grades discretas
+        grid=True,
+        gridOpacity=0.1,
         labelFontSize=12,
-        titleFontSize=14
+        titleFontSize=13,
+        labelFont='DM Sans',
+        titleFont='DM Sans'
     ).configure_view(
-        strokeWidth=0  # Remove a borda ao redor do gráfico
+        strokeWidth=0
     )
 
     # Exibe o gráfico no Streamlit
     st.altair_chart(combined_chart, use_container_width=True)
 
-    # Adiciona legenda manual com HTML/CSS abaixo do gráfico
+    # Adiciona legenda manual com design melhorado
     st.markdown("""
-        <div style="display: flex; justify-content: center; gap: 20px; margin-top: -20px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 20px; height: 3px; background-color: #D1B1C8;"></div>
-                <span>Receita</span>
+        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Receita</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 20px; height: 15px; background-color: #C5EBC3;"></div>
-                <span>Investimento</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Investimento</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -595,7 +634,7 @@ def display_general_view(df_ads):
     )
 
 def display_tab_paid_media():
-    st.title("💰 Mídia Paga")
+    st.title("Mídia Paga")
     
     # Adicionar tabs para análises específicas
     tab1, tab2 = st.tabs(["Visão Geral", "Meta Ads"])

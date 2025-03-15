@@ -234,15 +234,15 @@ def coupons_config():
         st.info("Nenhum cupom cadastrado.")
 
 def display_tab_config():
-    st.title("🔧 Configurações")
+    st.title("Configurações")
     st.markdown("""---""")
 
     # Criar tabs para cada seção
     tab_notices, tab_users, tab_goals, tab_coupons = st.tabs([
-        "🔔 Novidades",
-        "👥 Usuários",
-        "💰 Metas",
-        "🎫 Cupons"
+        "Novidades",
+        "Usuários",
+        "Metas",
+        "Cupons"
     ])
     
     # Conteúdo da tab de usuários

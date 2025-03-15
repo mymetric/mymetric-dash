@@ -18,6 +18,79 @@ st.set_page_config(
     layout="wide"
 )
 
+# Adiciona fonte e estilos globais
+st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 15px;
+            letter-spacing: -0.01em;
+        }
+
+        h1 {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 600;
+            font-size: 32px !important;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px !important;
+        }
+
+        h2 {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 600;
+            font-size: 24px !important;
+            letter-spacing: -0.02em;
+            margin-bottom: 14px !important;
+        }
+
+        h3 {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 600;
+            font-size: 20px !important;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px !important;
+        }
+
+        .stButton button {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 500;
+            font-size: 15px !important;
+        }
+
+        .stSelectbox div div div {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 15px !important;
+        }
+
+        /* Aumenta o tamanho do texto em inputs e seletores */
+        .stTextInput input, .stNumberInput input, .stDateInput input {
+            font-size: 15px !important;
+        }
+
+        /* Aumenta o tamanho do texto em tabelas */
+        .dataframe {
+            font-size: 15px !important;
+        }
+
+        /* Aumenta o tamanho do texto em métricas */
+        .metric-value {
+            font-size: 16px !important;
+        }
+
+        /* Ajusta o tamanho do texto em expanders */
+        .streamlit-expanderHeader {
+            font-size: 15px !important;
+        }
+
+        /* Ajusta o tamanho do texto em radio buttons e checkboxes */
+        .stRadio label, .stCheckbox label {
+            font-size: 15px !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # def get_cookies():
 controller = CookieController()
 authenticated = controller.get("mm_authenticated")

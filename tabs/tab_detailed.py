@@ -5,60 +5,84 @@ import altair as alt
 
 def tables_detailed(df):
 
-    st.title("💼 Visão Detalhada")
+    st.title("Visão Detalhada")
     st.markdown("""---""")
 
     df['Data'] = pd.to_datetime(df['Data']).dt.date  # Converte para apenas a data (sem horas)
     df_grouped = df.groupby('Data').agg({'Sessões': 'sum', 'Receita Paga': 'sum'}).reset_index()
 
-    # Cria o gráfico de Sessões com a cor #D1B1C8
-    line_sessions = alt.Chart(df_grouped).mark_line(color='#D1B1C8', strokeWidth=3).encode(
-        x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Sessões:Q', axis=alt.Axis(title='Sessões')),
-        tooltip=['Data', 'Sessões']
+    # Formata os valores para o tooltip
+    df_grouped['Sessões_fmt'] = df_grouped['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    df_grouped['Receita_fmt'] = df_grouped['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+    # Cria o gráfico de Sessões com a cor #3B82F6 (azul)
+    line_sessions = alt.Chart(df_grouped).mark_line(color='#3B82F6', strokeWidth=2.5).encode(
+        x=alt.X('Data:T', 
+                title='Data',
+                axis=alt.Axis(format='%d/%m', labelAngle=0)),
+        y=alt.Y('Sessões:Q', 
+                axis=alt.Axis(title='Sessões',
+                             format=',.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+            alt.Tooltip('Sessões_fmt:N', title='Sessões')
+        ]
     )
 
-    # Cria o gráfico de Receita Paga com a cor #C5EBC3 e barras estilosas
-    bar_receita = alt.Chart(df_grouped).mark_bar(color='#C5EBC3', size=25).encode(
+    # Cria o gráfico de Receita Paga com barras estilosas
+    bar_receita = alt.Chart(df_grouped).mark_bar(color='#E5E7EB', size=20).encode(
         x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Receita Paga:Q', axis=alt.Axis(title='Receita Paga')),
-        tooltip=['Data', 'Receita Paga']
+        y=alt.Y('Receita Paga:Q', 
+                axis=alt.Axis(title='Receita Paga',
+                             format='$,.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+            alt.Tooltip('Receita_fmt:N', title='Receita')
+        ]
     )
-    # Combine os dois gráficos (linha e barras) com dois eixos Y e interatividade
+
+    # Combine os dois gráficos com melhorias visuais
     combined_chart = alt.layer(
         bar_receita,
         line_sessions
     ).resolve_scale(
-        y='independent'  # Escalas independentes para as duas métricas
+        y='independent'
     ).properties(
         width=700,
         height=400,
         title=alt.TitleParams(
-            text='Sessões e Receita por Dia',
-            fontSize=18,
-            anchor='middle'
+            text='Evolução de Sessões e Receita',
+            fontSize=16,
+            font='DM Sans',
+            anchor='start',
+            dy=-10
         )
     ).configure_axis(
-        grid=False,  # Adiciona grades discretas
+        grid=True,
+        gridOpacity=0.1,
         labelFontSize=12,
-        titleFontSize=14
+        titleFontSize=13,
+        labelFont='DM Sans',
+        titleFont='DM Sans'
     ).configure_view(
-        strokeWidth=0  # Remove a borda ao redor do gráfico
+        strokeWidth=0
     )
 
     # Exibe o gráfico no Streamlit
     st.altair_chart(combined_chart, use_container_width=True)
 
-    # Adiciona legenda manual com HTML/CSS abaixo do gráfico
+    # Adiciona legenda manual com design melhorado
     st.markdown("""
-        <div style="display: flex; justify-content: center; gap: 20px; margin-top: -20px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 20px; height: 3px; background-color: #D1B1C8;"></div>
-                <span>Sessões</span>
+        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Sessões</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 20px; height: 15px; background-color: #C5EBC3;"></div>
-                <span>Receita Paga</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Receita</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -66,7 +90,7 @@ def tables_detailed(df):
     # Tabela de Cluster de Origens
     st.header("Cluster de Origens")
     
-    with st.expander("ℹ️ Entenda os Clusters", expanded=False):
+    with st.expander("Entenda os Clusters", expanded=False):
         st.markdown("""
             ### Explicação dos Clusters
             

@@ -8,10 +8,10 @@ def display_tab_coffeemais_crm():
     df = load_coffeemais_crm()
     
     # Add a title
-    st.title("📊 CRM")
+    st.title("CRM")
     
     # Add attribution model explanation in a collapsible section
-    with st.expander("ℹ️ Sobre o Modelo de Atribuição"):
+    with st.expander("Sobre o Modelo de Atribuição"):
         st.info("""
         Os dados apresentados neste dashboard seguem o seguinte modelo de atribuição:
         - A conversão é atribuída ao envio da mensagem (e-mail ou WhatsApp)
@@ -20,7 +20,7 @@ def display_tab_coffeemais_crm():
         """)
     
     # Create tabs for different views
-    tab_geral, tab_email, tab_whatsapp = st.tabs(["📊 Geral", "📧 E-mail", "💬 WhatsApp"])
+    tab_geral, tab_email, tab_whatsapp = st.tabs(["Geral", "E-mail", "WhatsApp"])
     
     # Calculate metrics for all channels
     total_sent = df['sent'].sum()

@@ -5,7 +5,7 @@ from modules.load_data import load_internal_events
 from modules.components import big_number_box
 
 def display_tab_master():
-    st.title("🧙🏻‍♂️ Master")
+    st.title("Master")
 
     # Carregar eventos internos
     df = load_internal_events()

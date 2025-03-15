@@ -220,7 +220,7 @@ def display_pending_items(pendencias):
         st.markdown("""
             <style>
                 .pendencia-alta { 
-                    border-left: 4px solid #dc3545 !important;
+                    border-left: 4px solid #3B82F6 !important;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 .pendencia-media { 
@@ -278,7 +278,7 @@ def display_pending_items(pendencias):
         
         for p in pendencias:
             severity_colors = {
-                'alta': '#dc3545',
+                'alta': '#3B82F6',
                 'media': '#ffc107',
                 'baixa': '#17a2b8'
             }
@@ -329,48 +329,117 @@ def display_pendings():
         # Garantir que o score não seja negativo
         score = max(0, score)
         
-        # Definir cor baseada no score
+        # Definir cor e mensagem baseada no score
         if score >= 8:
-            cor_score = "#28a745"  # Verde
+            cor_score = "#10B981"  # Verde esmeralda
+            status = "Excelente"
+            gradient = "linear-gradient(135deg, #10B981, #059669)"
         elif score >= 6:
-            cor_score = "#17a2b8"  # Azul
+            cor_score = "#3B82F6"  # Azul
+            status = "Bom"
+            gradient = "linear-gradient(135deg, #3B82F6, #2563EB)"
         elif score >= 4:
-            cor_score = "#ffc107"  # Amarelo
+            cor_score = "#F59E0B"  # Amarelo
+            status = "Regular"
+            gradient = "linear-gradient(135deg, #F59E0B, #D97706)"
         else:
-            cor_score = "#dc3545"  # Vermelho
+            cor_score = "#EF4444"  # Vermelho
+            status = "Crítico"
+            gradient = "linear-gradient(135deg, #EF4444, #DC2626)"
         
-        # Exibir o score
+        # Calcular o percentual para o círculo de progresso
+        percent = (score / 10) * 100
+        
+        # Exibir o score com design moderno
         st.markdown(f"""
             <div style="
-                margin-bottom: 20px;
-                padding: 15px;
-                border-radius: 10px;
-                background-color: {cor_score}15;
-                border: 1px solid {cor_score};
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                margin: 20px 0;
             ">
                 <div style="
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
+                    gap: 24px;
                 ">
-                    <div>
-                        <strong style="color: {cor_score}; font-size: 1.1em;">MyMetric Score</strong>
-                        <p style="margin: 5px 0 0 0; color: {cor_score}; font-size: 0.9em;">
-                            Avaliação da qualidade do seu rastreamento e implementação
+                    <div style="
+                        position: relative;
+                        width: 120px;
+                        height: 120px;
+                    ">
+                        <div style="
+                            position: absolute;
+                            width: 100%;
+                            height: 100%;
+                            border-radius: 50%;
+                            background: {gradient};
+                            clip-path: circle({percent}% at center);
+                            transition: all 0.3s ease;
+                        "></div>
+                        <div style="
+                            position: absolute;
+                            top: 10px;
+                            left: 10px;
+                            right: 10px;
+                            bottom: 10px;
+                            background: white;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-direction: column;
+                        ">
+                            <span style="
+                                font-size: 32px;
+                                font-weight: 700;
+                                color: {cor_score};
+                                line-height: 1;
+                            ">{score:.1f}</span>
+                            <span style="
+                                font-size: 12px;
+                                color: #6B7280;
+                                margin-top: 4px;
+                            ">/10</span>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 8px;
+                        ">
+                            <h2 style="
+                                margin: 0;
+                                font-size: 24px;
+                                color: #111827;
+                                font-weight: 600;
+                            ">MyMetric Score</h2>
+                            <span style="
+                                background: {cor_score}15;
+                                color: {cor_score};
+                                padding: 4px 12px;
+                                border-radius: 20px;
+                                font-size: 14px;
+                                font-weight: 500;
+                            ">{status}</span>
+                        </div>
+                        <p style="
+                            margin: 0;
+                            color: #6B7280;
+                            font-size: 14px;
+                            line-height: 1.5;
+                        ">
+                            Avaliação da qualidade do seu rastreamento e implementação. 
+                            Resolva as pendências abaixo para melhorar sua pontuação.
                         </p>
                     </div>
-                    <span style="
-                        background-color: {cor_score};
-                        color: white;
-                        padding: 8px 16px;
-                        border-radius: 20px;
-                        font-size: 1.2em;
-                        font-weight: bold;
-                    ">{score:.1f}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
         
         # Expander para pendências
-        with st.expander("📊 Melhore seu Score", expanded=False):
+        with st.expander("Melhore seu Score", expanded=False):
             display_pending_items(pendencias)

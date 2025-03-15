@@ -64,7 +64,7 @@ def upload_to_drive(df, filename):
         return None
 
 def display_tab_holysoup_crm():
-    st.title("📊 CRM")
+    st.title("CRM")
     st.markdown("""---""")
 
     df = load_holysoup_email_stats()
@@ -112,7 +112,7 @@ def display_tab_holysoup_crm():
             monthly_metrics['ROI'] = 0
 
         # Display metrics using big_number_box component
-        st.subheader("📧 E-mail Marketing")
+        st.subheader("E-mail Marketing")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -160,13 +160,13 @@ def display_tab_holysoup_crm():
                 hint="Número total de cliques nos e-mails"
             )
 
-        with st.expander("ℹ️ Modelo de Atribuição - E-mail Marketing"):
+        with st.expander("Modelo de Atribuição - E-mail Marketing"):
             st.write("Último e-mail enviado, até 7 dias antes da compra, independentemente se foi aberto ou clicado.")
 
         st.markdown("---")
         
         # Display WhatsApp metrics
-        st.subheader("📱 WhatsApp")
+        st.subheader("WhatsApp")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -194,12 +194,12 @@ def display_tab_holysoup_crm():
                 hint="Retorno sobre o investimento do WhatsApp ((Receita - Custo) / Custo) × 100"
             )
 
-        with st.expander("ℹ️ Modelo de Atribuição - WhatsApp"):
+        with st.expander("Modelo de Atribuição - WhatsApp"):
             st.write("Último clique do cliente antes de comprar, tende a ser menos generoso que a atribuição do e-mail marketing.")
 
         st.markdown("---")
 
-        with st.expander("📧 E-mail Marketing - Detalhes", expanded=False):
+        with st.expander("E-mail Marketing - Detalhes", expanded=False):
             # Prepare data for timeline
             timeline_df = df.copy()
             timeline_df['Data'] = pd.to_datetime(timeline_df['Data'])
@@ -210,20 +210,38 @@ def display_tab_holysoup_crm():
             with chart_col1:
                 # Revenue chart
                 revenue_chart = alt.Chart(timeline_df).mark_bar(
-                    color='#28a745',
-                    opacity=0.7
+                    color='#E5E7EB',
+                    size=20
                 ).encode(
-                    x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
+                    x=alt.X('Data:T', 
+                           title='Data', 
+                           axis=alt.Axis(format='%d/%m', labelAngle=0)),
                     y=alt.Y('Receita:Q',
-                            title='Receita (R$)',
-                            axis=alt.Axis(format=',.2f')),
+                           title='Receita',
+                           axis=alt.Axis(format='$,.2f',
+                                       titlePadding=10)),
                     tooltip=[
-                        alt.Tooltip('Data:T', title='Data'),
-                        alt.Tooltip('Receita:Q', title='Receita', format=',.2f')
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Receita:Q', title='Receita', format='$,.2f')
                     ]
                 ).properties(
-                    title='Receita por Data',
+                    title=alt.TitleParams(
+                        text='Evolução de Receita',
+                        fontSize=16,
+                        font='DM Sans',
+                        anchor='start',
+                        dy=-10
+                    ),
                     height=400
+                ).configure_axis(
+                    grid=True,
+                    gridOpacity=0.1,
+                    labelFontSize=12,
+                    titleFontSize=13,
+                    labelFont='DM Sans',
+                    titleFont='DM Sans'
+                ).configure_view(
+                    strokeWidth=0
                 )
                 
                 st.altair_chart(revenue_chart, use_container_width=True)
@@ -231,20 +249,38 @@ def display_tab_holysoup_crm():
             with chart_col2:
                 # Dispatch chart
                 dispatch_chart = alt.Chart(timeline_df).mark_bar(
-                    color='#17a2b8',
-                    opacity=0.7
+                    color='#E5E7EB',
+                    size=20
                 ).encode(
-                    x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
+                    x=alt.X('Data:T', 
+                           title='Data', 
+                           axis=alt.Axis(format='%d/%m', labelAngle=0)),
                     y=alt.Y('Enviado:Q',
-                            title='Disparos',
-                            axis=alt.Axis(format=',d')),
+                           title='Disparos',
+                           axis=alt.Axis(format=',d',
+                                       titlePadding=10)),
                     tooltip=[
-                        alt.Tooltip('Data:T', title='Data'),
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
                         alt.Tooltip('Enviado:Q', title='Disparos', format=',d')
                     ]
                 ).properties(
-                    title='Disparos por Data',
+                    title=alt.TitleParams(
+                        text='Evolução de Disparos',
+                        fontSize=16,
+                        font='DM Sans',
+                        anchor='start',
+                        dy=-10
+                    ),
                     height=400
+                ).configure_axis(
+                    grid=True,
+                    gridOpacity=0.1,
+                    labelFontSize=12,
+                    titleFontSize=13,
+                    labelFont='DM Sans',
+                    titleFont='DM Sans'
+                ).configure_view(
+                    strokeWidth=0
                 )
                 
                 st.altair_chart(dispatch_chart, use_container_width=True)
@@ -302,14 +338,15 @@ def display_tab_holysoup_crm():
 
                     # Linha para taxa de rejeição
                     line_bounce = base.mark_line(
-                        color='#dc3545',
-                        opacity=0.7
+                        color='#3B82F6',
+                        strokeWidth=2.5
                     ).encode(
                         y=alt.Y('Taxa de Rejeição:Q',
                                title='Taxa de Rejeição (%)',
-                               axis=alt.Axis(format='.1%')),
+                               axis=alt.Axis(format='.1%',
+                                           titlePadding=10)),
                         tooltip=[
-                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
                             alt.Tooltip('Taxa de Rejeição:Q', title='Taxa de Rejeição', format='.1%'),
                             alt.Tooltip('rejeicao:Q', title='Rejeições', format=',d')
                         ]
@@ -317,14 +354,15 @@ def display_tab_holysoup_crm():
 
                     # Barras para valor absoluto de rejeições
                     bar_bounce = base.mark_bar(
-                        color='#dc3545',
-                        opacity=0.3
+                        color='#E5E7EB',
+                        size=20
                     ).encode(
                         y=alt.Y('rejeicao:Q',
-                               title='Rejeições (Absoluto)',
-                               axis=alt.Axis(format=',d')),
+                               title='Rejeições',
+                               axis=alt.Axis(format=',d',
+                                           titlePadding=10)),
                         tooltip=[
-                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
                             alt.Tooltip('rejeicao:Q', title='Rejeições', format=',d'),
                             alt.Tooltip('Taxa de Rejeição:Q', title='Taxa de Rejeição', format='.1%')
                         ]
@@ -334,11 +372,40 @@ def display_tab_holysoup_crm():
                     bounce_chart = alt.layer(line_bounce, bar_bounce).resolve_scale(
                         y='independent'
                     ).properties(
-                        title='Taxa de Rejeição e Rejeições Absolutas por Data',
+                        title=alt.TitleParams(
+                            text='Evolução de Taxa de Rejeição',
+                            fontSize=16,
+                            font='DM Sans',
+                            anchor='start',
+                            dy=-10
+                        ),
                         height=400
+                    ).configure_axis(
+                        grid=True,
+                        gridOpacity=0.1,
+                        labelFontSize=12,
+                        titleFontSize=13,
+                        labelFont='DM Sans',
+                        titleFont='DM Sans'
+                    ).configure_view(
+                        strokeWidth=0
                     )
                     
                     st.altair_chart(bounce_chart, use_container_width=True)
+
+                    # Adiciona legenda manual com design melhorado
+                    st.markdown("""
+                        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Taxa de Rejeição</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Rejeições</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
             with timeline_col2:
                 if not df_optout_filtered.empty:
@@ -349,14 +416,15 @@ def display_tab_holysoup_crm():
 
                     # Linha para taxa de descadastro
                     line_unsub = base.mark_line(
-                        color='#ffc107',
-                        opacity=0.7
+                        color='#3B82F6',
+                        strokeWidth=2.5
                     ).encode(
                         y=alt.Y('Taxa de Descadastro:Q',
                                title='Taxa de Descadastro (%)',
-                               axis=alt.Axis(format='.1%')),
+                               axis=alt.Axis(format='.1%',
+                                           titlePadding=10)),
                         tooltip=[
-                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
                             alt.Tooltip('Taxa de Descadastro:Q', title='Taxa de Descadastro', format='.1%'),
                             alt.Tooltip('descadastro:Q', title='Descadastros', format=',d')
                         ]
@@ -364,14 +432,15 @@ def display_tab_holysoup_crm():
 
                     # Barras para valor absoluto de descadastros
                     bar_unsub = base.mark_bar(
-                        color='#ffc107',
-                        opacity=0.3
+                        color='#E5E7EB',
+                        size=20
                     ).encode(
                         y=alt.Y('descadastro:Q',
-                               title='Descadastros (Absoluto)',
-                               axis=alt.Axis(format=',d')),
+                               title='Descadastros',
+                               axis=alt.Axis(format=',d',
+                                           titlePadding=10)),
                         tooltip=[
-                            alt.Tooltip('Data:T', title='Data'),
+                            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
                             alt.Tooltip('descadastro:Q', title='Descadastros', format=',d'),
                             alt.Tooltip('Taxa de Descadastro:Q', title='Taxa de Descadastro', format='.1%')
                         ]
@@ -381,14 +450,43 @@ def display_tab_holysoup_crm():
                     unsubscribe_chart = alt.layer(line_unsub, bar_unsub).resolve_scale(
                         y='independent'
                     ).properties(
-                        title='Taxa de Descadastro e Descadastros Absolutos por Data',
+                        title=alt.TitleParams(
+                            text='Evolução de Taxa de Descadastro',
+                            fontSize=16,
+                            font='DM Sans',
+                            anchor='start',
+                            dy=-10
+                        ),
                         height=400
+                    ).configure_axis(
+                        grid=True,
+                        gridOpacity=0.1,
+                        labelFontSize=12,
+                        titleFontSize=13,
+                        labelFont='DM Sans',
+                        titleFont='DM Sans'
+                    ).configure_view(
+                        strokeWidth=0
                     )
                     
                     st.altair_chart(unsubscribe_chart, use_container_width=True)
 
+                    # Adiciona legenda manual com design melhorado
+                    st.markdown("""
+                        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Taxa de Descadastro</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Descadastros</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
         st.markdown("""---""")
-        st.subheader("📱 Controle de Envios de WhatsApp")
+        st.subheader("Controle de Envios de WhatsApp")
         with st.expander("Registrar Envios de WhatsApp", expanded=False):
             # Carregar configurações existentes
             current_metas = load_table_metas()

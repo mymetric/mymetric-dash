@@ -26,9 +26,6 @@ def load_table_metas():
     return default_metas
 
 def display_run_rate(df):
-
-
-    
     df_run_rate = df.copy()
 
     current_date = date.today()
@@ -41,7 +38,6 @@ def display_run_rate(df):
     meta_receita = load_table_metas()
 
     if meta_receita != 0:
-
         current_month = datetime.now().strftime("%Y-%m")
         meta_receita = meta_receita.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
 
@@ -52,102 +48,125 @@ def display_run_rate(df):
             _, last_day = calendar.monthrange(current_date.year, current_date.month)
             meta_proporcional = meta_receita * (dias_passados / last_day)
             
-            # Usar df_run_rate para cálculos do Run Rate (sem filtros)
             total_receita_paga_run_rate = df_run_rate["Receita Paga"].sum()
             percentual_meta = (total_receita_paga_run_rate / meta_proporcional) * 100 if meta_proporcional > 0 else 0
             
             st.header("Run Rate")
 
-            # Calcula a projeção de fechamento do mês
             receita_projetada = total_receita_paga_run_rate * (last_day / dias_passados) if dias_passados > 0 else 0
-            
-            # Calcula a probabilidade de atingir a meta
             media_diaria = total_receita_paga_run_rate / dias_passados if dias_passados > 0 else 0
             dias_restantes = last_day - dias_passados
             valor_faltante = meta_receita - total_receita_paga_run_rate
             valor_necessario_por_dia = valor_faltante / dias_restantes if dias_restantes > 0 else float('inf')
             
-            # Calcula a probabilidade baseada na diferença entre a média diária atual e a necessária
+            # Definir cores e mensagens
             if valor_faltante <= 0:
-                probabilidade = 100  # Já atingiu a meta
-                mensagem_probabilidade = "🎉 Meta atingida! Continue o ótimo trabalho!"
-                cor_probabilidade = "#28a745"
+                probabilidade = 100
+                mensagem_probabilidade = "Meta atingida! Continue o ótimo trabalho!"
+                cor_probabilidade = "#10B981"
+                gradient = "linear-gradient(135deg, #10B981, #059669)"
             elif dias_restantes == 0:
                 if valor_faltante > 0:
                     probabilidade = 0
-                    mensagem_probabilidade = "⚠️ Tempo esgotado para este mês"
-                    cor_probabilidade = "#dc3545"
+                    mensagem_probabilidade = "Tempo esgotado para este mês"
+                    cor_probabilidade = "#EF4444"
+                    gradient = "linear-gradient(135deg, #EF4444, #DC2626)"
                 else:
                     probabilidade = 100
-                    mensagem_probabilidade = "🎉 Meta atingida! Continue o ótimo trabalho!"
-                    cor_probabilidade = "#28a745"
+                    mensagem_probabilidade = "Meta atingida! Continue o ótimo trabalho!"
+                    cor_probabilidade = "#10B981"
+                    gradient = "linear-gradient(135deg, #10B981, #059669)"
             else:
-                # Quanto maior a média diária em relação ao necessário, maior a probabilidade
                 razao = media_diaria / valor_necessario_por_dia if valor_necessario_por_dia > 0 else 0
                 probabilidade = min(100, razao * 100)
                 
-                # Define a mensagem baseada na faixa de probabilidade
                 if probabilidade >= 80:
-                    mensagem_probabilidade = "🚀 Excelente ritmo! Você está muito próximo de atingir a meta!"
-                    cor_probabilidade = "#28a745"
+                    mensagem_probabilidade = "Excelente ritmo! Você está muito próximo de atingir a meta!"
+                    cor_probabilidade = "#10B981"
+                    gradient = "linear-gradient(135deg, #10B981, #059669)"
                 elif probabilidade >= 60:
-                    mensagem_probabilidade = "💪 Bom progresso! Continue focado que a meta está ao seu alcance!"
-                    cor_probabilidade = "#17a2b8"
+                    mensagem_probabilidade = "Bom progresso! Continue focado que a meta está ao seu alcance!"
+                    cor_probabilidade = "#3B82F6"
+                    gradient = "linear-gradient(135deg, #3B82F6, #2563EB)"
                 elif probabilidade >= 40:
-                    mensagem_probabilidade = "⚡ Momento de intensificar! Aumente as ações de marketing e vendas!"
-                    cor_probabilidade = "#ffc107"
+                    mensagem_probabilidade = "Momento de intensificar! Aumente as ações de marketing e vendas!"
+                    cor_probabilidade = "#F59E0B"
+                    gradient = "linear-gradient(135deg, #F59E0B, #D97706)"
                 elif probabilidade >= 20:
-                    mensagem_probabilidade = "🎯 Hora de agir! Revise suas estratégias e faça ajustes!"
-                    cor_probabilidade = "#fd7e14"
+                    mensagem_probabilidade = "Hora de agir! Revise suas estratégias e faça ajustes!"
+                    cor_probabilidade = "#F97316"
+                    gradient = "linear-gradient(135deg, #F97316, #EA580C)"
                 else:
-                    mensagem_probabilidade = "🔥 Alerta! Momento de tomar ações urgentes para reverter o cenário!"
-                    cor_probabilidade = "#dc3545"
+                    mensagem_probabilidade = "Alerta! Momento de tomar ações urgentes para reverter o cenário!"
+                    cor_probabilidade = "#EF4444"
+                    gradient = "linear-gradient(135deg, #EF4444, #DC2626)"
 
+            # Renderizar o card principal
             st.markdown(f"""
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #666;">
-                        <p style="margin: 0;">Meta do Mês: R$ {meta_receita:,.2f}</p>
-                        <p style="margin: 0;">Projeção: R$ {receita_projetada:,.2f} ({(receita_projetada/meta_receita*100):.1f}% da meta)</p>
-                    </div>
-                    <div style="width: 100%; background-color: #f0f2f6; border-radius: 10px;">
-                        <div style="width: {min(percentual_meta, 100)}%; height: 20px; background-color: {'#28a745' if percentual_meta >= 100 else '#dc3545' if percentual_meta < 80 else '#17a2b8'}; 
-                            border-radius: 10px; text-align: center; color: white; line-height: 20px;">
-                            {percentual_meta:.1f}%
+                <div style="background:white; border-radius:16px; padding:24px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); margin:20px 0;">
+                    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:24px; margin-bottom:24px;">
+                        <div style="background:#F8FAFC; padding:16px; border-radius:12px;">
+                            <div style="color:#64748B; font-size:14px; margin-bottom:8px;">Meta do Mês</div>
+                            <div style="color:#0F172A; font-size:24px; font-weight:600;">R$ {meta_receita:,.2f}</div>
                         </div>
-                    </div>
-                    <div style="
-                        margin-top: 15px;
-                        padding: 15px;
-                        border-radius: 10px;
-                        background-color: {cor_probabilidade}15;
-                        border: 1px solid {cor_probabilidade};
-                    ">
-                        <div style="
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            margin-bottom: 8px;
-                        ">
-                            <strong style="color: {cor_probabilidade};">Probabilidade de atingir a meta</strong>
-                            <span style="
-                                background-color: {cor_probabilidade};
-                                color: white;
-                                padding: 4px 12px;
-                                border-radius: 15px;
-                                font-weight: bold;
-                            ">{probabilidade:.1f}%</span>
+                        <div style="background:#F8FAFC; padding:16px; border-radius:12px;">
+                            <div style="color:#64748B; font-size:14px; margin-bottom:8px;">Projeção</div>
+                            <div style="color:#0F172A; font-size:24px; font-weight:600;">R$ {receita_projetada:,.2f}</div>
+                            <div style="color:#64748B; font-size:12px; margin-top:4px;">{(receita_projetada/meta_receita*100):.1f}% da meta</div>
                         </div>
-                        <p style="
-                            margin: 0;
-                            color: {cor_probabilidade};
-                            font-size: 0.95em;
-                        ">{mensagem_probabilidade}</p>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
 
+            # Renderizar a barra de progresso
+            st.markdown(f"""
+                <div style="margin-bottom:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="color:#64748B; font-size:14px;">Progresso</div>
+                        <div style="color:{cor_probabilidade}; font-weight:500;">{percentual_meta:.1f}%</div>
+                    </div>
+                    <div style="width:100%; height:8px; background:#F1F5F9; border-radius:4px; overflow:hidden;">
+                        <div style="width:{min(percentual_meta, 100)}%; height:100%; background:{gradient}; border-radius:4px; transition:width 0.3s ease;"></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Renderizar o card de probabilidade
+            st.markdown(f"""
+                <div style="background:{cor_probabilidade}10; border:1px solid {cor_probabilidade}25; padding:20px; border-radius:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:8px; height:8px; border-radius:50%; background:{cor_probabilidade};"></div>
+                            <span style="color:{cor_probabilidade}; font-weight:500;">Probabilidade de atingir a meta</span>
+                        </div>
+                        <div style="background:{cor_probabilidade}; color:white; padding:6px 16px; border-radius:20px; font-weight:500; font-size:14px;">{probabilidade:.1f}%</div>
+                    </div>
+                    <p style="margin:0; color:{cor_probabilidade}; font-size:14px; line-height:1.5;">{mensagem_probabilidade}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Renderizar as métricas adicionais
+            st.markdown(f"""
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:24px; margin-bottom:32px;">
+                    <div style="text-align:center;">
+                        <div style="color:#64748B; font-size:13px; margin-bottom:4px;">Dias Passados</div>
+                        <div style="color:#0F172A; font-weight:500;">{dias_passados} de {last_day}</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="color:#64748B; font-size:13px; margin-bottom:4px;">Média Diária</div>
+                        <div style="color:#0F172A; font-weight:500;">R$ {media_diaria:,.2f}</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="color:#64748B; font-size:13px; margin-bottom:4px;">Meta Diária</div>
+                        <div style="color:#0F172A; font-weight:500;">R$ {valor_necessario_por_dia:,.2f}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<div style='margin-bottom:24px;'></div>", unsafe_allow_html=True)
+
             # Adiciona explicação detalhada do Run Rate
-            with st.expander("ℹ️ Como o Run Rate é calculado?"):
+            with st.expander("Como o Run Rate é calculado?"):
                 st.markdown(f"""
                     ### Cálculo do Run Rate
 
@@ -168,28 +187,9 @@ def display_run_rate(df):
                     - Abaixo de 100% indica que precisa acelerar as vendas para atingir a meta
 
                     **Faixas de Probabilidade:**
-                    - 🟢 80-100%: Excelente chance de atingir a meta
-                    - 🔵 60-79%: Boa chance, mantenha o foco
-                    - 🟡 40-59%: Chance moderada, intensifique as ações
-                    - 🟠 20-39%: Chance baixa, momento de revisar estratégias
-                    - 🔴 0-19%: Chance muito baixa, ações urgentes necessárias
-
-                    **Exemplo:**
-                    Se sua meta é R$ 100.000 e já se passaram 15 dias de um mês com 30 dias:
-                    1. Meta proporcional = R$ 100.000 × (15/30) = R$ 50.000
-                    2. Se você faturou R$ 60.000, seu Run Rate é 120% (acima do necessário)
-                    3. Se faturou R$ 40.000, seu Run Rate é 80% (precisa acelerar)
-                """)
-
-                # Adiciona projeção de fechamento
-                receita_projetada = total_receita_paga_run_rate * (last_day / dias_passados)
-                st.markdown(f"""
-                    ### Projeção de Fechamento
-
-                    Mantendo o ritmo atual de vendas:
-                    - Projeção de receita: R$ {receita_projetada:,.2f}
-                    - Percentual da meta: {(receita_projetada/meta_receita*100):.1f}%
-                    - {'🎯 Meta será atingida!' if receita_projetada >= meta_receita else '⚠️ Meta não será atingida no ritmo atual'}
-                    
-                    {f'Faltam R$ {(meta_receita - receita_projetada):,.2f} para atingir a meta no ritmo atual.' if receita_projetada < meta_receita else ''}
+                    - 80-100%: Excelente chance de atingir a meta
+                    - 60-79%: Boa chance, mantenha o foco
+                    - 40-59%: Chance moderada, intensifique as ações
+                    - 20-39%: Chance baixa, momento de revisar estratégias
+                    - 0-19%: Chance muito baixa, ações urgentes necessárias
                 """)

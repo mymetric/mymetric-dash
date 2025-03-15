@@ -16,9 +16,9 @@ def date_filters():
     
     with st.sidebar:
         if st.session_state.username == "mymetric":
-            st.markdown(f"## MYMETRIC")
+            st.markdown("## MYMETRIC")
         else:
-            st.markdown(f"## {st.session_state.tablename.upper()}")
+            st.markdown("## " + st.session_state.tablename.upper())
 
     # Sempre inicializa com o mês atual
     start_date = first_day_of_month

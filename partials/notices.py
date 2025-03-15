@@ -5,7 +5,7 @@ from streamlit_cookies_controller import CookieController
 
 def display_notices():
     
-    with st.expander("🔔 Novidades", expanded=True):
+    with st.expander("Novidades", expanded=True):
         controller = CookieController()
 
         def display_notice(title, date, message, expiry_date):

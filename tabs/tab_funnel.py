@@ -6,7 +6,7 @@ from plotly.subplots import make_subplots
 import altair as alt
 
 def items_performance():
-    st.subheader("🎯 Análise de Produtos")
+    st.subheader("Análise de Produtos")
     col1, col2 = st.columns(2)
     with col1:
         desvios = st.number_input('Desvios padrão para alertas:', min_value=0.1, max_value=3.0, value=0.5, step=0.1, help='Número de desvios padrão abaixo da média para gerar alerta')
@@ -54,11 +54,11 @@ def items_performance():
 
 def display_tab_funnel():
         
-    st.title("🎯 Funil de Conversão")
+    st.title("Funil de Conversão")
     st.markdown("""---""")
 
     
-    with st.expander("ℹ️ Entenda as Taxas de Conversão", expanded=False):
+    with st.expander("Entenda as Taxas de Conversão", expanded=False):
         st.markdown("""
             ### Como interpretar as taxas de conversão:
             
@@ -103,7 +103,7 @@ def display_tab_funnel():
     df['Taxa View Product -> Pedido'] = (df['Pedido'] / df['Visualização de Item'] * 100).round(2)
 
     # Calcular desvios da média dos últimos 30 dias
-    st.subheader("📊 Desvios da Média (Últimos 30 dias)")
+    st.subheader("Desvios da Média (Últimos 30 dias)")
     
     # Criar colunas para os big numbers
     cols = st.columns(3)
@@ -179,7 +179,7 @@ def display_tab_funnel():
             """, unsafe_allow_html=True)
 
     st.markdown("""---""")
-    st.subheader("📈 Taxas de Conversão ao Longo do Tempo")
+    st.subheader("Taxas de Conversão ao Longo do Tempo")
     
     # Criar gráficos individuais para cada taxa de conversão
     fig = make_subplots(
@@ -224,7 +224,7 @@ def display_tab_funnel():
     st.plotly_chart(fig, use_container_width=True)
 
     # Exibir tabela com todos os dados
-    st.subheader("📊 Dados Detalhados")
+    st.subheader("Dados Detalhados")
     st.data_editor(df, hide_index=1, use_container_width=1)
     
 

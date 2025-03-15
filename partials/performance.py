@@ -103,7 +103,7 @@ def render_insight_card(title: str, content: str, suggestions: str = None, card_
     colors = {
         "success": "#28a745",
         "warning": "#ffc107",
-        "danger": "#dc3545",
+        "danger": "#3B82F6",
         "info": "#17a2b8"
     }
     color = colors.get(card_type, "#17a2b8")
@@ -150,7 +150,7 @@ def render_insight_card(title: str, content: str, suggestions: str = None, card_
 
 def analyze_meta_insights(df_meta):
     """Analisa dados do Meta Ads para extrair insights relevantes"""
-    st.subheader("🎯 Insights do Meta Ads")
+    st.subheader("Insights do Meta Ads")
     
     col1, col2 = st.columns(2)
     
@@ -306,12 +306,13 @@ Melhor Taxa de Conversão:
 def display_performance():
     """Exibe alertas e insights de performance"""
     
-    with st.expander("📈 Performance", expanded=True):
+    # Performance expander
+    with st.expander("Performance", expanded=True):
         # Seção 1: Alertas de Performance do Funil
         alertas_performance = check_performance_alerts()
         
         if alertas_performance:
-            st.subheader("⚠️ Alertas do Funil de Conversão")
+            st.subheader("Alertas do Funil de Conversão")
             for alerta in alertas_performance:
                 card_type = {
                     'alta': 'danger',
