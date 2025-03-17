@@ -91,6 +91,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Carrega estilos adicionais para botões
+with open('assets/button_styles.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 # def get_cookies():
 controller = CookieController()
 authenticated = controller.get("mm_authenticated")
