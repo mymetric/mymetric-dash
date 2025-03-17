@@ -93,10 +93,11 @@ def display_tab_holysoup_crm():
             'Total Enviados': df['Enviado'].sum(),
             'Total Abertos': df['Abertos'].sum(),
             'Total Cliques': df['Cliques'].sum(),
-            'Receita Total': df['Receita'].sum(),
-            'Custo Total': df['Custo'].round(2).sum(),
+            'Total Pedidos': df['Pedidos'].sum(),
             'Pedidos Último Clique': df['Pedidos Último Clique'].sum(),
-            'Receita Último Clique': df['Receita Último Clique'].sum()
+            'Receita Total': df['Receita'].sum(),
+            'Receita Último Clique': df['Receita Último Clique'].sum(),
+            'Custo Total': df['Custo'].round(2).sum()
         }
 
         # Calculate overall rates
@@ -126,9 +127,14 @@ def display_tab_holysoup_crm():
                 hint="Número total de e-mails enviados no período"
             )
             big_number_box(
-                f"{monthly_metrics['Taxa de Abertura']:.2f}%".replace(".", ","),
-                "Taxa de Abertura",
-                hint="Percentual de e-mails que foram abertos"
+                f"{monthly_metrics['Total Pedidos']:,.0f}".replace(",", "."),
+                "Total de Pedidos",
+                hint="Número total de pedidos gerados pelos e-mails"
+            )
+            big_number_box(
+                f"{monthly_metrics['Pedidos Último Clique']:,.0f}".replace(",", "."),
+                "Pedidos Último Clique",
+                hint="Número de pedidos atribuídos ao último clique"
             )
         with col2:
             big_number_box(
@@ -137,42 +143,10 @@ def display_tab_holysoup_crm():
                 hint="Número total de e-mails abertos"
             )
             big_number_box(
-                f"{monthly_metrics['Taxa de Clique']:.2f}%".replace(".", ","),
-                "Taxa de Clique",
-                hint="Percentual de e-mails que receberam cliques"
-            )
-        with col3:
-            big_number_box(
                 f"R$ {monthly_metrics['Receita Total']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
                 "Receita Total",
                 hint="Receita total gerada pelos e-mails"
             )
-            big_number_box(
-                f"{monthly_metrics['ROI']:,.1f}%".replace(",", "*").replace(".", ",").replace("*", "."),
-                "ROI",
-                hint="Retorno sobre o investimento ((Receita - Custo) / Custo) × 100"
-            )
-        with col4:
-            big_number_box(
-                f"R$ {monthly_metrics['Custo Total']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-                "Custo Total",
-                hint="Custo total dos disparos de e-mail. Cálculo baseado no custo da Amazon SES."
-            )
-            big_number_box(
-                f"{monthly_metrics['Total Cliques']:,.0f}".replace(",", "."),
-                "Total de Cliques",
-                hint="Número total de cliques nos e-mails"
-            )
-
-        # Add new row for last click metrics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            big_number_box(
-                f"{monthly_metrics['Pedidos Último Clique']:,.0f}".replace(",", "."),
-                "Pedidos Último Clique",
-                hint="Número de pedidos atribuídos ao último clique"
-            )
-        with col2:
             big_number_box(
                 f"R$ {monthly_metrics['Receita Último Clique']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
                 "Receita Último Clique",
@@ -180,9 +154,35 @@ def display_tab_holysoup_crm():
             )
         with col3:
             big_number_box(
+                f"{monthly_metrics['Total Cliques']:,.0f}".replace(",", "."),
+                "Total de Cliques",
+                hint="Número total de cliques nos e-mails"
+            )
+            big_number_box(
+                f"{monthly_metrics['ROI']:,.1f}%".replace(",", "*").replace(".", ",").replace("*", "."),
+                "ROI",
+                hint="Retorno sobre o investimento ((Receita - Custo) / Custo) × 100"
+            )
+            big_number_box(
                 f"{monthly_metrics['ROI Último Clique']:,.1f}%".replace(",", "*").replace(".", ",").replace("*", "."),
                 "ROI Último Clique",
                 hint="Retorno sobre o investimento do último clique ((Receita Último Clique - Custo) / Custo) × 100"
+            )
+        with col4:
+            big_number_box(
+                f"{monthly_metrics['Taxa de Abertura']:.2f}%".replace(".", ","),
+                "Taxa de Abertura",
+                hint="Percentual de e-mails que foram abertos"
+            )
+            big_number_box(
+                f"{monthly_metrics['Taxa de Clique']:.2f}%".replace(".", ","),
+                "Taxa de Clique",
+                hint="Percentual de e-mails que receberam cliques"
+            )
+            big_number_box(
+                f"R$ {monthly_metrics['Custo Total']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+                "Custo Total",
+                hint="Custo total dos disparos de e-mail. Cálculo baseado no custo da Amazon SES."
             )
 
         with st.expander("Modelo de Atribuição - E-mail Marketing"):

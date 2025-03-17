@@ -41,11 +41,15 @@ def traffic_cluster(row):
             return '🌳 Google Orgânico'
         elif row['Origem'] == 'direct':
             return '🟡 Direto'
+        elif row['Origem'] == 'bio':
+            return '🔵 Bio Instagram'
+        elif ('grupo' in str(row['Mídia']).lower()):
+            return '💬 WhatsApp - Grupos'
         elif ('whatsapp' in str(row['Origem']).lower() or 
               'whatsapp' in str(row['Mídia']).lower() or
               'zoppy' in str(row['Origem']).lower() or 
               'zoppy' in str(row['Mídia']).lower()):
-            return '💬 WhatsApp'
+            return '💬 WhatsApp - Direto'
         elif ('crm' in str(row['Origem']).lower() or
               'mautic' in str(row['Origem']).lower() or
               'email' in str(row['Origem']).lower()):
