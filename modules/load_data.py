@@ -29,6 +29,12 @@ def traffic_cluster(row):
             return '🔵 Meta Ads'
         elif 'Parâmetros de URL' in row and 'fbclid' in str(row['Parâmetros de URL']):
             return '🔵 Meta Ads'
+        elif 'Origem' in row and 'Instagram_' in str(row['Origem']):
+            return '🔵 Meta Ads'
+        elif 'Origem' in row and 'Facebook_' in str(row['Origem']):
+            return '🔵 Meta Ads'
+        elif 'Origem' in row and '{{placement}}' in str(row['Origem']):
+            return '🔵 Meta Ads'
         elif row['Origem'] == 'google' and row['Mídia'] == 'cpc':
             return '🟢 Google Ads'
         elif row['Origem'] == 'google' and row['Mídia'] == 'organic':
