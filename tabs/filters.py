@@ -20,6 +20,22 @@ def date_filters():
         else:
             st.markdown("## " + st.session_state.tablename.upper())
 
+    # Adiciona estilos CSS para os botões
+    st.markdown("""
+        <style>
+        .stButton button[type="primary"] {
+            background-color: #3B82F6 !important;
+            color: white !important;
+            border: none !important;
+        }
+        .stButton button[type="secondary"] {
+            background-color: #F8FAFC !important;
+            color: #31333F !important;
+            border: 1px solid #E2E8F0 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     # Sempre inicializa com o mês atual
     start_date = first_day_of_month
     end_date = today
