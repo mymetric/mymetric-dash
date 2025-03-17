@@ -94,7 +94,9 @@ def display_tab_holysoup_crm():
             'Total Abertos': df['Abertos'].sum(),
             'Total Cliques': df['Cliques'].sum(),
             'Receita Total': df['Receita'].sum(),
-            'Custo Total': df['Custo'].round(2).sum()
+            'Custo Total': df['Custo'].round(2).sum(),
+            'Pedidos Último Clique': df['Pedidos Último Clique'].sum(),
+            'Receita Último Clique': df['Receita Último Clique'].sum()
         }
 
         # Calculate overall rates
@@ -108,8 +110,10 @@ def display_tab_holysoup_crm():
         # Calculate overall ROI
         if monthly_metrics['Custo Total'] > 0:
             monthly_metrics['ROI'] = ((monthly_metrics['Receita Total'] - monthly_metrics['Custo Total']) / monthly_metrics['Custo Total'] * 100)
+            monthly_metrics['ROI Último Clique'] = ((monthly_metrics['Receita Último Clique'] - monthly_metrics['Custo Total']) / monthly_metrics['Custo Total'] * 100)
         else:
             monthly_metrics['ROI'] = 0
+            monthly_metrics['ROI Último Clique'] = 0
 
         # Display metrics using big_number_box component
         st.subheader("E-mail Marketing")
@@ -158,6 +162,27 @@ def display_tab_holysoup_crm():
                 f"{monthly_metrics['Total Cliques']:,.0f}".replace(",", "."),
                 "Total de Cliques",
                 hint="Número total de cliques nos e-mails"
+            )
+
+        # Add new row for last click metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            big_number_box(
+                f"{monthly_metrics['Pedidos Último Clique']:,.0f}".replace(",", "."),
+                "Pedidos Último Clique",
+                hint="Número de pedidos atribuídos ao último clique"
+            )
+        with col2:
+            big_number_box(
+                f"R$ {monthly_metrics['Receita Último Clique']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+                "Receita Último Clique",
+                hint="Receita total gerada pelos pedidos atribuídos ao último clique"
+            )
+        with col3:
+            big_number_box(
+                f"{monthly_metrics['ROI Último Clique']:,.1f}%".replace(",", "*").replace(".", ",").replace("*", "."),
+                "ROI Último Clique",
+                hint="Retorno sobre o investimento do último clique ((Receita Último Clique - Custo) / Custo) × 100"
             )
 
         with st.expander("Modelo de Atribuição - E-mail Marketing"):

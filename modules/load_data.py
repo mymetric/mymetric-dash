@@ -672,7 +672,10 @@ def load_holysoup_email_stats():
             email_cost `Custo`,
             email_opened `Abertos`,
             email_clicks `Cliques`,
-            purchase_revenue `Receita`
+            purchases `Pedidos`,
+            purchase_revenue `Receita`,
+            last_click_purchases `Pedidos Último Clique`,
+            last_click_revenue `Receita Último Clique`
         FROM `holy-soup.email_stats.email_stats`
         WHERE {date_condition}
     """
