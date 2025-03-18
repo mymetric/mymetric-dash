@@ -72,7 +72,12 @@ def display_tab_holysoup_crm():
 
     # Calcular métricas do WhatsApp
     whatsapp_revenue = df_detailed[
-        (df_detailed['Cluster'] == '💬 WhatsApp') & 
+        (df_detailed['Cluster'] == '💬 WhatsApp - Direto') & 
+        (df_detailed['Pedidos Pagos'] > 0)
+    ]['Receita Paga'].sum()
+
+    whatsapp_revenue_groups = df_detailed[
+        (df_detailed['Cluster'] == '💬 WhatsApp - Grupos') & 
         (df_detailed['Pedidos Pagos'] > 0)
     ]['Receita Paga'].sum()
 
@@ -192,7 +197,7 @@ def display_tab_holysoup_crm():
         
         # Display WhatsApp metrics
         st.subheader("WhatsApp")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
             big_number_box(
@@ -209,14 +214,20 @@ def display_tab_holysoup_crm():
         with col3:
             big_number_box(
                 f"R$ {whatsapp_revenue:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-                "Receita WhatsApp",
-                hint="Receita total gerada pelo WhatsApp no período"
+                "Receita WhatsApp Direto",
+                hint="Receita total gerada pelo WhatsApp direto no período"
             )
         with col4:
             big_number_box(
                 f"{whatsapp_roi:,.1f}%".replace(",", "*").replace(".", ",").replace("*", "."),
-                "ROI WhatsApp",
-                hint="Retorno sobre o investimento do WhatsApp ((Receita - Custo) / Custo) × 100"
+                "ROI WhatsApp Direto",
+                hint="Retorno sobre o investimento do WhatsApp direto ((Receita - Custo) / Custo) × 100"
+            )
+        with col5:
+            big_number_box(
+                f"R$ {whatsapp_revenue_groups:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+                "Receita WhatsApp Grupos",
+                hint="Receita total gerada pelos grupos de WhatsApp no período"
             )
 
         with st.expander("Modelo de Atribuição - WhatsApp"):
