@@ -96,7 +96,7 @@ def big_number_box(data, label, hint=None, bg_color='#F8FAFC'):
                 <style>
                     .big-number-box {{
                         background-color: {bg_color};
-                        padding: 24px;
+                        padding: 24px 12px;
                         border-radius: 12px;
                         text-align: center;
                         margin: 8px 4px;
@@ -104,6 +104,9 @@ def big_number_box(data, label, hint=None, bg_color='#F8FAFC'):
                         border: 1px solid rgba(226, 232, 240, 0.8);
                         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
                         transition: transform 0.2s ease, box-shadow 0.2s ease;
+                        min-width: 0;
+                        width: 100%;
+                        box-sizing: border-box;
                     }}
                     .big-number-box:hover {{
                         transform: translateY(-2px);
@@ -115,6 +118,9 @@ def big_number_box(data, label, hint=None, bg_color='#F8FAFC'):
                         font-size: 14px;
                         font-weight: 500;
                         margin: 0 0 12px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }}
                     .value {{
                         color: #0F172A;
@@ -124,18 +130,26 @@ def big_number_box(data, label, hint=None, bg_color='#F8FAFC'):
                         align-items: baseline;
                         justify-content: center;
                         gap: 2px;
+                        white-space: nowrap;
+                        overflow: hidden;
                     }}
                     .currency {{
                         font-size: 20px;
                         font-weight: 500;
+                        flex-shrink: 0;
                     }}
                     .whole {{
                         font-size: 36px;
                         font-weight: 600;
+                        flex-shrink: 1;
+                        min-width: 0;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }}
                     .cents {{
                         font-size: 20px;
                         font-weight: 500;
+                        flex-shrink: 0;
                     }}
                     .tooltip {{
                         position: absolute;
@@ -182,6 +196,111 @@ def big_number_box(data, label, hint=None, bg_color='#F8FAFC'):
                         border-style: solid;
                         border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
                         z-index: 1000;
+                    }}
+                    
+                    /* Responsive styles */
+                    @media screen and (max-width: 1400px) {{
+                        .big-number-box {{
+                            padding: 16px 8px;
+                        }}
+                        .whole {{
+                            font-size: 26px;
+                        }}
+                        .currency, .cents {{
+                            font-size: 15px;
+                        }}
+                        .label {{
+                            font-size: 12px;
+                            margin: 0 0 8px;
+                        }}
+                    }}
+                    
+                    @media screen and (max-width: 1200px) {{
+                        .big-number-box {{
+                            padding: 14px 7px;
+                        }}
+                        .whole {{
+                            font-size: 22px;
+                        }}
+                        .currency, .cents {{
+                            font-size: 13px;
+                        }}
+                        .label {{
+                            font-size: 11px;
+                            margin: 0 0 6px;
+                        }}
+                    }}
+                    
+                    @media screen and (max-width: 992px) {{
+                        .big-number-box {{
+                            padding: 12px 6px;
+                        }}
+                        .whole {{
+                            font-size: 18px;
+                        }}
+                        .currency, .cents {{
+                            font-size: 12px;
+                        }}
+                        .label {{
+                            font-size: 10px;
+                            margin: 0 0 5px;
+                        }}
+                        .tooltip {{
+                            top: 6px;
+                            right: 6px;
+                        }}
+                        .info-icon {{
+                            width: 12px;
+                            height: 12px;
+                        }}
+                    }}
+
+                    @media screen and (max-width: 768px) {{
+                        .big-number-box {{
+                            padding: 10px 5px;
+                        }}
+                        .whole {{
+                            font-size: 16px;
+                        }}
+                        .currency, .cents {{
+                            font-size: 11px;
+                        }}
+                        .label {{
+                            font-size: 9px;
+                            margin: 0 0 4px;
+                        }}
+                        .tooltip {{
+                            top: 5px;
+                            right: 5px;
+                        }}
+                        .info-icon {{
+                            width: 10px;
+                            height: 10px;
+                        }}
+                    }}
+
+                    @media screen and (max-width: 576px) {{
+                        .big-number-box {{
+                            padding: 8px 4px;
+                        }}
+                        .whole {{
+                            font-size: 14px;
+                        }}
+                        .currency, .cents {{
+                            font-size: 10px;
+                        }}
+                        .label {{
+                            font-size: 8px;
+                            margin: 0 0 3px;
+                        }}
+                        .tooltip {{
+                            top: 4px;
+                            right: 4px;
+                        }}
+                        .info-icon {{
+                            width: 8px;
+                            height: 8px;
+                        }}
                     }}
                 </style>
             """, unsafe_allow_html=True)
