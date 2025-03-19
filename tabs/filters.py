@@ -14,6 +14,10 @@ def date_filters():
     thirty_days_ago = today - pd.Timedelta(days=30)
     first_day_of_month = today.replace(day=1)
     
+    # Calcular primeiro e último dia do mês passado
+    last_day_of_prev_month = first_day_of_month - pd.Timedelta(days=1)
+    first_day_of_prev_month = last_day_of_prev_month.replace(day=1)
+    
     with st.sidebar:
         if st.session_state.username == "mymetric":
             st.markdown("## MYMETRIC")
@@ -26,7 +30,7 @@ def date_filters():
     
     # Inicializa o estado do botão ativo se não existir
     if 'active_button' not in st.session_state:
-        st.session_state.active_button = 'mes'
+        st.session_state.active_button = "mes"
     
     # Filtro de datas interativo
     with st.sidebar.expander("Datas", expanded=True):
@@ -34,7 +38,7 @@ def date_filters():
         
         with col1:
             if st.button("Hoje", 
-                        type="primary" if st.session_state.active_button == "hoje" else "secondary",
+                        type="secondary",
                         help="Dados de hoje",
                         use_container_width=True,
                         key="hoje"):
@@ -43,17 +47,26 @@ def date_filters():
                 st.session_state.active_button = "hoje"
             
             if st.button("Últimos 7 Dias",
-                        type="primary" if st.session_state.active_button == "7d" else "secondary",
+                        type="secondary",
                         help="Dados dos últimos 7 dias",
                         use_container_width=True,
                         key="7d"):
                 start_date = seven_days_ago
                 end_date = today
                 st.session_state.active_button = "7d"
+            
+            if st.button("Mês Atual",
+                        type="secondary",
+                        help="Dados do mês atual",
+                        use_container_width=True,
+                        key="mes"):
+                start_date = first_day_of_month
+                end_date = today
+                st.session_state.active_button = "mes"
                 
         with col2:
             if st.button("Ontem",
-                        type="primary" if st.session_state.active_button == "ontem" else "secondary",
+                        type="secondary",
                         help="Dados de ontem",
                         use_container_width=True,
                         key="ontem"):
@@ -62,26 +75,28 @@ def date_filters():
                 st.session_state.active_button = "ontem"
             
             if st.button("Últimos 30 Dias",
-                        type="primary" if st.session_state.active_button == "30d" else "secondary",
+                        type="secondary",
                         help="Dados dos últimos 30 dias",
                         use_container_width=True,
                         key="30d"):
                 start_date = thirty_days_ago
                 end_date = today
                 st.session_state.active_button = "30d"
-        
-        if st.button("Mês Atual",
-                    type="primary" if st.session_state.active_button == "mes" else "secondary",
-                    help="Dados do mês atual",
-                    use_container_width=True,
-                    key="mes"):
-            start_date = first_day_of_month
-            end_date = today
-            st.session_state.active_button = "mes"
+            
+            if st.button("Mês Passado",
+                        type="secondary",
+                        help="Dados do mês passado",
+                        use_container_width=True,
+                        key="mes_passado"):
+                start_date = first_day_of_prev_month
+                end_date = last_day_of_prev_month
+                st.session_state.active_button = "mes_passado"
 
-    with st.sidebar.expander("Datas Personalizadas", expanded=False):
-        custom_start = st.date_input("Data Inicial", start_date)
-        custom_end = st.date_input("Data Final", end_date)
+        date_col1, date_col2 = st.columns(2)
+        with date_col1:
+            custom_start = st.date_input("Data Inicial", start_date)
+        with date_col2:
+            custom_end = st.date_input("Data Final", end_date)
         
         if custom_start != start_date or custom_end != end_date:
             start_date = custom_start
