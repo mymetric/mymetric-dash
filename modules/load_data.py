@@ -179,7 +179,7 @@ def load_basic_data():
 
 def load_detailed_data():
     
-    if st.session_state.get('selected_page') not in ["Visão Detalhada", "Funil de Conversão"]:
+    if st.session_state.get('selected_page') not in ["Visão Detalhada", "Funil de Conversão", "CRM"]:
         return pd.DataFrame()  # Return empty DataFrame if not on detailed tab
     
     current_time = time.time()
@@ -228,9 +228,6 @@ def load_detailed_data():
     df['Cluster'] = df.apply(traffic_cluster, axis=1)
     df = apply_filters(df)
     
-    if toast_alerts():
-        st.toast(f"Carregando dados detalhados... {time.time() - current_time:.2f}s")
-
     return df
 
 def load_goals():

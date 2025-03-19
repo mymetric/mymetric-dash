@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout, load_basic_data
+from modules.load_data import load_holysoup_mautic_segments, load_holysoup_mautic_contacts, load_holysoup_email_stats, load_holysoup_crm_optout, load_detailed_data
 from googleapiclient.http import MediaIoBaseUpload
 import io
 from google.oauth2 import service_account
@@ -68,7 +68,7 @@ def display_tab_holysoup_crm():
     st.markdown("""---""")
 
     df = load_holysoup_email_stats()
-    df_detailed = load_basic_data()
+    df_detailed = load_detailed_data()
 
     # Calcular métricas do WhatsApp
     whatsapp_revenue = df_detailed[
@@ -80,6 +80,17 @@ def display_tab_holysoup_crm():
         (df_detailed['Cluster'] == '💬 WhatsApp - Grupos') & 
         (df_detailed['Pedidos Pagos'] > 0)
     ]['Receita Paga'].sum()
+
+    # Calcular total de pedidos do WhatsApp
+    whatsapp_orders = df_detailed[
+        (df_detailed['Cluster'] == '💬 WhatsApp - Direto') & 
+        (df_detailed['Pedidos Pagos'] > 0)
+    ]['Pedidos Pagos'].sum()
+
+    whatsapp_orders_groups = df_detailed[
+        (df_detailed['Cluster'] == '💬 WhatsApp - Grupos') & 
+        (df_detailed['Pedidos Pagos'] > 0)
+    ]['Pedidos Pagos'].sum()
 
     # Carregar dados de mensagens e custo do mês atual
     current_metas = load_table_metas()
@@ -197,7 +208,7 @@ def display_tab_holysoup_crm():
         
         # Display WhatsApp metrics
         st.subheader("WhatsApp")
-        col1, col2, col3, col4, col5 = st.columns(5)
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             big_number_box(
@@ -219,15 +230,21 @@ def display_tab_holysoup_crm():
             )
         with col4:
             big_number_box(
-                f"{whatsapp_roi:,.1f}%".replace(",", "*").replace(".", ",").replace("*", "."),
-                "ROI WhatsApp Direto",
-                hint="Retorno sobre o investimento do WhatsApp direto ((Receita - Custo) / Custo) × 100"
+                f"{whatsapp_orders:,.0f}".replace(",", "."),
+                "Pedidos WhatsApp Direto",
+                hint="Número total de pedidos gerados pelo WhatsApp direto no período"
             )
         with col5:
             big_number_box(
                 f"R$ {whatsapp_revenue_groups:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
                 "Receita WhatsApp Grupos",
                 hint="Receita total gerada pelos grupos de WhatsApp no período"
+            )
+        with col6:
+            big_number_box(
+                f"{whatsapp_orders_groups:,.0f}".replace(",", "."),
+                "Pedidos WhatsApp Grupos",
+                hint="Número total de pedidos gerados pelos grupos de WhatsApp no período"
             )
 
         with st.expander("Modelo de Atribuição - WhatsApp"):
@@ -521,6 +538,126 @@ def display_tab_holysoup_crm():
                         </div>
                     """, unsafe_allow_html=True)
 
+        with st.expander("WhatsApp - Direto - Detalhes"):
+            # Calcular quantidade de grupos do WhatsApp
+            whatsapp_groups = df_detailed[df_detailed['Cluster'] == '💬 WhatsApp - Direto']
+            
+            # Criar filtros
+            col1, col2 = st.columns(2)
+            with col1:
+                # Lista única de campanhas
+                campanhas = ["Todas as Campanhas"] + sorted(whatsapp_groups['Campanha'].unique().tolist())
+                campanha_selecionada = st.selectbox(
+                    "Filtrar por Campanha",
+                    campanhas,
+                    key="whatsapp_direct_campaign"
+                )
+            
+            with col2:
+                # Lista única de conteúdos
+                conteudos = ["Todos os Conteúdos"] + sorted(whatsapp_groups['Conteúdo'].unique().tolist())
+                conteudo_selecionado = st.selectbox(
+                    "Filtrar por Conteúdo",
+                    conteudos,
+                    key="whatsapp_direct_content"
+                )
+
+            # Aplicar filtros
+            if campanha_selecionada != "Todas as Campanhas":
+                whatsapp_groups = whatsapp_groups[whatsapp_groups['Campanha'] == campanha_selecionada]
+            if conteudo_selecionado != "Todos os Conteúdos":
+                whatsapp_groups = whatsapp_groups[whatsapp_groups['Conteúdo'] == conteudo_selecionado]
+            
+            # Agrupar dados do WhatsApp por campanha e conteúdo
+            whatsapp_campaign = whatsapp_groups.groupby(['Campanha', 'Conteúdo']).agg({
+                'Sessões': 'sum',
+                'Pedidos': 'sum',
+                'Pedidos Pagos': 'sum',
+                'Receita': 'sum',
+                'Receita Paga': 'sum'
+            }).reset_index()
+
+            # Ordenar por receita paga em ordem decrescente
+            whatsapp_campaign = whatsapp_campaign.sort_values('Receita Paga', ascending=False)
+
+            # Exibir tabela agrupada
+            st.subheader("Desempenho por Campanha e Conteúdo (utm_campaign e utm_content)")
+            st.data_editor(
+                whatsapp_campaign,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    'Receita': st.column_config.NumberColumn(
+                        "Receita",
+                        format="R$ %.2f"
+                    ),
+                    'Receita Paga': st.column_config.NumberColumn(
+                        "Receita Paga", 
+                        format="R$ %.2f"
+                    )
+                }
+            )
+
+        with st.expander("WhatsApp - Grupos - Detalhes"):
+            # Calcular quantidade de grupos do WhatsApp
+            whatsapp_groups = df_detailed[df_detailed['Cluster'] == '💬 WhatsApp - Grupos']
+            
+            # Criar filtros
+            col1, col2 = st.columns(2)
+            with col1:
+                # Lista única de campanhas
+                campanhas = ["Todas as Campanhas"] + sorted(whatsapp_groups['Campanha'].unique().tolist())
+                campanha_selecionada = st.selectbox(
+                    "Filtrar por Campanha",
+                    campanhas,
+                    key="whatsapp_groups_campaign"
+                )
+            
+            with col2:
+                # Lista única de conteúdos
+                conteudos = ["Todos os Conteúdos"] + sorted(whatsapp_groups['Conteúdo'].unique().tolist())
+                conteudo_selecionado = st.selectbox(
+                    "Filtrar por Conteúdo",
+                    conteudos,
+                    key="whatsapp_groups_content"
+                )
+
+            # Aplicar filtros
+            if campanha_selecionada != "Todas as Campanhas":
+                whatsapp_groups = whatsapp_groups[whatsapp_groups['Campanha'] == campanha_selecionada]
+            if conteudo_selecionado != "Todos os Conteúdos":
+                whatsapp_groups = whatsapp_groups[whatsapp_groups['Conteúdo'] == conteudo_selecionado]
+            
+            # Agrupar dados do WhatsApp por campanha e conteúdo
+            whatsapp_campaign = whatsapp_groups.groupby(['Campanha', 'Conteúdo']).agg({
+                'Sessões': 'sum',
+                'Pedidos': 'sum',
+                'Pedidos Pagos': 'sum',
+                'Receita': 'sum',
+                'Receita Paga': 'sum'
+            }).reset_index()
+
+            # Ordenar por receita paga em ordem decrescente
+            whatsapp_campaign = whatsapp_campaign.sort_values('Receita Paga', ascending=False)
+
+            # Exibir tabela agrupada
+            st.subheader("Desempenho por Campanha e Conteúdo (utm_campaign e utm_content)")
+            st.data_editor(
+                whatsapp_campaign,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    'Receita': st.column_config.NumberColumn(
+                        "Receita",
+                        format="R$ %.2f"
+                    ),
+                    'Receita Paga': st.column_config.NumberColumn(
+                        "Receita Paga", 
+                        format="R$ %.2f"
+                    )
+                }
+            )
+
         st.markdown("""---""")
         st.subheader("Controle de Envios de WhatsApp")
         with st.expander("Registrar Envios de WhatsApp", expanded=False):
@@ -566,7 +703,7 @@ def display_tab_holysoup_crm():
                 )
 
             # Calcular métricas do WhatsApp
-            df_detailed = load_basic_data()
+            df_detailed = load_detailed_data()
             whatsapp_revenue = df_detailed[
                 (df_detailed['Cluster'] == '💬 WhatsApp') & 
                 (df_detailed['Pedidos Pagos'] > 0)
