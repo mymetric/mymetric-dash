@@ -21,6 +21,7 @@ from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_
 from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
 from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
 from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
+from tabs_custom.tab_holysoup_social import display_tab_holysoup_social
 
 from modules.load_data import load_paid_media, load_popup_leads, save_event_name
 from modules.utilities import send_message
@@ -48,9 +49,6 @@ def load_app():
 
         if paid_media is not None and not paid_media.empty:
             nav_options.extend(["Mídia Paga"])
-        
-        
-
 
         if st.session_state.tablename == 'oculosshop':
             nav_options.extend(["RFM"])
@@ -64,6 +62,7 @@ def load_app():
 
         if st.session_state.tablename == 'holysoup':
             nav_options.extend(["CRM"])
+            nav_options.extend(["Social"])
 
         if is_admin:
             nav_options.extend(["Configurações"])
@@ -123,6 +122,10 @@ def load_app():
         elif selected_page == "CRM" and st.session_state.tablename == 'holysoup':
             save_event_name(event_name="tab_view", event_params={"tab": "holysoup_crm"})
             display_tab_holysoup_crm()
+        
+        elif selected_page == "Social" and st.session_state.tablename == 'holysoup':
+            save_event_name(event_name="tab_view", event_params={"tab": "holysoup_social"})
+            display_tab_holysoup_social()
 
         elif selected_page == "RFM" and st.session_state.tablename == 'oculosshop':
             save_event_name(event_name="tab_view", event_params={"tab": "rfm"})

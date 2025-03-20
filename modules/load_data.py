@@ -25,8 +25,8 @@ def traffic_cluster(row):
     try:
         if row['Mídia'] == 'social':
             return '🟣 Social'
-        elif row['Origem'] == 'meta' and row['Mídia'] == 'cpc':
-            return '🔵 Meta Ads'
+        elif row['Origem'] == 'Insta':
+            return '🟣 Social'
         elif 'Parâmetros de URL' in row and 'fbclid' in str(row['Parâmetros de URL']):
             return '🔵 Meta Ads'
         elif 'Origem' in row and 'Instagram_' in str(row['Origem']):
@@ -179,7 +179,7 @@ def load_basic_data():
 
 def load_detailed_data():
     
-    if st.session_state.get('selected_page') not in ["Visão Detalhada", "Funil de Conversão", "CRM"]:
+    if st.session_state.get('selected_page') not in ["Visão Detalhada", "Funil de Conversão", "CRM", "Social"]:
         return pd.DataFrame()  # Return empty DataFrame if not on detailed tab
     
     current_time = time.time()
