@@ -6,16 +6,7 @@ import pandas as pd
 import json    
 
 def load_table_metas():
-    
-    try:
-        df = load_goals()
-        df = json.loads(df['goals'][0])
-        return df
-    
-    except Exception as e:
-        return 0
-    
-    # Se não encontrou ou deu erro, retorna valores padrão
+    # Definir estrutura padrão
     default_metas = {
         "metas_mensais": {
             datetime.now().strftime("%Y-%m"): {
@@ -23,7 +14,21 @@ def load_table_metas():
             }
         }
     }
-    return default_metas
+    
+    try:
+        df = load_goals()
+        if df.empty or 'goals' not in df.columns or df['goals'].isna().all():
+            return default_metas
+            
+        goals_json = df['goals'].iloc[0]
+        if not goals_json:
+            return default_metas
+            
+        return json.loads(goals_json)
+    
+    except Exception as e:
+        st.warning(f"Erro ao carregar metas: {str(e)}")
+        return default_metas
 
 def display_run_rate(df):
     df_run_rate = df.copy()

@@ -99,10 +99,23 @@ def goals_config():
     # Carregar configurações existentes usando table
     current_metas = load_table_metas()
     current_month = datetime.now().strftime("%Y-%m")
-    if current_metas:
-        meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
-    else:
-        meta_receita = 0
+    
+    # Garantir que current_metas tem a estrutura correta
+    if not isinstance(current_metas, dict):
+        current_metas = {
+            "metas_mensais": {
+                current_month: {
+                    "meta_receita_paga": 0
+                }
+            }
+        }
+    
+    # Garantir que metas_mensais existe
+    if 'metas_mensais' not in current_metas:
+        current_metas['metas_mensais'] = {}
+    
+    # Pegar valor atual da meta
+    meta_receita = current_metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
     
     # Lista dos últimos 12 meses para seleção
     months = []
@@ -117,7 +130,7 @@ def goals_config():
     )
     
     # Pegar o valor atual da meta para o mês selecionado
-    current_value = meta_receita
+    current_value = current_metas.get('metas_mensais', {}).get(selected_month, {}).get('meta_receita_paga', 0)
     
     meta_receita_paga = st.number_input(
         "Meta de Receita Paga (R$)",
@@ -129,18 +142,38 @@ def goals_config():
     )
 
     if st.button("Salvar Meta"):
-        # Garantir que a estrutura existe
-        if 'metas_mensais' not in current_metas:
-            current_metas['metas_mensais'] = {}
+        try:
+            # Garantir que a estrutura existe
+            if 'metas_mensais' not in current_metas:
+                current_metas['metas_mensais'] = {}
             
-        # Atualizar ou criar a meta para o mês selecionado
-        current_metas['metas_mensais'][selected_month] = {
-            "meta_receita_paga": meta_receita_paga
-        }
-
-        save_goals(current_metas)
-        st.toast(f"Salvando meta... {meta_receita_paga}")
-        st.success("Meta salva com sucesso!")
+            # Garantir que o valor é um float válido
+            meta_receita_paga_float = float(meta_receita_paga)
+            
+            # Garantir que o mês selecionado existe na estrutura
+            if selected_month not in current_metas['metas_mensais']:
+                current_metas['metas_mensais'][selected_month] = {}
+            
+            # Atualizar a meta
+            current_metas['metas_mensais'][selected_month] = {
+                "meta_receita_paga": meta_receita_paga_float
+            }
+            
+            # Tentar salvar
+            save_goals(current_metas)
+            st.toast(f"Salvando meta... R$ {meta_receita_paga_float:,.2f}")
+            st.success("Meta salva com sucesso!")
+            
+        except ValueError as e:
+            st.error(f"Erro ao processar o valor da meta: {str(e)}")
+        except Exception as e:
+            st.error(f"Erro ao salvar meta: {str(e)}")
+            st.warning("Detalhes do erro para debug:")
+            st.write({
+                "meta_value": meta_receita_paga,
+                "meta_type": type(meta_receita_paga),
+                "current_metas": current_metas
+            })
 
 def coupons_config():
     st.subheader("Gerenciamento de Cupons")
