@@ -41,7 +41,7 @@ def date_filters():
                         type="secondary",
                         help="Dados de hoje",
                         use_container_width=True,
-                        key="hoje"):
+                        key="hoje_button"):
                 start_date = today
                 end_date = today
                 st.session_state.active_button = "hoje"
@@ -50,7 +50,7 @@ def date_filters():
                         type="secondary",
                         help="Dados dos últimos 7 dias",
                         use_container_width=True,
-                        key="7d"):
+                        key="7d_button"):
                 start_date = seven_days_ago
                 end_date = today
                 st.session_state.active_button = "7d"
@@ -59,7 +59,7 @@ def date_filters():
                         type="secondary",
                         help="Dados do mês atual",
                         use_container_width=True,
-                        key="mes"):
+                        key="mes_button"):
                 start_date = first_day_of_month
                 end_date = today
                 st.session_state.active_button = "mes"
@@ -69,7 +69,7 @@ def date_filters():
                         type="secondary",
                         help="Dados de ontem",
                         use_container_width=True,
-                        key="ontem"):
+                        key="ontem_button"):
                 start_date = yesterday
                 end_date = yesterday
                 st.session_state.active_button = "ontem"
@@ -78,7 +78,7 @@ def date_filters():
                         type="secondary",
                         help="Dados dos últimos 30 dias",
                         use_container_width=True,
-                        key="30d"):
+                        key="30d_button"):
                 start_date = thirty_days_ago
                 end_date = today
                 st.session_state.active_button = "30d"
@@ -87,16 +87,16 @@ def date_filters():
                         type="secondary",
                         help="Dados do mês passado",
                         use_container_width=True,
-                        key="mes_passado"):
+                        key="mes_passado_button"):
                 start_date = first_day_of_prev_month
                 end_date = last_day_of_prev_month
                 st.session_state.active_button = "mes_passado"
 
         date_col1, date_col2 = st.columns(2)
         with date_col1:
-            custom_start = st.date_input("Data Inicial", start_date)
+            custom_start = st.date_input("Data Inicial", start_date, key="custom_start_date")
         with date_col2:
-            custom_end = st.date_input("Data Final", end_date)
+            custom_end = st.date_input("Data Final", end_date, key="custom_end_date")
         
         if custom_start != start_date or custom_end != end_date:
             start_date = custom_start

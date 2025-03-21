@@ -70,8 +70,17 @@ def load_app():
         if st.session_state.username == 'mymetric':
             nav_options.extend(["Master"])
             
-        # Create radio buttons for navigation
-        selected_page = st.radio("", nav_options, horizontal=True)
+        # Initialize selected_page in session state if it doesn't exist
+        if 'selected_page' not in st.session_state:
+            st.session_state.selected_page = "Visão Geral"
+            
+        # Create radio buttons for navigation with key to maintain state
+        selected_page = st.radio("", nav_options, 
+                               horizontal=True,
+                               key="page_selector",
+                               index=nav_options.index(st.session_state.selected_page))
+        
+        # Update session state with selected page
         st.session_state.selected_page = selected_page
 
         # Display content based on selection
