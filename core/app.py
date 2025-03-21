@@ -27,21 +27,29 @@ from modules.load_data import load_paid_media, load_popup_leads, save_event_name
 from modules.utilities import send_message
 
 def load_app():
-
     try:
+        # Inicializar o estado da página selecionada se não existir
+        if 'selected_page' not in st.session_state:
+            st.session_state.selected_page = "Visão Geral"
+            
+        # Carregar CSS e filtros
         tabs_css()
         date_filters()
         traffic_filters()
 
         is_admin = st.session_state.admin
 
-        # Load paid media data
-        paid_media = load_paid_media()
-        popup_leads = load_popup_leads()
+        # Load paid media data apenas se necessário
+        paid_media = None
+        popup_leads = None
+        
+        if "Mídia Paga" in st.session_state.selected_page:
+            paid_media = load_paid_media()
+        if "Leads" in st.session_state.selected_page:
+            popup_leads = load_popup_leads()
 
         # Define navigation options based on data availability
         nav_options = ["Visão Geral"]
-
         nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos"])    
 
         if popup_leads is not None and not popup_leads.empty:
@@ -70,20 +78,19 @@ def load_app():
         if st.session_state.username == 'mymetric':
             nav_options.extend(["Master"])
             
-        # Initialize selected_page in session state if it doesn't exist
-        if 'selected_page' not in st.session_state:
-            st.session_state.selected_page = "Visão Geral"
-            
-        # Create radio buttons for navigation with key to maintain state
-        selected_page = st.radio("", nav_options, 
-                               horizontal=True,
-                               key="page_selector",
-                               index=nav_options.index(st.session_state.selected_page))
+        # Criar radio buttons para navegação com key para manter o estado
+        selected_page = st.radio(
+            "", 
+            nav_options, 
+            horizontal=True,
+            key="page_selector",
+            index=nav_options.index(st.session_state.selected_page)
+        )
         
-        # Update session state with selected page
+        # Atualizar o estado da página selecionada
         st.session_state.selected_page = selected_page
 
-        # Display content based on selection
+        # Exibir conteúdo baseado na seleção
         if selected_page == "Visão Geral":
             save_event_name(event_name="tab_view", event_params={"tab": "general"})
             attribution_filters()
@@ -127,30 +134,28 @@ def load_app():
         elif selected_page == "Produtos Cadastrados" and st.session_state.tablename == 'gringa':
             save_event_name(event_name="tab_view", event_params={"tab": "gringa_product_submitted"})
             display_tab_gringa_product_submitted()
-        
-        elif selected_page == "CRM" and st.session_state.tablename == 'holysoup':
-            save_event_name(event_name="tab_view", event_params={"tab": "holysoup_crm"})
-            display_tab_holysoup_crm()
-        
-        elif selected_page == "Social" and st.session_state.tablename == 'holysoup':
-            save_event_name(event_name="tab_view", event_params={"tab": "holysoup_social"})
-            display_tab_holysoup_social()
-
+            
+        elif selected_page == "Usuários" and st.session_state.tablename == 'coffeemais':
+            save_event_name(event_name="tab_view", event_params={"tab": "coffeemais_users"})
+            display_tab_coffeemais_users()
+            
+        elif selected_page == "CRM" and st.session_state.tablename in ['coffeemais', 'holysoup']:
+            save_event_name(event_name="tab_view", event_params={"tab": "crm"})
+            if st.session_state.tablename == 'coffeemais':
+                display_tab_coffeemais_crm()
+            else:
+                display_tab_holysoup_crm()
+                
         elif selected_page == "RFM" and st.session_state.tablename == 'oculosshop':
             save_event_name(event_name="tab_view", event_params={"tab": "rfm"})
             display_tab_rfm()
-        
-        elif selected_page == "Usuários" and st.session_state.tablename == 'coffeemais':
-            save_event_name(event_name="tab_view", event_params={"tab": "users"})
-            display_tab_coffeemais_users()
-        
-        elif selected_page == "CRM" and st.session_state.tablename == 'coffeemais':
-            save_event_name(event_name="tab_view", event_params={"tab": "coffeemais_crm"})
-            display_tab_coffeemais_crm()
-    
+            
+        elif selected_page == "Social" and st.session_state.tablename == 'holysoup':
+            save_event_name(event_name="tab_view", event_params={"tab": "social"})
+            display_tab_holysoup_social()
+
     except Exception as e:
-        st.error(f"Erro ao carregar a página: {e}")
-        
-        selected_page = st.session_state.selected_page
-        send_message(f"Erro ao carregar a página: {e}\nUsuário: {st.session_state.username}\nTabela: {st.session_state.tablename}\nPágina: {selected_page}")
+        st.error(f"Erro ao carregar a aplicação: {str(e)}")
+        st.error("Por favor, tente recarregar a página.")
+        send_message(f"Erro ao carregar a página: {e}\nUsuário: {st.session_state.username}\nTabela: {st.session_state.tablename}\nPágina: {st.session_state.selected_page}")
     

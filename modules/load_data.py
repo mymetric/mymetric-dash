@@ -69,32 +69,36 @@ def apply_filters(df):
     Aplica filtros ao DataFrame baseado nas seleções do usuário.
     Não cria elementos UI - apenas aplica a lógica de filtragem.
     """
+    # Verificar se o DataFrame está vazio
+    if df.empty:
+        return df
+        
+    # Criar uma cópia do DataFrame para não modificar o original
+    df_filtered = df.copy()
 
-    cluster_selected = st.session_state.cluster_selected
-    origem_selected = st.session_state.origem_selected
-    midia_selected = st.session_state.midia_selected
-    campanha_selected = st.session_state.campanha_selected
-    conteudo_selected = st.session_state.conteudo_selected
-    pagina_de_entrada_selected = st.session_state.pagina_de_entrada_selected
-    cupom_selected = st.session_state.cupom_selected
+    # Lista de filtros para aplicar
+    filters = [
+        ('cluster_selected', 'Cluster'),
+        ('origem_selected', 'Origem'),
+        ('midia_selected', 'Mídia'),
+        ('campanha_selected', 'Campanha'),
+        ('conteudo_selected', 'Conteúdo'),
+        ('pagina_de_entrada_selected', 'Página de Entrada'),
+        ('cupom_selected', 'Cupom')
+    ]
+
+    # Aplicar cada filtro
+    for state_key, column in filters:
+        selected_values = st.session_state.get(state_key, [])
+        if selected_values and "Selecionar Todos" not in selected_values:
+            # Garantir que a coluna existe antes de filtrar
+            if column in df_filtered.columns:
+                # Converter valores para string para evitar problemas de tipo
+                df_filtered[column] = df_filtered[column].astype(str)
+                selected_values = [str(val) for val in selected_values]
+                df_filtered = df_filtered[df_filtered[column].isin(selected_values)]
     
-    # Aplicar filtros apenas se houver seleção e não incluir "Selecionar Todos"
-    if cluster_selected and "Selecionar Todos" not in cluster_selected:
-        df = df[df['Cluster'].isin(cluster_selected)]
-    if origem_selected and "Selecionar Todos" not in origem_selected:
-        df = df[df['Origem'].isin(origem_selected)]
-    if midia_selected and "Selecionar Todos" not in midia_selected:
-        df = df[df['Mídia'].isin(midia_selected)]
-    if campanha_selected and "Selecionar Todos" not in campanha_selected:
-        df = df[df['Campanha'].isin(campanha_selected)]
-    if conteudo_selected and "Selecionar Todos" not in conteudo_selected:
-        df = df[df['Conteúdo'].isin(conteudo_selected)]
-    if pagina_de_entrada_selected and "Selecionar Todos" not in pagina_de_entrada_selected:
-        df = df[df['Página de Entrada'].isin(pagina_de_entrada_selected)]
-    if cupom_selected and "Selecionar Todos" not in cupom_selected:
-        df = df[df['Cupom'].isin(cupom_selected)]
-    
-    return df
+    return df_filtered
 
 def check_table_exists(client, table_ref):
     try:
@@ -178,27 +182,20 @@ def load_basic_data():
     return df
 
 def load_detailed_data():
-    
-    if st.session_state.get('selected_page') not in ["Visão Detalhada", "Funil de Conversão", "CRM", "Social"]:
-        return pd.DataFrame()  # Return empty DataFrame if not on detailed tab
-    
-    current_time = time.time()
+    """
+    Carrega dados detalhados com todos os filtros aplicados.
+    """
     if toast_alerts():
         st.toast("Carregando dados detalhados...")
 
     tablename = st.session_state.tablename
-
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
     date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date between '{start_date_str}' and '{end_date_str}'"
 
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
-
-    if attribution_model == 'Último Clique Não Direto':
-        attribution_model = 'purchase'
-    elif attribution_model == 'Primeiro Clique':
-        attribution_model = 'fs_purchase'
+    attribution_model = 'purchase' if attribution_model == 'Último Clique Não Direto' else 'fs_purchase'
     
     query = f"""
         SELECT
@@ -209,14 +206,13 @@ def load_detailed_data():
             campaign Campanha,
             page_location `Página de Entrada`,
             content `Conteúdo`,
-            # page_params `Parâmetros de URL`,
             coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
             COUNTIF(event_name = 'session') `Sessões`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
@@ -224,8 +220,17 @@ def load_detailed_data():
         ORDER BY Pedidos DESC
     """
 
+    # Carregar dados
     df = run_queries([query])[0]
+    
+    # Verificar se o DataFrame está vazio
+    if df.empty:
+        return pd.DataFrame()
+    
+    # Adicionar coluna de Cluster
     df['Cluster'] = df.apply(traffic_cluster, axis=1)
+    
+    # Aplicar filtros
     df = apply_filters(df)
     
     return df
