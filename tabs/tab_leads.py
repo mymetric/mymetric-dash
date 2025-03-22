@@ -5,8 +5,8 @@ from modules.components import big_number_box
 
 def display_tab_leads():
 
-    st.title("Leads")
-    st.write("Leads coletados a partir do popup de cadastro.")
+    st.title("Atribuição 2.0")
+    st.write("Os leads coletados a partir do popup de cadastro ajudam a entender como as origens de tráfego estão performando para além dos cookies e do comportamento cross-browser.")
 
     popup_leads = load_popup_leads()
     

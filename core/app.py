@@ -31,6 +31,9 @@ def load_app():
         # Inicializar o estado da página selecionada se não existir
         if 'selected_page' not in st.session_state:
             st.session_state.selected_page = "Visão Geral"
+        # Atualizar o valor se for "Leads" para "Atribuição 2.0"
+        elif st.session_state.selected_page == "Leads":
+            st.session_state.selected_page = "Atribuição 2.0"
             
         # Carregar CSS e filtros
         tabs_css()
@@ -48,7 +51,7 @@ def load_app():
         nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos"])    
 
         if popup_leads is not None and not popup_leads.empty:
-            nav_options.extend(["Leads"])
+            nav_options.extend(["Atribuição 2.0"])
 
         if paid_media is not None and not paid_media.empty:
             nav_options.extend(["Mídia Paga"])
@@ -105,7 +108,7 @@ def load_app():
             save_event_name(event_name="tab_view", event_params={"tab": "paid_media"})
             display_tab_paid_media()
         
-        elif selected_page == "Leads" and "Leads" in nav_options:
+        elif selected_page == "Atribuição 2.0" and "Atribuição 2.0" in nav_options:
             save_event_name(event_name="tab_view", event_params={"tab": "popup_leads"})
             display_tab_leads()
         
