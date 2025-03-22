@@ -15,11 +15,14 @@ def big_numbers(df):
 
     sessoes = df["Sessões"].sum()
     pedidos = df["Pedidos"].sum()
+    adicoes_carrinho = df["Adições ao Carrinho"].sum()
     pedidos_pagos = df["Pedidos Pagos"].sum()
     tx_conv = (df["Pedidos"].sum()/df["Sessões"].sum())*100 if df["Sessões"].sum() > 0 else 0
+    tx_adicao = (adicoes_carrinho/sessoes)*100 if sessoes > 0 else 0
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (pedidos_pagos / pedidos) * 100 if total_receita_capturada > 0 else 0
+    rps = total_receita_paga / sessoes if sessoes > 0 else 0
     leads = load_leads_popup()
 
     st.header("Big Numbers")
@@ -84,6 +87,29 @@ def big_numbers(df):
                 "Leads",
                 hint="Total de leads capturados via popup no período"
             )
+    
+    col1, col2, col3 = st.columns(4)[:3]
+
+    with col1:
+        big_number_box(
+            f"{adicoes_carrinho:,.0f}".replace(",", "."), 
+            "Adições ao Carrinho",
+            hint="Total de produtos adicionados ao carrinho no período"
+        )
+        
+    with col2:
+        big_number_box(
+            f"{tx_adicao:.2f}%", 
+            "Tx Adição ao Carrinho",
+            hint="Percentual de sessões que resultaram em adições ao carrinho"
+        )
+
+    with col3:
+        big_number_box(
+            f"R$ {rps:.2f}".replace(".", ","), 
+            "RPS",
+            hint="Receita por Sessão (Receita Paga/Sessões)"
+        )
 
     st.markdown("---")
     
@@ -281,7 +307,8 @@ def tables(df):
         'Pedidos': 'sum',
         'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -289,6 +316,22 @@ def tables(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    aggregated_df['RPS'] = aggregated_df.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = aggregated_df['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        aggregated_df['Tx Adições ao Carrinho'] = aggregated_df.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        aggregated_df['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = aggregated_df['Receita'].sum()
@@ -302,7 +345,19 @@ def tables(df):
     
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="general_cluster_origens")
+    # Formatar os números antes de exibir
+    display_df = aggregated_df.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Cluster', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="general_cluster_origens")
 
 def display_tab_general():
 

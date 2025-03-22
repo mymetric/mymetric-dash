@@ -138,7 +138,8 @@ def tables_detailed(df):
         'Pedidos': 'sum',
         'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -146,6 +147,22 @@ def tables_detailed(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    aggregated_df['RPS'] = aggregated_df.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = aggregated_df['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        aggregated_df['Tx Adições ao Carrinho'] = aggregated_df.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        aggregated_df['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = aggregated_df['Receita'].sum()
@@ -156,20 +173,33 @@ def tables_detailed(df):
         )
     else:
         aggregated_df['% Receita'] = '0%'
+    
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="detailed_cluster_origens")
+    # Formatar os números antes de exibir
+    display_df = aggregated_df.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Cluster', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_cluster_origens")
 
-    # tables(df)
     # Tabela de Origem e Mídia
     st.header("Origem e Mídia")
     
     aggregated_df = df.groupby(['Origem', 'Mídia']).agg({
         'Sessões': 'sum', 
-        'Pedidos': 'sum', 
+        'Pedidos': 'sum',
         'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -177,6 +207,22 @@ def tables_detailed(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    aggregated_df['RPS'] = aggregated_df.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = aggregated_df['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        aggregated_df['Tx Adições ao Carrinho'] = aggregated_df.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        aggregated_df['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = aggregated_df['Receita'].sum()
@@ -187,18 +233,33 @@ def tables_detailed(df):
         )
     else:
         aggregated_df['% Receita'] = '0%'
+    
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(aggregated_df, hide_index=1, use_container_width=1, key="detailed_origem_midia")
+    # Formatar os números antes de exibir
+    display_df = aggregated_df.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Origem', 'Mídia', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_origem_midia")
 
     # Tabela de Campanhas
     st.header("Campanhas")
     
     campaigns = df.groupby(['Campanha']).agg({
         'Sessões': 'sum', 
-        'Pedidos': 'sum', 
+        'Pedidos': 'sum',
+        'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -206,6 +267,22 @@ def tables_detailed(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    campaigns['RPS'] = campaigns.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = campaigns['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        campaigns['Tx Adições ao Carrinho'] = campaigns.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        campaigns['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = campaigns['Receita'].sum()
@@ -216,9 +293,22 @@ def tables_detailed(df):
         )
     else:
         campaigns['% Receita'] = '0%'
+    
     campaigns = campaigns.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(campaigns, hide_index=1, use_container_width=1, key="detailed_campanhas")
+    # Formatar os números antes de exibir
+    display_df = campaigns.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Campanha', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_campanhas")
 
     # Tabela de Conteúdo
     st.header("Conteúdo")
@@ -226,9 +316,11 @@ def tables_detailed(df):
     
     conteudo = df.groupby(['Conteúdo']).agg({
         'Sessões': 'sum', 
-        'Pedidos': 'sum', 
+        'Pedidos': 'sum',
+        'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -236,6 +328,22 @@ def tables_detailed(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    conteudo['RPS'] = conteudo.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = conteudo['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        conteudo['Tx Adições ao Carrinho'] = conteudo.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        conteudo['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = conteudo['Receita'].sum()
@@ -246,9 +354,22 @@ def tables_detailed(df):
         )
     else:
         conteudo['% Receita'] = '0%'
+    
     conteudo = conteudo.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(conteudo, hide_index=1, use_container_width=1, key="detailed_conteudo")
+    # Formatar os números antes de exibir
+    display_df = conteudo.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Conteúdo', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_conteudo")
 
     # Tabela de Página de Entrada
     st.header("Página de Entrada")
@@ -256,9 +377,11 @@ def tables_detailed(df):
     
     pagina_de_entrada = df.groupby(['Página de Entrada']).agg({
         'Sessões': 'sum', 
-        'Pedidos': 'sum', 
+        'Pedidos': 'sum',
+        'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -266,6 +389,22 @@ def tables_detailed(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    pagina_de_entrada['RPS'] = pagina_de_entrada.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = pagina_de_entrada['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        pagina_de_entrada['Tx Adições ao Carrinho'] = pagina_de_entrada.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        pagina_de_entrada['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = pagina_de_entrada['Receita'].sum()
@@ -276,9 +415,22 @@ def tables_detailed(df):
         )
     else:
         pagina_de_entrada['% Receita'] = '0%'
+    
     pagina_de_entrada = pagina_de_entrada.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(pagina_de_entrada, hide_index=1, use_container_width=1, key="detailed_pagina_entrada")
+    # Formatar os números antes de exibir
+    display_df = pagina_de_entrada.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Página de Entrada', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_pagina_entrada")
 
     # Tabela de Cupons
     st.header("Cupons")
@@ -286,9 +438,11 @@ def tables_detailed(df):
     
     cupons = df.groupby(['Cupom']).agg({
         'Sessões': 'sum', 
-        'Pedidos': 'sum', 
+        'Pedidos': 'sum',
+        'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
-        'Receita Paga': 'sum'
+        'Receita Paga': 'sum',
+        'Adições ao Carrinho': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -296,6 +450,22 @@ def tables_detailed(df):
         lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
         axis=1
     )
+    
+    # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
+    cupons['RPS'] = cupons.apply(
+        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        axis=1
+    )
+    
+    # Calcula percentual de adições ao carrinho com tratamento para divisão por zero
+    total_adicoes = cupons['Adições ao Carrinho'].sum()
+    if total_adicoes > 0:
+        cupons['Tx Adições ao Carrinho'] = cupons.apply(
+            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            axis=1
+        )
+    else:
+        cupons['Tx Adições ao Carrinho'] = '0%'
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = cupons['Receita'].sum()
@@ -306,9 +476,22 @@ def tables_detailed(df):
         )
     else:
         cupons['% Receita'] = '0%'
+    
     cupons = cupons.sort_values(by='Pedidos', ascending=False)
     
-    st.data_editor(cupons, hide_index=1, use_container_width=1, key="detailed_cupons")
+    # Formatar os números antes de exibir
+    display_df = cupons.copy()
+    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Reordenar as colunas
+    display_df = display_df[['Cupom', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    
+    st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_cupons")
 
 def display_tab_detailed():
 

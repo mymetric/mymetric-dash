@@ -27,6 +27,8 @@ def traffic_cluster(row):
             return '🟣 Social'
         elif row['Origem'] == 'Insta':
             return '🟣 Social'
+        elif row['Origem'] == 'meta':
+            return '🔵 Meta Ads'
         elif 'Parâmetros de URL' in row and 'fbclid' in str(row['Parâmetros de URL']):
             return '🔵 Meta Ads'
         elif 'Origem' in row and 'Instagram_' in str(row['Origem']):
@@ -156,14 +158,10 @@ def load_basic_data():
         SELECT
             event_date AS Data,
             source Origem,
-            medium `Mídia`, 
-            # campaign Campanha,
-            # page_location `Página de Entrada`,
-            # content `Conteúdo`,
-            # page_params `Parâmetros de URL`,
-            # coalesce(discount_code, 'Sem Cupom') `Cupom`,
+            medium `Mídia`,
 
             COUNTIF(event_name = 'session') `Sessões`,
+            COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
@@ -209,6 +207,7 @@ def load_detailed_data():
             coalesce(discount_code, 'Sem Cupom') `Cupom`,
 
             COUNTIF(event_name = 'session') `Sessões`,
+            COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
