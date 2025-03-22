@@ -998,9 +998,7 @@ def load_popup_leads():
 
         from leads a
 
-        left join orders b on a.email = b.email and a.subscribe_timestamp < b.purchase_timestamp
-
-        where a.rn = 1
+        full outer join orders b on a.email = b.email and a.subscribe_timestamp < b.purchase_timestamp and a.rn = 1
 
         order by subscribe_timestamp desc
 
