@@ -39,14 +39,9 @@ def load_app():
 
         is_admin = st.session_state.admin
 
-        # Load paid media data apenas se necessário
-        paid_media = None
-        popup_leads = None
-        
-        if "Mídia Paga" in st.session_state.selected_page:
-            paid_media = load_paid_media()
-        if "Leads" in st.session_state.selected_page:
-            popup_leads = load_popup_leads()
+        # Load paid media data
+        paid_media = load_paid_media()
+        popup_leads = load_popup_leads()
 
         # Define navigation options based on data availability
         nav_options = ["Visão Geral"]

@@ -235,7 +235,7 @@ if check_password():
     elif st.session_state.username == "alvisi":
         # Gera um dropdown para escolher entre holysoup e orthocrin
         with st.sidebar.expander("Conta MCC", expanded=True):
-            client_options = ["holysoup", "coffeemais"]
+            client_options = ["holysoup", "coffeemais", "3dfila"]
             selected_client = st.selectbox("Escolha o cliente", options=client_options)
             st.write(f"Cliente selecionado: {selected_client}")
             st.session_state.tablename = selected_client

@@ -947,18 +947,16 @@ def load_popup_leads():
 
         select
 
-        datetime(received_at, "America/Sao_Paulo") subscribe_timestamp,
+        subscribe_timestamp,
         name,
         phone,
-        email
+        email,
+        source,
+        medium,
+        campaign,
+        ROW_NUMBER() OVER (PARTITION BY email ORDER BY subscribe_timestamp) as rn
 
-        from `mymetric-hub-shopify.dbt_granular.popup_subscribe`
-
-        where
-
-        event_name like "%{tablename}%"
-
-        order by received_at desc
+        from `mymetric-hub-shopify.dbt_join.{tablename}_leads_sessions`
 
         ),
 
@@ -966,10 +964,15 @@ def load_popup_leads():
 
         select
 
-        max(created_at) purchase_timestamp,
-        email
+        created_at purchase_timestamp,
+        transaction_id,
+        value,
+        email,
+        source,
+        medium,
+        campaign
 
-        from `mymetric-hub-shopify.dbt_granular.{tablename}_orders_dedup`
+        from `mymetric-hub-shopify.dbt_join.{tablename}_orders_sessions`
 
         group by all
 
@@ -981,11 +984,23 @@ def load_popup_leads():
         a.name `Nome`,
         a.phone `Telefone`,
         a.email `E-mail`,
-        b.purchase_timestamp `Data da Compra`
+        a.source `Origem do Cadastro`,
+        a.medium `Mídia do Cadastro`,
+        a.campaign `Campanha do Cadastro`,
+        b.transaction_id `ID da Compra`,
+        b.purchase_timestamp `Data da Compra`,
+        b.value `Valor da Compra`,
+        b.source `Origem da Compra`,
+        b.medium `Mídia da Compra`,
+        b.campaign `Campanha da Compra`,
+        date_diff(b.purchase_timestamp, a.subscribe_timestamp, day) `Dias entre Cadastro e Compra`,
+        datetime_diff(b.purchase_timestamp, a.subscribe_timestamp, minute) `Minutos entre Cadastro e Compra`
 
         from leads a
 
-        left join orders b on a.email = b.email
+        left join orders b on a.email = b.email and a.subscribe_timestamp < b.purchase_timestamp
+
+        where a.rn = 1
 
         order by subscribe_timestamp desc
 
