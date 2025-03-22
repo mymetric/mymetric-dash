@@ -278,7 +278,7 @@ def display_tab_leads():
     with col2:
         big_number_box(
             f"{leads_com_compra:,.0f}".replace(",", "."),
-            "Leads com Compra",
+            "Compras",
             hint="Número de leads que realizaram pelo menos uma compra"
         )
     
@@ -330,17 +330,88 @@ def display_tab_leads():
     
     st.markdown("---")
     
-    # Botão de exportação
-    col1, col2 = st.columns([1,5])
+    # Tabelas lado a lado
+    col1, col2 = st.columns(2)
+    
     with col1:
-        csv = filtered_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Exportar CSV",
-            data=csv,
-            file_name="leads.csv",
-            mime="text/csv"
+        st.subheader("Desempenho por Origem e Mídia de Cadastro")
+        
+        # Criar tabela agrupada por origem e mídia de cadastro
+        grouped_df_cadastro = filtered_df.groupby([
+            'Origem do Cadastro',
+            'Mídia do Cadastro'
+        ]).agg({
+            'E-mail': 'count',  # Total de leads
+            'ID da Compra': lambda x: x.notna().sum()  # Total de compras
+        }).reset_index()
+        
+        # Renomear colunas
+        grouped_df_cadastro.columns = [
+            'Origem do Cadastro',
+            'Mídia do Cadastro',
+            'Total de Leads',
+            'Total de Compras'
+        ]
+        
+        # Calcular taxa de conversão
+        grouped_df_cadastro['Taxa de Conversão'] = (grouped_df_cadastro['Total de Compras'] / grouped_df_cadastro['Total de Leads'] * 100).round(2)
+        
+        # Ordenar por total de leads (decrescente)
+        grouped_df_cadastro = grouped_df_cadastro.sort_values('Total de Leads', ascending=False)
+        
+        # Exibir tabela agrupada
+        st.data_editor(
+            grouped_df_cadastro,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                'Taxa de Conversão': st.column_config.NumberColumn(
+                    'Taxa de Conversão',
+                    format="%.2f%%"
+                )
+            }
         )
-
+    
+    with col2:
+        st.subheader("Desempenho por Origem e Mídia de Compra")
+        
+        # Criar tabela agrupada por origem e mídia de compra
+        grouped_df_compra = filtered_df.groupby([
+            'Origem da Compra',
+            'Mídia da Compra'
+        ]).agg({
+            'ID da Compra': lambda x: x.notna().sum()  # Total de compras
+        }).reset_index()
+        
+        # Renomear colunas
+        grouped_df_compra.columns = [
+            'Origem da Compra',
+            'Mídia da Compra',
+            'Total de Compras'
+        ]
+        
+        # Ordenar por total de compras (decrescente)
+        grouped_df_compra = grouped_df_compra.sort_values('Total de Compras', ascending=False)
+        
+        # Exibir tabela agrupada
+        st.data_editor(
+            grouped_df_compra,
+            use_container_width=True,
+            hide_index=True
+        )
+    
+    st.markdown("---")
+    st.subheader("Leads Individuais")
+    
+    # Botão de exportação
+    csv = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Exportar CSV",
+        data=csv,
+        file_name="leads.csv",
+        mime="text/csv"
+    )
+    
     # Exibir dados filtrados
     st.data_editor(
         filtered_df,
