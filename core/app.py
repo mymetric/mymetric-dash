@@ -37,8 +37,13 @@ def load_app():
             
         # Carregar CSS e filtros
         tabs_css()
-        date_filters()
-        traffic_filters()
+        
+        # Carregar filtros apenas se não estiver na página de Atribuição 2.0
+        if st.session_state.selected_page != "Atribuição 2.0":
+            date_filters()
+            traffic_filters()
+            attribution_filters()
+            traffic_filters_detailed()
 
         is_admin = st.session_state.admin
 
@@ -86,18 +91,17 @@ def load_app():
         )
         
         # Atualizar o estado da página selecionada
-        st.session_state.selected_page = selected_page
+        if st.session_state.selected_page != selected_page:
+            st.session_state.selected_page = selected_page
+            st.rerun()
 
         # Exibir conteúdo baseado na seleção
         if selected_page == "Visão Geral":
             save_event_name(event_name="tab_view", event_params={"tab": "general"})
-            attribution_filters()
             display_tab_general()
         
         elif selected_page == "Visão Detalhada":
             save_event_name(event_name="tab_view", event_params={"tab": "detailed"})
-            traffic_filters_detailed()
-            attribution_filters()
             display_tab_detailed()
         
         elif selected_page == "Análise do Dia":
