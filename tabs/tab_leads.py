@@ -12,7 +12,7 @@ def display_tab_leads():
     
     # Botão para resetar filtros (movido para a sidebar)
     with st.sidebar:
-        if st.button("🔄 Resetar Filtros", key="reset_filters", use_container_width=True):
+        if st.button("Resetar Filtros", key="reset_filters", use_container_width=True):
             st.session_state.clear()
             st.rerun()
             
@@ -26,150 +26,209 @@ def display_tab_leads():
         if 'data_compra_fim' not in st.session_state:
             st.session_state['data_compra_fim'] = popup_leads['Data da Compra'].max()
             
-        # Filtros de data
-        st.subheader("📅 Datas")
+        # Filtros na sidebar
+        st.subheader("Filtros")
         
-        # Data do Cadastro
-        st.write("Data do Cadastro")
-        col1, col2 = st.columns(2)
-        with col1:
-            data_cadastro_inicio = st.date_input(
-                "Início",
-                value=st.session_state['data_cadastro_inicio'],
-                key='data_cadastro_inicio'
-            )
-        with col2:
-            data_cadastro_fim = st.date_input(
-                "Fim",
-                value=st.session_state['data_cadastro_fim'],
-                key='data_cadastro_fim'
+        # Seção de Datas
+        with st.expander("Datas", expanded=False):
+            # Data do Cadastro
+            st.write("Data do Cadastro")
+            
+            # Botões de datas padrão
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("7 dias", key="btn_7d_cadastro", use_container_width=True, type="primary"):
+                    st.session_state['data_cadastro_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=7)
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now()
+                    st.rerun()
+                if st.button("30 dias", key="btn_30d_cadastro", use_container_width=True, type="primary"):
+                    st.session_state['data_cadastro_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=30)
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now()
+                    st.rerun()
+                if st.button("90 dias", key="btn_90d_cadastro", use_container_width=True, type="primary"):
+                    st.session_state['data_cadastro_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=90)
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now()
+                    st.rerun()
+            with col2:
+                if st.button("Mês atual", key="btn_current_month_cadastro", use_container_width=True, type="primary"):
+                    hoje = pd.Timestamp.now()
+                    primeiro_dia_mes = hoje.replace(day=1)
+                    st.session_state['data_cadastro_inicio'] = primeiro_dia_mes
+                    st.session_state['data_cadastro_fim'] = hoje
+                    st.rerun()
+                if st.button("Mês anterior", key="btn_last_month_cadastro", use_container_width=True, type="primary"):
+                    hoje = pd.Timestamp.now()
+                    primeiro_dia_mes_atual = hoje.replace(day=1)
+                    ultimo_dia_mes_anterior = primeiro_dia_mes_atual - pd.Timedelta(days=1)
+                    primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1)
+                    st.session_state['data_cadastro_inicio'] = primeiro_dia_mes_anterior
+                    st.session_state['data_cadastro_fim'] = ultimo_dia_mes_anterior
+                    st.rerun()
+                if st.button("Personalizado", key="btn_custom_cadastro", use_container_width=True, type="secondary"):
+                    st.session_state['data_cadastro_inicio'] = popup_leads['Data do Cadastro'].min()
+                    st.session_state['data_cadastro_fim'] = popup_leads['Data do Cadastro'].max()
+                    st.rerun()
+            
+            st.markdown("---")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                data_cadastro_inicio = st.date_input(
+                    "Início",
+                    value=st.session_state['data_cadastro_inicio'],
+                    key='data_cadastro_inicio'
+                )
+            with col2:
+                data_cadastro_fim = st.date_input(
+                    "Fim",
+                    value=st.session_state['data_cadastro_fim'],
+                    key='data_cadastro_fim'
+                )
+                
+            # Data da Compra
+            st.write("Data da Compra")
+            
+            # Botões de datas padrão
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("7 dias", key="btn_7d_compra", use_container_width=True, type="primary"):
+                    st.session_state['data_compra_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=7)
+                    st.session_state['data_compra_fim'] = pd.Timestamp.now()
+                    st.rerun()
+                if st.button("30 dias", key="btn_30d_compra", use_container_width=True, type="primary"):
+                    st.session_state['data_compra_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=30)
+                    st.session_state['data_compra_fim'] = pd.Timestamp.now()
+                    st.rerun()
+                if st.button("90 dias", key="btn_90d_compra", use_container_width=True, type="primary"):
+                    st.session_state['data_compra_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=90)
+                    st.session_state['data_compra_fim'] = pd.Timestamp.now()
+                    st.rerun()
+            with col2:
+                if st.button("Mês atual", key="btn_current_month_compra", use_container_width=True, type="primary"):
+                    hoje = pd.Timestamp.now()
+                    primeiro_dia_mes = hoje.replace(day=1)
+                    st.session_state['data_compra_inicio'] = primeiro_dia_mes
+                    st.session_state['data_compra_fim'] = hoje
+                    st.rerun()
+                if st.button("Mês anterior", key="btn_last_month_compra", use_container_width=True, type="primary"):
+                    hoje = pd.Timestamp.now()
+                    primeiro_dia_mes_atual = hoje.replace(day=1)
+                    ultimo_dia_mes_anterior = primeiro_dia_mes_atual - pd.Timedelta(days=1)
+                    primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1)
+                    st.session_state['data_compra_inicio'] = primeiro_dia_mes_anterior
+                    st.session_state['data_compra_fim'] = ultimo_dia_mes_anterior
+                    st.rerun()
+                if st.button("Personalizado", key="btn_custom_compra", use_container_width=True, type="secondary"):
+                    st.session_state['data_compra_inicio'] = popup_leads['Data da Compra'].min()
+                    st.session_state['data_compra_fim'] = popup_leads['Data da Compra'].max()
+                    st.rerun()
+            
+            st.markdown("---")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                data_compra_inicio = st.date_input(
+                    "Início",
+                    value=st.session_state['data_compra_inicio'],
+                    key='data_compra_inicio'
+                )
+            with col2:
+                data_compra_fim = st.date_input(
+                    "Fim",
+                    value=st.session_state['data_compra_fim'],
+                    key='data_compra_fim'
+                )
+        
+        # Seção de Filtros de Cadastro
+        with st.expander("Filtros de Cadastro", expanded=False):
+            # Filtro de origem do cadastro
+            origem_cadastro_options = ["Todos"] + sorted(popup_leads['Origem do Cadastro'].dropna().unique().tolist())
+            selected_origem_cadastro = st.selectbox(
+                "Origem do Cadastro:", 
+                origem_cadastro_options,
+                key='selected_origem_cadastro'
             )
             
-        # Data da Compra
-        st.write("Data da Compra")
-        col1, col2 = st.columns(2)
-        with col1:
-            data_compra_inicio = st.date_input(
-                "Início",
-                value=st.session_state['data_compra_inicio'],
-                key='data_compra_inicio'
+            # Filtro de mídia do cadastro
+            midia_cadastro_options = ["Todos"] + sorted(popup_leads['Mídia do Cadastro'].dropna().unique().tolist())
+            selected_midia_cadastro = st.selectbox(
+                "Mídia do Cadastro:", 
+                midia_cadastro_options,
+                key='selected_midia_cadastro'
             )
-        with col2:
-            data_compra_fim = st.date_input(
-                "Fim",
-                value=st.session_state['data_compra_fim'],
-                key='data_compra_fim'
+            
+            # Filtro de campanha do cadastro
+            campanha_cadastro_options = ["Todos"] + sorted(popup_leads['Campanha do Cadastro'].dropna().unique().tolist())
+            selected_campanha_cadastro = st.selectbox(
+                "Campanha do Cadastro:", 
+                campanha_cadastro_options,
+                key='selected_campanha_cadastro'
             )
-    
-    # Inicializar session_state se não existir
-    if 'checkbox_sem_compra' not in st.session_state:
-        st.session_state['checkbox_sem_compra'] = True
-    if 'checkbox_compras_sem_lead' not in st.session_state:
-        st.session_state['checkbox_compras_sem_lead'] = False
-    
-    if 'selected_origem_cadastro' not in st.session_state:
-        st.session_state['selected_origem_cadastro'] = "Todos"
-    if 'selected_origem_compra' not in st.session_state:
-        st.session_state['selected_origem_compra'] = "Todos"
-    if 'selected_midia_cadastro' not in st.session_state:
-        st.session_state['selected_midia_cadastro'] = "Todos"
-    if 'selected_midia_compra' not in st.session_state:
-        st.session_state['selected_midia_compra'] = "Todos"
-    if 'selected_campanha_cadastro' not in st.session_state:
-        st.session_state['selected_campanha_cadastro'] = "Todos"
-    if 'selected_campanha_compra' not in st.session_state:
-        st.session_state['selected_campanha_compra'] = "Todos"
-    if 'selected_dias' not in st.session_state:
-        st.session_state['selected_dias'] = (float(popup_leads['Dias entre Cadastro e Compra'].min()), float(popup_leads['Dias entre Cadastro e Compra'].max()))
-    if 'selected_minutos' not in st.session_state:
-        st.session_state['selected_minutos'] = (float(popup_leads['Minutos entre Cadastro e Compra'].min()), float(popup_leads['Minutos entre Cadastro e Compra'].max()))
-    
-    # Filtros na sidebar
-    with st.sidebar:
-        st.subheader("🔍 Filtros")
         
-        # Filtro de origem do cadastro
-        origem_cadastro_options = ["Todos"] + sorted(popup_leads['Origem do Cadastro'].dropna().unique().tolist())
-        selected_origem_cadastro = st.selectbox(
-            "Origem do Cadastro:", 
-            origem_cadastro_options,
-            key='selected_origem_cadastro'
-        )
+        # Seção de Filtros de Compra
+        with st.expander("Filtros de Compra", expanded=False):
+            # Filtro de origem da compra
+            origem_compra_options = ["Todos", "Sem Compra"] + sorted(popup_leads['Origem da Compra'].dropna().unique().tolist())
+            selected_origem_compra = st.selectbox(
+                "Origem da Compra:", 
+                origem_compra_options,
+                key='selected_origem_compra'
+            )
+            
+            # Filtro de mídia da compra
+            midia_compra_options = ["Todos", "Sem Compra"] + sorted(popup_leads['Mídia da Compra'].dropna().unique().tolist())
+            selected_midia_compra = st.selectbox(
+                "Mídia da Compra:", 
+                midia_compra_options,
+                key='selected_midia_compra'
+            )
+            
+            # Filtro de campanha da compra
+            campanha_compra_options = ["Todos", "Sem Compra"] + sorted(popup_leads['Campanha da Compra'].dropna().unique().tolist())
+            selected_campanha_compra = st.selectbox(
+                "Campanha da Compra:", 
+                campanha_compra_options,
+                key='selected_campanha_compra'
+            )
         
-        # Filtro de mídia do cadastro
-        midia_cadastro_options = ["Todos"] + sorted(popup_leads['Mídia do Cadastro'].dropna().unique().tolist())
-        selected_midia_cadastro = st.selectbox(
-            "Mídia do Cadastro:", 
-            midia_cadastro_options,
-            key='selected_midia_cadastro'
-        )
+        # Seção de Tempo entre Cadastro e Compra
+        with st.expander("Tempo entre Cadastro e Compra", expanded=False):
+            # Filtro de dias entre cadastro e compra
+            min_dias = popup_leads['Dias entre Cadastro e Compra'].min()
+            max_dias = popup_leads['Dias entre Cadastro e Compra'].max()
+            selected_dias = st.slider(
+                'Dias entre Cadastro e Compra:',
+                min_value=float(min_dias),
+                max_value=float(max_dias),
+                value=st.session_state.get('selected_dias', (float(min_dias), float(max_dias))),
+                key='selected_dias'
+            )
+            
+            # Filtro de minutos entre cadastro e compra
+            min_minutos = popup_leads['Minutos entre Cadastro e Compra'].min()
+            max_minutos = popup_leads['Minutos entre Cadastro e Compra'].max()
+            selected_minutos = st.slider(
+                'Minutos entre Cadastro e Compra:',
+                min_value=float(min_minutos),
+                max_value=float(max_minutos),
+                value=st.session_state.get('selected_minutos', (float(min_minutos), float(max_minutos))),
+                key='selected_minutos'
+            )
         
-        # Filtro de campanha do cadastro
-        campanha_cadastro_options = ["Todos"] + sorted(popup_leads['Campanha do Cadastro'].dropna().unique().tolist())
-        selected_campanha_cadastro = st.selectbox(
-            "Campanha do Cadastro:", 
-            campanha_cadastro_options,
-            key='selected_campanha_cadastro'
-        )
-        
-        # Filtro de origem da compra
-        origem_compra_options = ["Todos", "Sem Compra"] + sorted(popup_leads['Origem da Compra'].dropna().unique().tolist())
-        selected_origem_compra = st.selectbox(
-            "Origem da Compra:", 
-            origem_compra_options,
-            key='selected_origem_compra'
-        )
-        
-        # Filtro de mídia da compra
-        midia_compra_options = ["Todos", "Sem Compra"] + sorted(popup_leads['Mídia da Compra'].dropna().unique().tolist())
-        selected_midia_compra = st.selectbox(
-            "Mídia da Compra:", 
-            midia_compra_options,
-            key='selected_midia_compra'
-        )
-        
-        # Filtro de campanha da compra
-        campanha_compra_options = ["Todos", "Sem Compra"] + sorted(popup_leads['Campanha da Compra'].dropna().unique().tolist())
-        selected_campanha_compra = st.selectbox(
-            "Campanha da Compra:", 
-            campanha_compra_options,
-            key='selected_campanha_compra'
-        )
-        
-        # Filtro de dias entre cadastro e compra
-        min_dias = popup_leads['Dias entre Cadastro e Compra'].min()
-        max_dias = popup_leads['Dias entre Cadastro e Compra'].max()
-        selected_dias = st.slider(
-            'Dias entre Cadastro e Compra:',
-            min_value=float(min_dias),
-            max_value=float(max_dias),
-            value=st.session_state.get('selected_dias', (float(min_dias), float(max_dias))),
-            key='selected_dias'
-        )
-        
-        # Filtro de minutos entre cadastro e compra
-        min_minutos = popup_leads['Minutos entre Cadastro e Compra'].min()
-        max_minutos = popup_leads['Minutos entre Cadastro e Compra'].max()
-        selected_minutos = st.slider(
-            'Minutos entre Cadastro e Compra:',
-            min_value=float(min_minutos),
-            max_value=float(max_minutos),
-            value=st.session_state.get('selected_minutos', (float(min_minutos), float(max_minutos))),
-            key='selected_minutos'
-        )
-        
-        # Checkboxes
-        incluir_sem_compra = st.checkbox(
-            "Incluir leads sem compra", 
-            value=st.session_state.get('checkbox_sem_compra', True),
-            key="checkbox_sem_compra"
-        )
-        
-        incluir_compras_sem_lead = st.checkbox(
-            "Incluir compras sem lead", 
-            value=st.session_state.get('checkbox_compras_sem_lead', False),
-            key="checkbox_compras_sem_lead"
-        )
+        # Seção de Opções Adicionais
+        with st.expander("Opções Adicionais", expanded=False):
+            # Checkboxes
+            incluir_sem_compra = st.checkbox(
+                "Incluir leads sem compra", 
+                value=st.session_state.get('checkbox_sem_compra', True),
+                key="checkbox_sem_compra"
+            )
+            
+            incluir_compras_sem_lead = st.checkbox(
+                "Incluir compras sem lead", 
+                value=st.session_state.get('checkbox_compras_sem_lead', True),
+                key="checkbox_compras_sem_lead"
+            )
     
     # Aplicar filtros
     filtered_df = popup_leads.copy()
@@ -420,6 +479,85 @@ def display_tab_leads():
         # Exibir tabela agrupada
         st.data_editor(
             grouped_df_compra,
+            use_container_width=True,
+            hide_index=True
+        )
+    
+    st.markdown("---")
+    
+    # Tabelas de Campanha lado a lado
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Desempenho por Campanha de Cadastro")
+        
+        # Criar tabela agrupada por campanha de cadastro
+        grouped_df_campanha_cadastro = filtered_df.groupby([
+            'Campanha do Cadastro'
+        ]).agg({
+            'E-mail': 'count',  # Total de leads
+            'ID da Compra': lambda x: x.notna().sum()  # Total de compras
+        }).reset_index()
+        
+        # Renomear colunas
+        grouped_df_campanha_cadastro.columns = [
+            'Campanha do Cadastro',
+            'Total de Leads',
+            'Total de Compras'
+        ]
+        
+        # Calcular taxa de conversão
+        grouped_df_campanha_cadastro['Taxa de Conversão'] = (grouped_df_campanha_cadastro['Total de Compras'] / grouped_df_campanha_cadastro['Total de Leads'] * 100).round(2)
+        
+        # Calcular compras projetadas baseado na taxa de captura de leads
+        if tx_compras_com_lead > 0:
+            fator_projecao = 100 / tx_compras_com_lead
+            grouped_df_campanha_cadastro['Compras Projetadas'] = (grouped_df_campanha_cadastro['Total de Compras'] * fator_projecao).round(0)
+        else:
+            grouped_df_campanha_cadastro['Compras Projetadas'] = 0
+        
+        # Ordenar por total de leads (decrescente)
+        grouped_df_campanha_cadastro = grouped_df_campanha_cadastro.sort_values('Total de Leads', ascending=False)
+        
+        # Exibir tabela agrupada
+        st.data_editor(
+            grouped_df_campanha_cadastro,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                'Taxa de Conversão': st.column_config.NumberColumn(
+                    'Taxa de Conversão',
+                    format="%.2f%%"
+                ),
+                'Compras Projetadas': st.column_config.NumberColumn(
+                    'Compras Projetadas',
+                    format="%.0f"
+                )
+            }
+        )
+    
+    with col2:
+        st.subheader("Desempenho por Campanha de Compra")
+        
+        # Criar tabela agrupada por campanha de compra
+        grouped_df_campanha_compra = filtered_df.groupby([
+            'Campanha da Compra'
+        ]).agg({
+            'ID da Compra': lambda x: x.notna().sum()  # Total de compras
+        }).reset_index()
+        
+        # Renomear colunas
+        grouped_df_campanha_compra.columns = [
+            'Campanha da Compra',
+            'Total de Compras'
+        ]
+        
+        # Ordenar por total de compras (decrescente)
+        grouped_df_campanha_compra = grouped_df_campanha_compra.sort_values('Total de Compras', ascending=False)
+        
+        # Exibir tabela agrupada
+        st.data_editor(
+            grouped_df_campanha_compra,
             use_container_width=True,
             hide_index=True
         )
