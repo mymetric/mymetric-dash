@@ -28,45 +28,6 @@ def format_currency(value):
     """Formata valor para o padrão de moeda BR."""
     return f"R$ {value:,.2f}".replace(",", "*").replace(".", ",").replace("*", ".")
 
-def create_progress_bar(current, target, color="#C5EBC3"):
-    """Cria uma barra de progresso estilizada."""
-    progress = min(100, (current / target * 100)) if target > 0 else 0
-    return f"""
-        <div style="margin: 10px 0;">
-            <div style="
-                width: 100%;
-                background-color: #f0f2f6;
-                border-radius: 10px;
-                padding: 3px;
-            ">
-                <div style="
-                    width: {progress}%;
-                    height: 24px;
-                    background-color: {color};
-                    border-radius: 8px;
-                    transition: width 500ms;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #31333F;
-                    font-weight: bold;
-                ">
-                    {progress:.1f}%
-                </div>
-            </div>
-            <div style="
-                display: flex;
-                justify-content: space-between;
-                margin-top: 5px;
-                color: #31333F;
-                font-size: 14px;
-            ">
-                <span>Meta Diária: {format_currency(target)}</span>
-                <span>Faturado Hoje: {format_currency(current)}</span>
-            </div>
-        </div>
-    """
-
 def display_tab_today():
     st.title("Análise do Dia")
     st.markdown("""---""")
@@ -91,21 +52,6 @@ def display_tab_today():
     current_month = datetime.now().strftime("%Y-%m")
     meta_receita = meta_receita.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
 
-    # Calcula a meta diária e informações relacionadas
-    meta_diaria, valor_faltante, dias_restantes = calculate_daily_goal(meta_receita, total_receita_mes)
-    
-    # Exibe informações sobre a meta no topo
-    if meta_receita > 0:
-        st.markdown(f"""
-        <div style='background-color: #F0F2F6; padding: 20px; border-radius: 10px; margin: 10px 0;'>
-            <h3 style='margin-top: 0; color: #31333F;'>🎯 Meta Diária</h3>
-            <p style='margin: 5px 0; color: #31333F;'>
-                Para bater a meta do mês de {format_currency(meta_receita)}, você precisa faturar {format_currency(meta_diaria)} por dia nos próximos {dias_restantes} dias
-            </p>
-            {create_progress_bar(total_receita_dia, meta_diaria)}
-        </div>
-        """, unsafe_allow_html=True)
-    
     # Agrupa por hora
     df_hora = df.groupby('Hora').agg({
         'Sessões': 'sum',
@@ -134,6 +80,99 @@ def display_tab_today():
     projecao_receita = total_receita_dia + (media_receita_hora * horas_restantes)
     projecao_pedidos = pedidos + (media_pedidos_hora * horas_restantes)
     projecao_sessoes = sessoes + (media_sessoes_hora * horas_restantes)
+
+    # Calcula a meta diária e informações relacionadas
+    meta_diaria, valor_faltante, dias_restantes = calculate_daily_goal(meta_receita, total_receita_mes)
+    
+    # Exibe informações sobre a meta no topo
+    if meta_receita > 0:
+        # Definir cores e mensagens baseadas no progresso
+        percentual_meta = (total_receita_dia / meta_diaria * 100) if meta_diaria > 0 else 0
+        
+        if percentual_meta >= 100:
+            cor_probabilidade = "#10B981"
+            gradient = "linear-gradient(135deg, #10B981, #059669)"
+            mensagem_probabilidade = "Excelente dia! Você já atingiu a meta diária!"
+        elif percentual_meta >= 80:
+            cor_probabilidade = "#3B82F6"
+            gradient = "linear-gradient(135deg, #3B82F6, #2563EB)"
+            mensagem_probabilidade = "Bom progresso! Continue focado que a meta está ao seu alcance!"
+        elif percentual_meta >= 60:
+            cor_probabilidade = "#F59E0B"
+            gradient = "linear-gradient(135deg, #F59E0B, #D97706)"
+            mensagem_probabilidade = "Momento de intensificar! Aumente as ações de marketing e vendas!"
+        elif percentual_meta >= 40:
+            cor_probabilidade = "#F97316"
+            gradient = "linear-gradient(135deg, #F97316, #EA580C)"
+            mensagem_probabilidade = "Hora de agir! Revise suas estratégias e faça ajustes!"
+        else:
+            cor_probabilidade = "#EF4444"
+            gradient = "linear-gradient(135deg, #EF4444, #DC2626)"
+            mensagem_probabilidade = "Alerta! Momento de tomar ações urgentes para reverter o cenário!"
+
+        # Renderizar o card principal
+        st.markdown(f"""
+            <div style="background:white; border-radius:16px; padding:24px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); margin:20px 0;">
+                <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:24px; margin-bottom:24px;">
+                    <div style="background:#F8FAFC; padding:16px; border-radius:12px;">
+                        <div style="color:#64748B; font-size:14px; margin-bottom:8px;">Meta Diária</div>
+                        <div style="color:#0F172A; font-size:24px; font-weight:600;">{format_currency(meta_diaria)}</div>
+                    </div>
+                    <div style="background:#F8FAFC; padding:16px; border-radius:12px;">
+                        <div style="color:#64748B; font-size:14px; margin-bottom:8px;">Realizado Hoje</div>
+                        <div style="color:#0F172A; font-size:24px; font-weight:600;">{format_currency(total_receita_dia)}</div>
+                        <div style="color:#64748B; font-size:12px; margin-top:4px;">{percentual_meta:.1f}% da meta</div>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Renderizar a barra de progresso
+        st.markdown(f"""
+            <div style="margin-bottom:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="color:#64748B; font-size:14px;">Progresso</div>
+                    <div style="color:{cor_probabilidade}; font-weight:500;">{percentual_meta:.1f}%</div>
+                </div>
+                <div style="width:100%; height:8px; background:#F1F5F9; border-radius:4px; overflow:hidden;">
+                    <div style="width:{min(percentual_meta, 100)}%; height:100%; background:{gradient}; border-radius:4px; transition:width 0.3s ease;"></div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Renderizar o card de probabilidade
+        st.markdown(f"""
+            <div style="background:{cor_probabilidade}10; border:1px solid {cor_probabilidade}25; padding:20px; border-radius:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="width:8px; height:8px; border-radius:50%; background:{cor_probabilidade};"></div>
+                        <span style="color:{cor_probabilidade}; font-weight:500;">Status do Dia</span>
+                    </div>
+                    <div style="background:{cor_probabilidade}; color:white; padding:6px 16px; border-radius:20px; font-weight:500; font-size:14px;">{percentual_meta:.1f}%</div>
+                </div>
+                <p style="margin:0; color:{cor_probabilidade}; font-size:14px; line-height:1.5;">{mensagem_probabilidade}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Renderizar as métricas adicionais
+        st.markdown(f"""
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:24px; margin-bottom:32px;">
+                <div style="text-align:center;">
+                    <div style="color:#64748B; font-size:13px; margin-bottom:4px;">Horas Passadas</div>
+                    <div style="color:#0F172A; font-weight:500;">{hora_atual} de 24</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="color:#64748B; font-size:13px; margin-bottom:4px;">Média por Hora</div>
+                    <div style="color:#0F172A; font-weight:500;">{format_currency(media_receita_hora)}</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="color:#64748B; font-size:13px; margin-bottom:4px;">Meta por Hora</div>
+                    <div style="color:#0F172A; font-weight:500;">{format_currency(meta_diaria/24)}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<div style='margin-bottom:24px;'></div>", unsafe_allow_html=True)
     
     # Big Numbers com realizado
     col1, col2, col3 = st.columns(3)
