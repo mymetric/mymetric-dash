@@ -159,13 +159,16 @@ def load_basic_data():
             event_date AS Data,
             source Origem,
             medium `Mídia`,
+            campaign Campanha,
+            content `Conteúdo`,
+            page_location `Página de Entrada`,
 
             COUNTIF(event_name = 'session') `Sessões`,
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
@@ -174,7 +177,47 @@ def load_basic_data():
     """
 
     df = run_queries([query])[0]
+    
+    # Inicializar a coluna Cluster com valores padrão
     df['Cluster'] = df.apply(traffic_cluster, axis=1)
+    
+    # Carregar categorias de tráfego
+    categories_df = load_traffic_categories()
+    
+    # Aplicar categorias de tráfego
+    if not categories_df.empty:
+        print("Aplicando categorias de tráfego...")
+        for _, category in categories_df.iterrows():
+            rules = category['Regras'].get('rules', {})
+            if not rules:
+                continue
+                
+            # Criar máscara para cada regra
+            mask = pd.Series(True, index=df.index)
+            for field, pattern in rules.items():
+                if pattern:
+                    # Mapear nomes de campos
+                    field_mapping = {
+                        'origem': 'Origem',
+                        'midia': 'Mídia',
+                        'campanha': 'Campanha',
+                        'conteudo': 'Conteúdo',
+                        'pagina_de_entrada': 'Página de Entrada'
+                    }
+                    
+                    mapped_field = field_mapping.get(field)
+                    if mapped_field and mapped_field in df.columns:
+                        try:
+                            field_mask = df[mapped_field].astype(str).str.contains(pattern, regex=True, na=False)
+                            mask &= field_mask
+                        except Exception as e:
+                            print(f"Erro ao aplicar regra {pattern} para campo {mapped_field}: {str(e)}")
+            
+            # Aplicar categoria onde a máscara é True
+            df.loc[mask, 'Cluster'] = category['Nome']
+            print(f"Categoria {category['Nome']} aplicada em {mask.sum()} linhas")
+    
+    # Aplicar filtros
     df = apply_filters(df)
 
     return df
@@ -226,8 +269,44 @@ def load_detailed_data():
     if df.empty:
         return pd.DataFrame()
     
-    # Adicionar coluna de Cluster
+    # Inicializar a coluna Cluster com valores padrão
     df['Cluster'] = df.apply(traffic_cluster, axis=1)
+    
+    # Carregar categorias de tráfego
+    categories_df = load_traffic_categories()
+    
+    # Aplicar categorias de tráfego
+    if not categories_df.empty:
+        print("Aplicando categorias de tráfego...")
+        for _, category in categories_df.iterrows():
+            rules = category['Regras'].get('rules', {})
+            if not rules:
+                continue
+                
+            # Criar máscara para cada regra
+            mask = pd.Series(True, index=df.index)
+            for field, pattern in rules.items():
+                if pattern:
+                    # Mapear nomes de campos
+                    field_mapping = {
+                        'origem': 'Origem',
+                        'midia': 'Mídia',
+                        'campanha': 'Campanha',
+                        'conteudo': 'Conteúdo',
+                        'pagina_de_entrada': 'Página de Entrada'
+                    }
+                    
+                    mapped_field = field_mapping.get(field)
+                    if mapped_field and mapped_field in df.columns:
+                        try:
+                            field_mask = df[mapped_field].astype(str).str.contains(pattern, regex=True, na=False)
+                            mask &= field_mask
+                        except Exception as e:
+                            print(f"Erro ao aplicar regra {pattern} para campo {mapped_field}: {str(e)}")
+            
+            # Aplicar categoria onde a máscara é True
+            df.loc[mask, 'Cluster'] = category['Nome']
+            print(f"Categoria {category['Nome']} aplicada em {mask.sum()} linhas")
     
     # Aplicar filtros
     df = apply_filters(df)
@@ -794,59 +873,6 @@ def delete_user(email):
         st.toast(f"Error deleting user: {str(e)}")
         return False
 
-def save_coupons(coupon_code, coupon_category):
-    
-    tablename = st.session_state.tablename
-    user = st.session_state.username
-
-    query = f"""
-        MERGE `mymetric-hub-shopify.dbt_config.coupons` AS target
-        USING (SELECT '{tablename}' as tablename, '{coupon_code}' as coupon_code) AS source
-        ON target.tablename = source.tablename AND target.coupon_code = source.coupon_code
-        WHEN MATCHED THEN
-            UPDATE SET coupon_category = coupon_category, user = user
-        WHEN NOT MATCHED THEN
-            INSERT (created_at, tablename, user, coupon_code, coupon_category)
-            VALUES (CURRENT_TIMESTAMP(), '{tablename}', '{user}', '{coupon_code}', '{coupon_category}')
-    """
-
-    try:
-        client.query(query)
-    except Exception as e:
-        st.error(f"Erro ao salvar usuário: {str(e)}")
-
-def load_coupons():
-
-    if toast_alerts():
-        st.toast("Carregando cupons...")
-
-    tablename = st.session_state.tablename
-    query = f"""
-        SELECT
-            coupon_code `Cupom`,
-            coupon_category `Categoria`
-        FROM `mymetric-hub-shopify.dbt_config.coupons`
-        WHERE tablename = '{tablename}'
-    """
-
-    query_job = client.query(query)
-    rows_raw = query_job.result()
-    rows = [dict(row) for row in rows_raw]
-    return pd.DataFrame(rows)
-
-def delete_coupon(coupon_code):
-    tablename = st.session_state.tablename
-    query = f"""
-        DELETE FROM `mymetric-hub-shopify.dbt_config.coupons`
-        WHERE tablename = '{tablename}' AND coupon_code = '{coupon_code}'
-    """
-    try:
-        client.query(query)
-        return True
-    except Exception as e:
-        st.toast(f"Error deleting user: {str(e)}")
-        return False
-
 def load_leads_popup():
 
     if toast_alerts():
@@ -1131,3 +1157,173 @@ def load_coffeemais_crm():
 
     df = run_queries([query])[0]
     return df
+
+def save_traffic_categories(category_name, description, rules):
+    """
+    Salva uma nova categoria de tráfego no BigQuery.
+    """
+    if toast_alerts():
+        st.toast("Salvando categoria de tráfego...")
+
+    tablename = st.session_state.tablename
+    print(f"Salvando categoria para tablename: {tablename}")
+
+    try:
+        # Verificar se a categoria já existe usando parâmetros
+        check_query = """
+            SELECT COUNT(*) as count
+            FROM `mymetric-hub-shopify.dbt_config.traffic_categories`
+            WHERE tablename = @tablename
+            AND category_name = @category_name
+        """
+        
+        check_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+                bigquery.ScalarQueryParameter("category_name", "STRING", category_name),
+            ]
+        )
+        
+        check_result = client.query(check_query, job_config=check_config).result()
+        count = next(check_result).count
+
+        if count > 0:
+            st.error("Esta categoria já existe!")
+            return False
+
+        # Converter regras para JSON
+        rules_json = json.dumps(rules)
+
+        # Inserir nova categoria usando parâmetros
+        insert_query = """
+            INSERT INTO `mymetric-hub-shopify.dbt_config.traffic_categories`
+            (tablename, category_name, description, rules, created_at)
+            VALUES
+            (@tablename, @category_name, @description, @rules, CURRENT_TIMESTAMP())
+        """
+        
+        insert_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+                bigquery.ScalarQueryParameter("category_name", "STRING", category_name),
+                bigquery.ScalarQueryParameter("description", "STRING", description),
+                bigquery.ScalarQueryParameter("rules", "STRING", rules_json),
+            ]
+        )
+
+        client.query(insert_query, job_config=insert_config).result()
+        print(f"Categoria {category_name} salva com sucesso")
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao salvar categoria: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return False
+
+def load_traffic_categories():
+    """
+    Carrega as categorias de tráfego do BigQuery.
+    """
+    if toast_alerts():
+        st.toast("Carregando categorias de tráfego...")
+
+    # Debug: Imprimir todo o estado da sessão
+    print("Estado completo da sessão:")
+    for key, value in st.session_state.items():
+        print(f"{key}: {value}")
+
+    tablename = st.session_state.get('tablename')
+    print(f"Tablename obtido da sessão: {tablename}")
+
+    if not tablename:
+        print("Erro: tablename não está definido na sessão")
+        return pd.DataFrame()
+
+    try:
+        # Usar parâmetros de consulta para evitar problemas com caracteres especiais
+        query = """
+            SELECT 
+                category_name as Nome,
+                description as Descricao,
+                rules as Regras
+            FROM `mymetric-hub-shopify.dbt_config.traffic_categories`
+            WHERE tablename = @tablename
+            ORDER BY category_name
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+            ]
+        )
+        
+        print(f"Executando query com tablename: {tablename}")
+        query_job = client.query(query, job_config=job_config)
+        rows = query_job.result()
+        df = pd.DataFrame([dict(row) for row in rows])
+        
+        print(f"DataFrame criado com {len(df)} linhas")
+        print(f"Colunas do DataFrame: {df.columns.tolist()}")
+        
+        # Converter regras de JSON para dicionário
+        if not df.empty and 'Regras' in df.columns:
+            print("Convertendo regras de JSON para dicionário...")
+            df['Regras'] = df['Regras'].apply(lambda x: json.loads(x) if x else {})
+            
+            # Debug: Imprimir informações sobre as categorias carregadas
+            print(f"Carregadas {len(df)} categorias:")
+            for _, row in df.iterrows():
+                print(f"- {row['Nome']}")
+                print(f"  Regras: {row['Regras']}")
+        else:
+            print("DataFrame vazio ou coluna 'Regras' não encontrada")
+        
+        # Renomear a coluna de volta para 'Descrição'
+        if 'Descricao' in df.columns:
+            df = df.rename(columns={'Descricao': 'Descrição'})
+        
+        return df
+    except Exception as e:
+        print(f"Erro ao carregar categorias: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return pd.DataFrame()
+
+def delete_traffic_category(category_name):
+    """
+    Deleta uma categoria de tráfego do BigQuery.
+    """
+    if toast_alerts():
+        st.toast("Deletando categoria de tráfego...")
+
+    tablename = st.session_state.tablename
+    print(f"Deletando categoria {category_name} para tablename: {tablename}")
+
+    try:
+        # Deletar categoria usando parâmetros
+        delete_query = """
+            DELETE FROM `mymetric-hub-shopify.dbt_config.traffic_categories`
+            WHERE tablename = @tablename
+            AND category_name = @category_name
+        """
+        
+        delete_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+                bigquery.ScalarQueryParameter("category_name", "STRING", category_name),
+            ]
+        )
+
+        client.query(delete_query, job_config=delete_config).result()
+        print(f"Categoria {category_name} deletada com sucesso")
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao deletar categoria: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return False

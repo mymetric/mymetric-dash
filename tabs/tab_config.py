@@ -3,7 +3,7 @@ import streamlit as st
 from partials.run_rate import load_table_metas
 from datetime import datetime
 import pandas as pd
-from modules.load_data import save_goals, load_users, save_users, delete_user, save_coupons, load_coupons, delete_coupon, save_event_name
+from modules.load_data import save_goals, load_users, save_users, delete_user, save_event_name, save_traffic_categories, load_traffic_categories, delete_traffic_category
 import random
 import string
 import time
@@ -175,122 +175,105 @@ def goals_config():
                 "current_metas": current_metas
             })
 
-def coupons_config():
-    st.subheader("Gerenciamento de Cupons")
+def traffic_categories_config():
+    st.subheader("Categorização de Tráfego")
     
-    # Form para adicionar novo cupom
-    with st.form("novo_cupom"):
-        coupon_code = st.text_input("Código do Cupom")
-        coupon_category = st.text_input("Categoria do Cupom")
+    # Debug: Imprimir informações sobre o estado da sessão
+    print(f"Estado da sessão: {st.session_state}")
+    
+    # Carregar categorias existentes
+    categories_df = load_traffic_categories()
+    print(f"Categorias carregadas: {categories_df}")
+    
+    # Formulário para adicionar nova categoria
+    with st.form("nova_categoria"):
+        st.markdown("### Nova Categoria")
+        category_name = st.text_input("Nome da Categoria")
+        description = st.text_area("Descrição")
         
-        submitted = st.form_submit_button("Salvar Cupom")
-        if submitted and coupon_code and coupon_category:
-            save_coupons(coupon_code, coupon_category)
-            st.success(f"Cupom {coupon_code} salvo com sucesso!")
-            st.rerun()
-    
-    st.divider()
-    
-    # Exibir lista de cupons existentes
-    coupons = load_coupons()
-    
-    if not coupons.empty:
-        # Adicionar campos de busca
-        search_code = st.text_input("🔍 Buscar por código", placeholder="Digite o código do cupom...")
-        search_category = st.text_input("🔍 Buscar por categoria", placeholder="Digite a categoria...")
+        # Campos para regras
+        st.markdown("### Regras de Classificação")
+        st.markdown("Use expressões regulares (regex) para definir as regras de classificação.")
         
-        # Filtrar cupons baseado na busca
-        if search_code or search_category:
-            filtered_coupons = coupons[
-                (coupons['Cupom'].str.contains(search_code, case=False, na=False)) &
-                (coupons['Categoria'].str.contains(search_category, case=False, na=False))
+        rules = {
+            "type": "regex",
+            "rules": {
+                "origem": st.text_input("Origem (regex)"),
+                "midia": st.text_input("Mídia (regex)"),
+                "campanha": st.text_input("Campanha (regex)"),
+                "conteudo": st.text_input("Conteúdo (regex)"),
+                "pagina_de_entrada": st.text_input("Página de Entrada (regex)"),
+                "termo": st.text_input("Termo (regex)"),
+                "cupom": st.text_input("Cupom (regex)")
+            }
+        }
+        
+        submitted = st.form_submit_button("Adicionar Categoria")
+        
+        if submitted:
+            if category_name:
+                # Remover regras vazias
+                rules["rules"] = {k: v for k, v in rules["rules"].items() if v}
+                
+                if save_traffic_categories(category_name, description, rules):
+                    st.success("Categoria adicionada com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("Erro ao adicionar categoria.")
+            else:
+                st.error("Por favor, preencha o nome da categoria.")
+    
+    # Exibir categorias existentes
+    if not categories_df.empty:
+        st.markdown("### Categorias Existentes")
+        
+        # Campo de busca
+        search_term = st.text_input("Buscar categorias", key="category_search")
+        
+        # Filtrar categorias baseado no termo de busca
+        if search_term:
+            categories_df = categories_df[
+                categories_df['Nome'].str.contains(search_term, case=False, na=False) |
+                categories_df['Descrição'].str.contains(search_term, case=False, na=False)
             ]
-        else:
-            filtered_coupons = coupons
         
-        # Mostrar estatísticas
-        total_coupons = len(filtered_coupons)
-        st.caption(f"Total de cupons encontrados: {total_coupons}")
-        
-        # Estilo CSS para os cards
-        st.markdown("""
-        <style>
-        .coupon-card {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: #f8f9fa;
-            margin-bottom: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .coupon-info {
-            display: flex;
-            align-items: center;
-        }
-        .coupon-code {
-            color: #0066cc;
-            font-family: monospace;
-            font-size: 1.1em;
-            padding: 0.2rem 0.4rem;
-            background-color: #e9ecef;
-            border-radius: 0.3rem;
-        }
-        .coupon-category {
-            color: #666;
-            margin-left: 1rem;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Exibir cupons em cards
-        for index, row in filtered_coupons.iterrows():
-            col1, col2 = st.columns([6, 1])
-            with col1:
-                st.markdown(f"""
-                <div class="coupon-card">
-                    <div class="coupon-info">
-                        <span class="coupon-code">{row['Cupom']}</span>
-                        <span class="coupon-category">📁 {row['Categoria']}</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            with col2:
-                if st.button("🗑️", key=f"delete_{row['Cupom']}", help="Deletar cupom", type="secondary"):
-                    if delete_coupon(row['Cupom']):
-                        st.success(f"Cupom {row['Cupom']} deletado com sucesso!")
-                        coupons = load_coupons()
+        # Exibir categorias
+        for _, row in categories_df.iterrows():
+            with st.expander(f"📊 {row['Nome']}", expanded=True):
+                if row['Descrição']:
+                    st.markdown(f"**Descrição:** {row['Descrição']}")
+                
+                if row['Regras'] and 'rules' in row['Regras']:
+                    st.markdown("**Regras:**")
+                    for field, value in row['Regras']['rules'].items():
+                        if value:
+                            st.markdown(f"- {field.title()}: `{value}`")
+                
+                if st.button("🗑️ Deletar", key=f"delete_{row['Nome']}"):
+                    if delete_traffic_category(row['Nome']):
+                        st.success("Categoria deletada com sucesso!")
                         st.rerun()
                     else:
-                        st.error(f"Erro ao deletar o cupom {row['Cupom']}")
+                        st.error("Erro ao deletar categoria.")
     else:
-        st.info("Nenhum cupom cadastrado.")
+        st.info("Nenhuma categoria cadastrada ainda.")
 
 def display_tab_config():
     st.title("Configurações")
-    st.markdown("""---""")
-
-    # Criar tabs para cada seção
-    tab_notices, tab_users, tab_goals, tab_coupons = st.tabs([
-        "Novidades",
-        "Usuários",
-        "Metas",
-        "Cupons"
-    ])
     
-    # Conteúdo da tab de usuários
-    with tab_notices:
-        display_notices()
+    tab_users, tab_goals, tab_traffic = st.tabs([
+        "👥 Usuários",
+        "🎯 Metas",
+        "🚦 Categorias de Tráfego"
+    ])
     
     with tab_users:
         users_config()
     
-    # Conteúdo da tab de metas
     with tab_goals:
         goals_config()
     
-    # Conteúdo da tab de cupons
-    with tab_coupons:
-        coupons_config()
+    with tab_traffic:
+        traffic_categories_config()
     
     

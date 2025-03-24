@@ -115,7 +115,6 @@ def traffic_filters():
         st.session_state.campanha_selected = ["Selecionar Todos"]
         st.session_state.conteudo_selected = ["Selecionar Todos"]
         st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
-        st.session_state.cupom_selected = ["Selecionar Todos"]
 
     df = load_basic_data()
 
@@ -207,7 +206,6 @@ def traffic_filters_detailed():
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
-            all_coupons = sort_by_sessions('Cupom', df)
             
             # Criar os elementos de filtro
             
@@ -228,16 +226,44 @@ def traffic_filters_detailed():
                 options=all_pages,
                 default=["Selecionar Todos"]
             )
-
-            cupom_selected = st.multiselect(
-                "Cupom",
-                options=all_coupons,
-                default=["Selecionar Todos"]
-            )
             
             st.session_state.campanha_selected = campanha_selected
             st.session_state.conteudo_selected = conteudo_selected
             st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
-            st.session_state.cupom_selected = cupom_selected
+
+def apply_filters(df):
+    """
+    Aplica filtros ao DataFrame baseado nas seleções do usuário.
+    Não cria elementos UI - apenas aplica a lógica de filtragem.
+    """
+    # Verificar se o DataFrame está vazio
+    if df.empty:
+        return df
+        
+    # Criar uma cópia do DataFrame para não modificar o original
+    df_filtered = df.copy()
+
+    # Lista de filtros para aplicar
+    filters = [
+        ('cluster_selected', 'Cluster'),
+        ('origem_selected', 'Origem'),
+        ('midia_selected', 'Mídia'),
+        ('campanha_selected', 'Campanha'),
+        ('conteudo_selected', 'Conteúdo'),
+        ('pagina_de_entrada_selected', 'Página de Entrada')
+    ]
+
+    # Aplicar cada filtro
+    for state_key, column in filters:
+        selected_values = st.session_state.get(state_key, [])
+        if selected_values and "Selecionar Todos" not in selected_values:
+            # Garantir que a coluna existe antes de filtrar
+            if column in df_filtered.columns:
+                # Converter valores para string para evitar problemas de tipo
+                df_filtered[column] = df_filtered[column].astype(str)
+                selected_values = [str(val) for val in selected_values]
+                df_filtered = df_filtered[df_filtered[column].isin(selected_values)]
+    
+    return df_filtered
 
     
