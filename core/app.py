@@ -50,6 +50,10 @@ def load_app():
         # Load paid media data
         paid_media = load_paid_media()
         popup_leads = load_popup_leads()
+        # Check if all values in 'Data do Cadastro' are None/NaN
+        if popup_leads is not None and not popup_leads.empty and popup_leads['Data do Cadastro'].isna().all():
+            popup_leads = None
+
 
         # Define navigation options based on data availability
         nav_options = ["Visão Geral"]
