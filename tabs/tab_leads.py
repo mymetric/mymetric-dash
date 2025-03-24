@@ -18,13 +18,28 @@ def display_tab_leads():
             
         # Inicializar datas se não existirem
         if 'data_cadastro_inicio' not in st.session_state:
-            st.session_state['data_cadastro_inicio'] = popup_leads['Data do Cadastro'].min()
+            min_cadastro = popup_leads['Data do Cadastro'].min()
+            if pd.isna(min_cadastro):
+                min_cadastro = pd.Timestamp.now() - pd.Timedelta(days=30)
+            st.session_state['data_cadastro_inicio'] = pd.Timestamp(min_cadastro).date()
+        
         if 'data_cadastro_fim' not in st.session_state:
-            st.session_state['data_cadastro_fim'] = popup_leads['Data do Cadastro'].max()
+            max_cadastro = popup_leads['Data do Cadastro'].max()
+            if pd.isna(max_cadastro):
+                max_cadastro = pd.Timestamp.now()
+            st.session_state['data_cadastro_fim'] = pd.Timestamp(max_cadastro).date()
+        
         if 'data_compra_inicio' not in st.session_state:
-            st.session_state['data_compra_inicio'] = popup_leads['Data da Compra'].min()
+            min_compra = popup_leads['Data da Compra'].min()
+            if pd.isna(min_compra):
+                min_compra = pd.Timestamp.now() - pd.Timedelta(days=30)
+            st.session_state['data_compra_inicio'] = pd.Timestamp(min_compra).date()
+        
         if 'data_compra_fim' not in st.session_state:
-            st.session_state['data_compra_fim'] = popup_leads['Data da Compra'].max()
+            max_compra = popup_leads['Data da Compra'].max()
+            if pd.isna(max_compra):
+                max_compra = pd.Timestamp.now()
+            st.session_state['data_compra_fim'] = pd.Timestamp(max_compra).date()
             
         # Filtros na sidebar
         st.subheader("Filtros")
@@ -38,35 +53,41 @@ def display_tab_leads():
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("7 dias", key="btn_7d_cadastro", use_container_width=True, type="primary"):
-                    st.session_state['data_cadastro_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=7)
-                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now()
+                    st.session_state['data_cadastro_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=7)).date()
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now().date()
                     st.rerun()
                 if st.button("30 dias", key="btn_30d_cadastro", use_container_width=True, type="primary"):
-                    st.session_state['data_cadastro_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=30)
-                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now()
+                    st.session_state['data_cadastro_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=30)).date()
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now().date()
                     st.rerun()
                 if st.button("90 dias", key="btn_90d_cadastro", use_container_width=True, type="primary"):
-                    st.session_state['data_cadastro_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=90)
-                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now()
+                    st.session_state['data_cadastro_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=90)).date()
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp.now().date()
                     st.rerun()
             with col2:
                 if st.button("Mês atual", key="btn_current_month_cadastro", use_container_width=True, type="primary"):
                     hoje = pd.Timestamp.now()
-                    primeiro_dia_mes = hoje.replace(day=1)
+                    primeiro_dia_mes = hoje.replace(day=1).date()
                     st.session_state['data_cadastro_inicio'] = primeiro_dia_mes
-                    st.session_state['data_cadastro_fim'] = hoje
+                    st.session_state['data_cadastro_fim'] = hoje.date()
                     st.rerun()
                 if st.button("Mês anterior", key="btn_last_month_cadastro", use_container_width=True, type="primary"):
                     hoje = pd.Timestamp.now()
                     primeiro_dia_mes_atual = hoje.replace(day=1)
                     ultimo_dia_mes_anterior = primeiro_dia_mes_atual - pd.Timedelta(days=1)
-                    primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1)
+                    primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1).date()
                     st.session_state['data_cadastro_inicio'] = primeiro_dia_mes_anterior
-                    st.session_state['data_cadastro_fim'] = ultimo_dia_mes_anterior
+                    st.session_state['data_cadastro_fim'] = ultimo_dia_mes_anterior.date()
                     st.rerun()
                 if st.button("Personalizado", key="btn_custom_cadastro", use_container_width=True, type="secondary"):
-                    st.session_state['data_cadastro_inicio'] = popup_leads['Data do Cadastro'].min()
-                    st.session_state['data_cadastro_fim'] = popup_leads['Data do Cadastro'].max()
+                    min_cadastro = popup_leads['Data do Cadastro'].min()
+                    if pd.isna(min_cadastro):
+                        min_cadastro = pd.Timestamp.now() - pd.Timedelta(days=30)
+                    max_cadastro = popup_leads['Data do Cadastro'].max()
+                    if pd.isna(max_cadastro):
+                        max_cadastro = pd.Timestamp.now()
+                    st.session_state['data_cadastro_inicio'] = pd.Timestamp(min_cadastro).date()
+                    st.session_state['data_cadastro_fim'] = pd.Timestamp(max_cadastro).date()
                     st.rerun()
             
             st.markdown("---")
@@ -92,35 +113,41 @@ def display_tab_leads():
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("7 dias", key="btn_7d_compra", use_container_width=True, type="primary"):
-                    st.session_state['data_compra_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=7)
-                    st.session_state['data_compra_fim'] = pd.Timestamp.now()
+                    st.session_state['data_compra_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=7)).date()
+                    st.session_state['data_compra_fim'] = pd.Timestamp.now().date()
                     st.rerun()
                 if st.button("30 dias", key="btn_30d_compra", use_container_width=True, type="primary"):
-                    st.session_state['data_compra_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=30)
-                    st.session_state['data_compra_fim'] = pd.Timestamp.now()
+                    st.session_state['data_compra_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=30)).date()
+                    st.session_state['data_compra_fim'] = pd.Timestamp.now().date()
                     st.rerun()
                 if st.button("90 dias", key="btn_90d_compra", use_container_width=True, type="primary"):
-                    st.session_state['data_compra_inicio'] = pd.Timestamp.now() - pd.Timedelta(days=90)
-                    st.session_state['data_compra_fim'] = pd.Timestamp.now()
+                    st.session_state['data_compra_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=90)).date()
+                    st.session_state['data_compra_fim'] = pd.Timestamp.now().date()
                     st.rerun()
             with col2:
                 if st.button("Mês atual", key="btn_current_month_compra", use_container_width=True, type="primary"):
                     hoje = pd.Timestamp.now()
-                    primeiro_dia_mes = hoje.replace(day=1)
+                    primeiro_dia_mes = hoje.replace(day=1).date()
                     st.session_state['data_compra_inicio'] = primeiro_dia_mes
-                    st.session_state['data_compra_fim'] = hoje
+                    st.session_state['data_compra_fim'] = hoje.date()
                     st.rerun()
                 if st.button("Mês anterior", key="btn_last_month_compra", use_container_width=True, type="primary"):
                     hoje = pd.Timestamp.now()
                     primeiro_dia_mes_atual = hoje.replace(day=1)
                     ultimo_dia_mes_anterior = primeiro_dia_mes_atual - pd.Timedelta(days=1)
-                    primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1)
+                    primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1).date()
                     st.session_state['data_compra_inicio'] = primeiro_dia_mes_anterior
-                    st.session_state['data_compra_fim'] = ultimo_dia_mes_anterior
+                    st.session_state['data_compra_fim'] = ultimo_dia_mes_anterior.date()
                     st.rerun()
                 if st.button("Personalizado", key="btn_custom_compra", use_container_width=True, type="secondary"):
-                    st.session_state['data_compra_inicio'] = popup_leads['Data da Compra'].min()
-                    st.session_state['data_compra_fim'] = popup_leads['Data da Compra'].max()
+                    min_compra = popup_leads['Data da Compra'].min()
+                    if pd.isna(min_compra):
+                        min_compra = pd.Timestamp.now() - pd.Timedelta(days=30)
+                    max_compra = popup_leads['Data da Compra'].max()
+                    if pd.isna(max_compra):
+                        max_compra = pd.Timestamp.now()
+                    st.session_state['data_compra_inicio'] = pd.Timestamp(min_compra).date()
+                    st.session_state['data_compra_fim'] = pd.Timestamp(max_compra).date()
                     st.rerun()
             
             st.markdown("---")
