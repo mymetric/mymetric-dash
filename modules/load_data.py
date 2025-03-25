@@ -594,14 +594,14 @@ def load_popup_leads():
 
 @background_cache(ttl_hours=1, max_age_days=7)
 def load_rfm_segments():
-        """
+    """
     Carrega dados de segmentação RFM do BigQuery.
-        """
-        tablename = st.session_state.tablename
+    """
+    tablename = st.session_state.tablename
     if not tablename:
         raise ValueError("tablename não está definido na sessão")
         
-        query = f"""
+    query = f"""
     SELECT
         customer_id `ID`,
         first_name `Nome`,
@@ -1141,15 +1141,14 @@ def load_last_orders():
 
 def save_goals(metas):
     """
-        Salva as metas para uma tabela específica no BigQuery.
+    Salva as metas para uma tabela específica no BigQuery.
     """
-        
     tablename = st.session_state.tablename
     
-        # Converte o dicionário de metas para JSON
-        metas_json = json.dumps(metas)
-        
-        # Query para inserir ou atualizar as metas
+    # Converte o dicionário de metas para JSON
+    metas_json = json.dumps(metas)
+    
+    # Query para inserir ou atualizar as metas
     query = f"""
         MERGE `mymetric-hub-shopify.dbt_config.user_goals` AS target
         USING (SELECT '{tablename}' as username, '{metas_json}' as goals) AS source
@@ -1159,12 +1158,12 @@ def save_goals(metas):
         WHEN NOT MATCHED THEN
             INSERT (username, goals, created_at, updated_at)
             VALUES (source.username, source.goals, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
-        """
-        
-        try:
-            client.query(query)
-        except Exception as e:
-            st.error(f"Erro ao salvar metas: {str(e)}")
+    """
+    
+    try:
+        client.query(query)
+    except Exception as e:
+        st.error(f"Erro ao salvar metas: {str(e)}")
 
 def load_coffeemais_users():
     
