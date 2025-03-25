@@ -13,7 +13,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 # Function to check and update session state expiration
 def toast_alerts():
-    return False
+        return False
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
@@ -594,14 +594,14 @@ def load_popup_leads():
 
 @background_cache(ttl_hours=1, max_age_days=7)
 def load_rfm_segments():
-    """
+        """
     Carrega dados de segmentação RFM do BigQuery.
-    """
-    tablename = st.session_state.tablename
+        """
+        tablename = st.session_state.tablename
     if not tablename:
         raise ValueError("tablename não está definido na sessão")
-    
-    query = f"""
+        
+        query = f"""
     SELECT
         customer_id `ID`,
         first_name `Nome`,
@@ -680,7 +680,7 @@ def load_today_data():
     df = run_queries([query])[0]
     df['Cluster'] = df.apply(traffic_cluster, axis=1)
     return df
-
+    
 @background_cache(ttl_hours=1, max_age_days=7)
 def load_leads_popup():
     if toast_alerts():
@@ -1140,17 +1140,17 @@ def load_last_orders():
     return df
 
 def save_goals(metas):
-        """
+    """
         Salva as metas para uma tabela específica no BigQuery.
-        """
+    """
         
-        tablename = st.session_state.tablename
-        
+    tablename = st.session_state.tablename
+    
         # Converte o dicionário de metas para JSON
         metas_json = json.dumps(metas)
         
         # Query para inserir ou atualizar as metas
-        query = f"""
+    query = f"""
         MERGE `mymetric-hub-shopify.dbt_config.user_goals` AS target
         USING (SELECT '{tablename}' as username, '{metas_json}' as goals) AS source
         ON target.username = source.username
