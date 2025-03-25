@@ -9,6 +9,8 @@ import time
 import re
 import base64
 import threading
+from functools import wraps
+from datetime import datetime, timedelta
 # Function to check and update session state expiration
 def toast_alerts():
     # if st.session_state.username == 'mymetric':
@@ -20,6 +22,77 @@ credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
 client = bigquery.Client(credentials=credentials)
+
+# Cache storage
+_cache_data = {}
+_cache_timestamps = {}
+_background_threads = {}
+
+def background_cache(ttl_hours=1, max_age_days=7):
+    """
+    Decorator que implementa cache com atualização em background.
+    
+    Args:
+        ttl_hours (int): Tempo em horas antes de iniciar atualização em background
+        max_age_days (int): Tempo máximo em dias que o cache pode ser mantido
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Criar chave única para o cache
+            cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+            
+            # Verificar se existe cache
+            if cache_key in _cache_data:
+                last_update = _cache_timestamps.get(cache_key)
+                if last_update:
+                    # Calcular idade do cache
+                    age = datetime.now() - last_update
+                    
+                    # Se o cache ainda é válido (menos de 7 dias)
+                    if age < timedelta(days=max_age_days):
+                        # Se passou 1 hora, iniciar atualização em background
+                        if age > timedelta(hours=ttl_hours):
+                            _start_background_update(func, cache_key, args, kwargs)
+                        return _cache_data[cache_key]
+            
+            # Se não há cache ou está expirado, executar função normalmente
+            result = func(*args, **kwargs)
+            _cache_data[cache_key] = result
+            _cache_timestamps[cache_key] = datetime.now()
+            return result
+            
+        return wrapper
+    return decorator
+
+def _start_background_update(func, cache_key, args, kwargs):
+    """
+    Inicia uma thread em background para atualizar o cache.
+    """
+    if cache_key in _background_threads:
+        return  # Já existe uma thread rodando para esta chave
+    
+    def update_cache():
+        try:
+            # Executar função para obter novos dados
+            new_result = func(*args, **kwargs)
+            
+            # Atualizar cache apenas se a função retornou dados válidos
+            if new_result is not None and (isinstance(new_result, pd.DataFrame) and not new_result.empty):
+                _cache_data[cache_key] = new_result
+                _cache_timestamps[cache_key] = datetime.now()
+        except Exception as e:
+            print(f"Erro ao atualizar cache em background: {str(e)}")
+        finally:
+            # Remover thread da lista de threads ativas
+            if cache_key in _background_threads:
+                del _background_threads[cache_key]
+    
+    # Iniciar thread em background
+    thread = threading.Thread(target=update_cache)
+    thread.daemon = True
+    thread.start()
+    _background_threads[cache_key] = thread
 
 def traffic_cluster(row):
     try:
@@ -136,6 +209,7 @@ def run_queries(queries):
         results = [future.result() for future in futures]
     return results
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_basic_data():
     if toast_alerts():
         st.toast("Carregando dados básicos...")
@@ -222,6 +296,7 @@ def load_basic_data():
 
     return df
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_detailed_data():
     """
     Carrega dados detalhados com todos os filtros aplicados.
@@ -354,6 +429,7 @@ def load_check_zero_metrics():
     df = run_queries([query])[0]
     return df
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_funnel_data():
     if toast_alerts():
         st.toast("Carregando funnel...")
@@ -397,6 +473,7 @@ def load_funnel_data():
     
     return df
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_enhanced_ecommerce_funnel():
     if toast_alerts():
         st.toast("Carregando funnel...")
@@ -433,6 +510,7 @@ def load_enhanced_ecommerce_funnel():
     df = run_queries([query])[0]
     return df
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_paid_media():
     
     if toast_alerts():
@@ -482,6 +560,7 @@ def load_fbclid_coverage():
     df = run_queries([query])[0]
     return df
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_performance_alerts():
     if toast_alerts():
         st.toast("Carregando alertas de performance...")
@@ -535,6 +614,7 @@ def load_performance_alerts():
     df = run_queries([query])[0]
     return df
 
+@background_cache(ttl_hours=1, max_age_days=7)
 def load_last_orders():
     if toast_alerts():
         st.toast("Carregando últimos pedidos...")
