@@ -345,6 +345,9 @@ def load_detailed_data():
         st.toast("Carregando dados detalhados...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
+
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
@@ -475,6 +478,8 @@ def load_funnel_data():
         st.toast("Carregando funnel...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
 
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
@@ -519,13 +524,14 @@ def load_enhanced_ecommerce_funnel():
         st.toast("Carregando funnel...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
     
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
     query = f"""
         select
-
             event_date `Data`,
             item_id `ID do Produto`,
             item_name `Nome do Produto`,
@@ -552,11 +558,13 @@ def load_enhanced_ecommerce_funnel():
 
 @background_cache(ttl_hours=1, max_age_days=7)
 def load_paid_media():
-    
     if toast_alerts():
         st.toast("Carregando mídias pagas...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
+
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
@@ -606,6 +614,8 @@ def load_performance_alerts():
         st.toast("Carregando alertas de performance...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
 
     query = f"""
     WITH daily_rates AS (
@@ -660,6 +670,9 @@ def load_last_orders():
         st.toast("Carregando últimos pedidos...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
+
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
