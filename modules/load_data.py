@@ -13,20 +13,21 @@ from functools import wraps
 from datetime import datetime, timedelta
 # Function to check and update session state expiration
 def toast_alerts():
-    # if st.session_state.username == 'mymetric':
-        # return True
-    # else:
-        return False
+    return False
 
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
 client = bigquery.Client(credentials=credentials)
 
-# Cache storage
-_cache_data = {}
-_cache_timestamps = {}
-_background_threads = {}
+def initialize_cache():
+    """Inicializa o cache no session_state se não existir."""
+    if 'cache_data' not in st.session_state:
+        st.session_state.cache_data = {}
+    if 'cache_timestamps' not in st.session_state:
+        st.session_state.cache_timestamps = {}
+    if 'background_tasks' not in st.session_state:
+        st.session_state.background_tasks = {}
 
 def background_cache(ttl_hours=1, max_age_days=7):
     """
@@ -39,13 +40,19 @@ def background_cache(ttl_hours=1, max_age_days=7):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            # Inicializar cache se necessário
+            initialize_cache()
+            
             # Criar chave única para o cache
             cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
             
             # Verificar se existe cache
-            if cache_key in _cache_data:
-                last_update = _cache_timestamps.get(cache_key)
+            if cache_key in st.session_state.cache_data:
+                last_update = st.session_state.cache_timestamps.get(cache_key)
                 if last_update:
+                    # Converter string de timestamp para datetime
+                    last_update = datetime.fromisoformat(last_update)
+                    
                     # Calcular idade do cache
                     age = datetime.now() - last_update
                     
@@ -54,12 +61,13 @@ def background_cache(ttl_hours=1, max_age_days=7):
                         # Se passou 1 hora, iniciar atualização em background
                         if age > timedelta(hours=ttl_hours):
                             _start_background_update(func, cache_key, args, kwargs)
-                        return _cache_data[cache_key]
+                        return st.session_state.cache_data[cache_key]
             
             # Se não há cache ou está expirado, executar função normalmente
             result = func(*args, **kwargs)
-            _cache_data[cache_key] = result
-            _cache_timestamps[cache_key] = datetime.now()
+            if result is not None and (isinstance(result, pd.DataFrame) and not result.empty):
+                st.session_state.cache_data[cache_key] = result
+                st.session_state.cache_timestamps[cache_key] = datetime.now().isoformat()
             return result
             
         return wrapper
@@ -67,10 +75,10 @@ def background_cache(ttl_hours=1, max_age_days=7):
 
 def _start_background_update(func, cache_key, args, kwargs):
     """
-    Inicia uma thread em background para atualizar o cache.
+    Inicia uma atualização em background do cache.
     """
-    if cache_key in _background_threads:
-        return  # Já existe uma thread rodando para esta chave
+    if cache_key in st.session_state.background_tasks:
+        return  # Já existe uma tarefa rodando para esta chave
     
     def update_cache():
         try:
@@ -79,20 +87,45 @@ def _start_background_update(func, cache_key, args, kwargs):
             
             # Atualizar cache apenas se a função retornou dados válidos
             if new_result is not None and (isinstance(new_result, pd.DataFrame) and not new_result.empty):
-                _cache_data[cache_key] = new_result
-                _cache_timestamps[cache_key] = datetime.now()
+                st.session_state.cache_data[cache_key] = new_result
+                st.session_state.cache_timestamps[cache_key] = datetime.now().isoformat()
         except Exception as e:
             print(f"Erro ao atualizar cache em background: {str(e)}")
         finally:
-            # Remover thread da lista de threads ativas
-            if cache_key in _background_threads:
-                del _background_threads[cache_key]
+            # Remover tarefa da lista de tarefas ativas
+            if cache_key in st.session_state.background_tasks:
+                del st.session_state.background_tasks[cache_key]
     
-    # Iniciar thread em background
-    thread = threading.Thread(target=update_cache)
-    thread.daemon = True
-    thread.start()
-    _background_threads[cache_key] = thread
+    # Marcar a tarefa como em execução
+    st.session_state.background_tasks[cache_key] = datetime.now().isoformat()
+    
+    # Executar a atualização
+    update_cache()
+
+def clear_expired_cache():
+    """Remove entradas de cache expiradas."""
+    initialize_cache()
+    
+    current_time = datetime.now()
+    expired_keys = []
+    
+    for cache_key, timestamp in st.session_state.cache_timestamps.items():
+        last_update = datetime.fromisoformat(timestamp)
+        age = current_time - last_update
+        
+        if age > timedelta(days=7):  # 7 dias é o máximo
+            expired_keys.append(cache_key)
+    
+    for key in expired_keys:
+        if key in st.session_state.cache_data:
+            del st.session_state.cache_data[key]
+        if key in st.session_state.cache_timestamps:
+            del st.session_state.cache_timestamps[key]
+        if key in st.session_state.background_tasks:
+            del st.session_state.background_tasks[key]
+
+# Limpar cache expirado ao iniciar
+clear_expired_cache()
 
 def traffic_cluster(row):
     try:
