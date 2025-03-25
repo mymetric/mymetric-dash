@@ -43,8 +43,13 @@ def background_cache(ttl_hours=1, max_age_days=7):
             # Inicializar cache se necessário
             initialize_cache()
             
-            # Criar chave única para o cache
-            cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+            # Obter tablename da sessão
+            tablename = st.session_state.get('tablename')
+            if not tablename:
+                raise ValueError("tablename não está definido na sessão")
+            
+            # Criar chave única para o cache incluindo tablename
+            cache_key = f"{tablename}:{func.__name__}:{str(args)}:{str(kwargs)}"
             
             # Verificar se existe cache
             if cache_key in st.session_state.cache_data:
@@ -248,6 +253,8 @@ def load_basic_data():
         st.toast("Carregando dados básicos...")
 
     tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
 
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
