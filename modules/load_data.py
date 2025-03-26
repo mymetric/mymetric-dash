@@ -524,7 +524,9 @@ def load_meta_ads():
             impressions,
             clicks,
             purchases purchases,
-            purchase_revenue purchase_value
+            purchase_revenue purchase_value,
+            last_session_transactions,
+            last_session_revenue
         from `mymetric-hub-shopify.dbt_granular.{tablename}_meta_ads_campaigns`
         where date(date_start) between "{start_date}" and "{end_date}"
     """

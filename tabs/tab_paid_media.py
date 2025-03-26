@@ -9,18 +9,12 @@ from partials.performance import analyze_meta_insights
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
     st.subheader("Análise Meta Ads")
-
-    st.info("""
-        ℹ️ Os resultados apresentados nesta aba são baseados na atribuição do Pixel do Meta Ads.
-        Isso significa que todas as métricas de conversão (vendas, receita, ROAS etc.) são contabilizadas 
-        de acordo com o modelo de atribuição configurado no Facebook/Instagram Ads.
-    """)
     
     st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
     
     # Carregar dados específicos do Meta Ads
     df_meta = load_meta_ads()
-    
+
     if df_meta.empty:
         st.info("Não há dados do Meta Ads para o período selecionado.")
         return
@@ -32,15 +26,50 @@ def display_meta_ads_analysis():
         investimento = df_meta['spend'].sum()
         big_number_box(
             f"R$ {investimento:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            "Investimento",
+            "Investimento (Pixel)",
             hint="Total investido em anúncios no Meta Ads"
+        )
+    
+    with col2:
+        impressions = df_meta['impressions'].sum()
+        big_number_box(
+            f"{impressions:,.0f}".replace(",", "."),
+            "Impressões (Pixel)",
+            hint="Número total de vezes que seus anúncios foram exibidos"
+        )
+    
+    with col3:
+        clicks = df_meta['clicks'].sum()
+        big_number_box(
+            f"{clicks:,.0f}".replace(",", "."),
+            "Cliques (Pixel)",
+            hint="Número total de cliques nos seus anúncios"
+        )
+    
+    with col4:
+        ctr = (clicks / impressions * 100) if impressions > 0 else 0
+        big_number_box(
+            f"{ctr:.2f}%".replace(".", ","),
+            "CTR (Pixel)",
+            hint="Click-Through Rate - Taxa de cliques por impressão"
+        )
+
+    # Segunda linha - Métricas totais
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        purchases = df_meta['purchases'].sum()
+        big_number_box(
+            f"{purchases:,.0f}".replace(",", "."),
+            "Vendas (Pixel)",
+            hint="Número total de vendas atribuídas aos anúncios"
         )
     
     with col2:
         receita = df_meta['purchase_value'].sum()
         big_number_box(
             f"R$ {receita:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            "Receita",
+            "Receita (Pixel)",
             hint="Receita total gerada pelos anúncios do Meta Ads"
         )
     
@@ -48,7 +77,7 @@ def display_meta_ads_analysis():
         roas = receita / investimento if investimento > 0 else 0
         big_number_box(
             f"{roas:.2f}".replace(".", ","),
-            "ROAS",
+            "ROAS (Pixel)",
             hint="Return On Ad Spend - Retorno sobre investimento"
         )
     
@@ -56,78 +85,79 @@ def display_meta_ads_analysis():
         lucro = receita - investimento
         big_number_box(
             f"R$ {lucro:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            "Lucro",
+            "Lucro (Pixel)",
             hint="Receita menos investimento (Lucro bruto)"
         )
 
-    # Segunda linha de métricas
+    # Terceira linha - Métricas última sessão
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        impressions = df_meta['impressions'].sum()
+        last_session_transactions = df_meta['last_session_transactions'].sum()
         big_number_box(
-            f"{impressions:,.0f}".replace(",", "."),
-            "Impressões",
-            hint="Número total de vezes que seus anúncios foram exibidos"
+            f"{last_session_transactions:,.0f}".replace(",", "."),
+            "Vendas (Última Sessão)",
+            hint="Número total de vendas atribuídas aos anúncios na última sessão"
         )
     
     with col2:
-        clicks = df_meta['clicks'].sum()
+        last_session_revenue = df_meta['last_session_revenue'].sum()
         big_number_box(
-            f"{clicks:,.0f}".replace(",", "."),
-            "Cliques",
-            hint="Número total de cliques nos seus anúncios"
+            f"R$ {last_session_revenue:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            "Receita (Última Sessão)",
+            hint="Receita total gerada pelos anúncios na última sessão"
         )
     
     with col3:
-        ctr = (clicks / impressions * 100) if impressions > 0 else 0
+        last_session_roas = last_session_revenue / investimento if investimento > 0 else 0
         big_number_box(
-            f"{ctr:.2f}%".replace(".", ","),
-            "CTR",
-            hint="Click-Through Rate - Taxa de cliques por impressão"
+            f"{last_session_roas:.2f}".replace(".", ","),
+            "ROAS (Última Sessão)",
+            hint="Return On Ad Spend na última sessão"
         )
     
     with col4:
+        last_session_lucro = last_session_revenue - investimento
+        big_number_box(
+            f"R$ {last_session_lucro:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            "Lucro (Última Sessão)",
+            hint="Receita menos investimento na última sessão (Lucro bruto)"
+        )
+
+    # Quarta linha - Métricas de custo e correspondência
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
         cpc = investimento / clicks if clicks > 0 else 0
         big_number_box(
             f"R$ {cpc:.2f}".replace(".", ","),
-            "CPC",
+            "CPC (Pixel)",
             hint="Custo Por Clique médio no Meta Ads"
-        )
-
-    # Terceira linha de métricas
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        purchases = df_meta['purchases'].sum()
-        big_number_box(
-            f"{purchases:,.0f}".replace(",", "."),
-            "Vendas",
-            hint="Número total de vendas atribuídas aos anúncios"
         )
     
     with col2:
-        taxa_conv = (purchases / clicks * 100) if clicks > 0 else 0
-        big_number_box(
-            f"{taxa_conv:.2f}%".replace(".", ","),
-            "Taxa de Conversão",
-            hint="Porcentagem de cliques que resultaram em vendas"
-        )
-    
-    with col3:
         cpv = investimento / purchases if purchases > 0 else 0
         big_number_box(
             f"R$ {cpv:.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            "CPV",
+            "CPV (Pixel)",
             hint="Custo Por Venda - Valor médio gasto em anúncios para conseguir uma venda"
         )
     
-    with col4:
+    with col3:
         cpm = (investimento / impressions * 1000) if impressions > 0 else 0
         big_number_box(
             f"R$ {cpm:.2f}".replace(".", ","),
-            "CPM",
+            "CPM (Pixel)",
             hint="Custo Por Mil Impressões no Meta Ads"
+        )
+    
+    with col4:
+        taxa_conv = (purchases / clicks * 100) if clicks > 0 else 0
+        match_rate = (last_session_transactions / purchases * 100) if purchases > 0 else 0
+        big_number_box(
+            f"{match_rate:.2f}%".replace(".", ","),
+            "Taxa de Correspondência",
+            hint="Porcentagem de vendas da Última Sessão em relação às vendas do Pixel"
         )
 
     # Adicionar análise de insights após os big numbers
@@ -262,7 +292,9 @@ def display_meta_ads_analysis():
         'clicks': 'sum',
         'spend': 'sum',
         'purchase_value': 'sum',
-        'purchases': 'sum'
+        'purchases': 'sum',
+        'last_session_transactions': 'sum',
+        'last_session_revenue': 'sum'
     }).reset_index()
     
     # Calcular todas as métricas
@@ -273,33 +305,63 @@ def display_meta_ads_analysis():
     df_campaign['CPM'] = (df_campaign['spend'] / df_campaign['impressions'] * 1000).round(2)
     df_campaign['CPV'] = (df_campaign['spend'] / df_campaign['purchases']).round(2)
     df_campaign['Lucro'] = (df_campaign['purchase_value'] - df_campaign['spend']).round(2)
+    df_campaign['ROAS Última Sessão'] = (df_campaign['last_session_revenue'] / df_campaign['spend']).round(2)
+    df_campaign['Taxa Conv. Última Sessão'] = (df_campaign['last_session_transactions'] / df_campaign['clicks'] * 100).round(2)
+    df_campaign['Lucro Última Sessão'] = (df_campaign['last_session_revenue'] - df_campaign['spend']).round(2)
+    df_campaign['Taxa de Correspondência'] = (df_campaign['last_session_transactions'] / df_campaign['purchases'] * 100).round(2)
     
     df_campaign = df_campaign.sort_values('purchase_value', ascending=False)
     
     st.data_editor(
         df_campaign[[
-            'campaign_name', 'impressions', 'clicks', 'purchases', 'CTR', 'CPC', 
-            'spend', 'purchase_value', 'Lucro', 'ROAS', 'Taxa Conv.', 'CPM', 'CPV'
+            'campaign_name',  # Nome da campanha
+            'impressions', 'clicks',  # Métricas de alcance
+            'purchases', 'last_session_transactions',  # Vendas
+            'spend', 'purchase_value', 'last_session_revenue',  # Receita
+            'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
+            'CPC', 'CPM', 'CPV',  # Custos
+            'ROAS', 'ROAS Última Sessão',  # ROAS
+            'Lucro', 'Lucro Última Sessão',  # Lucro
+            'Taxa de Correspondência'  # Taxa de correspondência
         ]].rename(columns={
             'campaign_name': 'Campanha',
-            'impressions': 'Impressões',
-            'clicks': 'Cliques',
-            'purchases': 'Vendas',
-            'spend': 'Investimento',
-            'purchase_value': 'Receita'
+            'impressions': 'Impressões (Pixel)',
+            'clicks': 'Cliques (Pixel)',
+            'purchases': 'Vendas (Pixel)',
+            'last_session_transactions': 'Vendas (Última Sessão)',
+            'spend': 'Investimento (Pixel)',
+            'purchase_value': 'Receita (Pixel)',
+            'last_session_revenue': 'Receita (Última Sessão)',
+            'CTR': 'CTR (Pixel)',
+            'Taxa Conv.': 'Taxa Conv. (Pixel)',
+            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
+            'CPC': 'CPC (Pixel)',
+            'CPM': 'CPM (Pixel)',
+            'CPV': 'CPV (Pixel)',
+            'ROAS': 'ROAS (Pixel)',
+            'ROAS Última Sessão': 'ROAS (Última Sessão)',
+            'Lucro': 'Lucro (Pixel)',
+            'Lucro Última Sessão': 'Lucro (Última Sessão)',
+            'Taxa de Correspondência': 'Taxa de Correspondência'
         }).style.format({
-            'Impressões': '{:,.0f}',
-            'Cliques': '{:,.0f}',
-            'Vendas': '{:,.0f}',
-            'CTR': '{:.2f}%',
-            'CPC': 'R$ {:.2f}',
-            'CPM': 'R$ {:.2f}',
-            'CPV': 'R$ {:.2f}',
-            'Investimento': 'R$ {:.2f}',
-            'Receita': 'R$ {:.2f}',
-            'Lucro': 'R$ {:.2f}',
-            'ROAS': '{:.2f}',
-            'Taxa Conv.': '{:.2f}%'
+            'Impressões (Pixel)': '{:,.0f}',
+            'Cliques (Pixel)': '{:,.0f}',
+            'Vendas (Pixel)': '{:,.0f}',
+            'Vendas (Última Sessão)': '{:,.0f}',
+            'CTR (Pixel)': '{:.2f}%',
+            'CPC (Pixel)': 'R$ {:.2f}',
+            'CPM (Pixel)': 'R$ {:.2f}',
+            'CPV (Pixel)': 'R$ {:.2f}',
+            'Investimento (Pixel)': 'R$ {:.2f}',
+            'Receita (Pixel)': 'R$ {:.2f}',
+            'Receita (Última Sessão)': 'R$ {:.2f}',
+            'Lucro (Pixel)': 'R$ {:.2f}',
+            'Lucro (Última Sessão)': 'R$ {:.2f}',
+            'ROAS (Pixel)': '{:.2f}',
+            'ROAS (Última Sessão)': '{:.2f}',
+            'Taxa Conv. (Pixel)': '{:.2f}%',
+            'Taxa Conv. (Última Sessão)': '{:.2f}%',
+            'Taxa de Correspondência': '{:.2f}%'
         }),
         hide_index=True,
         use_container_width=True
@@ -324,7 +386,9 @@ def display_meta_ads_analysis():
         'clicks': 'sum',
         'spend': 'sum',
         'purchase_value': 'sum',
-        'purchases': 'sum'
+        'purchases': 'sum',
+        'last_session_transactions': 'sum',
+        'last_session_revenue': 'sum'
     }).reset_index()
     
     # Calcular todas as métricas
@@ -335,33 +399,63 @@ def display_meta_ads_analysis():
     df_adset['CPM'] = (df_adset['spend'] / df_adset['impressions'] * 1000).round(2)
     df_adset['CPV'] = (df_adset['spend'] / df_adset['purchases']).round(2)
     df_adset['Lucro'] = (df_adset['purchase_value'] - df_adset['spend']).round(2)
+    df_adset['ROAS Última Sessão'] = (df_adset['last_session_revenue'] / df_adset['spend']).round(2)
+    df_adset['Taxa Conv. Última Sessão'] = (df_adset['last_session_transactions'] / df_adset['clicks'] * 100).round(2)
+    df_adset['Lucro Última Sessão'] = (df_adset['last_session_revenue'] - df_adset['spend']).round(2)
+    df_adset['Taxa de Correspondência'] = (df_adset['last_session_transactions'] / df_adset['purchases'] * 100).round(2)
     
     df_adset = df_adset.sort_values('purchase_value', ascending=False)
     
     st.data_editor(
         df_adset[[
-            'adset_name', 'impressions', 'clicks', 'purchases', 'CTR', 'CPC',
-            'spend', 'purchase_value', 'Lucro', 'ROAS', 'Taxa Conv.', 'CPM', 'CPV'
+            'adset_name',  # Nome do grupo de anúncios
+            'impressions', 'clicks',  # Métricas de alcance
+            'purchases', 'last_session_transactions',  # Vendas
+            'spend', 'purchase_value', 'last_session_revenue',  # Receita
+            'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
+            'CPC', 'CPM', 'CPV',  # Custos
+            'ROAS', 'ROAS Última Sessão',  # ROAS
+            'Lucro', 'Lucro Última Sessão',  # Lucro
+            'Taxa de Correspondência'  # Taxa de correspondência
         ]].rename(columns={
             'adset_name': 'Grupo de Anúncios',
-            'impressions': 'Impressões',
-            'clicks': 'Cliques',
-            'purchases': 'Vendas',
-            'spend': 'Investimento',
-            'purchase_value': 'Receita'
+            'impressions': 'Impressões (Pixel)',
+            'clicks': 'Cliques (Pixel)',
+            'purchases': 'Vendas (Pixel)',
+            'last_session_transactions': 'Vendas (Última Sessão)',
+            'spend': 'Investimento (Pixel)',
+            'purchase_value': 'Receita (Pixel)',
+            'last_session_revenue': 'Receita (Última Sessão)',
+            'CTR': 'CTR (Pixel)',
+            'Taxa Conv.': 'Taxa Conv. (Pixel)',
+            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
+            'CPC': 'CPC (Pixel)',
+            'CPM': 'CPM (Pixel)',
+            'CPV': 'CPV (Pixel)',
+            'ROAS': 'ROAS (Pixel)',
+            'ROAS Última Sessão': 'ROAS (Última Sessão)',
+            'Lucro': 'Lucro (Pixel)',
+            'Lucro Última Sessão': 'Lucro (Última Sessão)',
+            'Taxa de Correspondência': 'Taxa de Correspondência'
         }).style.format({
-            'Impressões': '{:,.0f}',
-            'Cliques': '{:,.0f}',
-            'Vendas': '{:,.0f}',
-            'CTR': '{:.2f}%',
-            'CPC': 'R$ {:.2f}',
-            'CPM': 'R$ {:.2f}',
-            'CPV': 'R$ {:.2f}',
-            'Investimento': 'R$ {:.2f}',
-            'Receita': 'R$ {:.2f}',
-            'Lucro': 'R$ {:.2f}',
-            'ROAS': '{:.2f}',
-            'Taxa Conv.': '{:.2f}%'
+            'Impressões (Pixel)': '{:,.0f}',
+            'Cliques (Pixel)': '{:,.0f}',
+            'Vendas (Pixel)': '{:,.0f}',
+            'Vendas (Última Sessão)': '{:,.0f}',
+            'CTR (Pixel)': '{:.2f}%',
+            'CPC (Pixel)': 'R$ {:.2f}',
+            'CPM (Pixel)': 'R$ {:.2f}',
+            'CPV (Pixel)': 'R$ {:.2f}',
+            'Investimento (Pixel)': 'R$ {:.2f}',
+            'Receita (Pixel)': 'R$ {:.2f}',
+            'Receita (Última Sessão)': 'R$ {:.2f}',
+            'Lucro (Pixel)': 'R$ {:.2f}',
+            'Lucro (Última Sessão)': 'R$ {:.2f}',
+            'ROAS (Pixel)': '{:.2f}',
+            'ROAS (Última Sessão)': '{:.2f}',
+            'Taxa Conv. (Pixel)': '{:.2f}%',
+            'Taxa Conv. (Última Sessão)': '{:.2f}%',
+            'Taxa de Correspondência': '{:.2f}%'
         }),
         hide_index=True,
         use_container_width=True
@@ -387,7 +481,9 @@ def display_meta_ads_analysis():
         'clicks': 'sum',
         'spend': 'sum',
         'purchase_value': 'sum',
-        'purchases': 'sum'
+        'purchases': 'sum',
+        'last_session_transactions': 'sum',
+        'last_session_revenue': 'sum'
     }).reset_index()
     
     # Calcular todas as métricas
@@ -398,33 +494,63 @@ def display_meta_ads_analysis():
     df_ad['CPM'] = (df_ad['spend'] / df_ad['impressions'] * 1000).round(2)
     df_ad['CPV'] = (df_ad['spend'] / df_ad['purchases']).round(2)
     df_ad['Lucro'] = (df_ad['purchase_value'] - df_ad['spend']).round(2)
+    df_ad['ROAS Última Sessão'] = (df_ad['last_session_revenue'] / df_ad['spend']).round(2)
+    df_ad['Taxa Conv. Última Sessão'] = (df_ad['last_session_transactions'] / df_ad['clicks'] * 100).round(2)
+    df_ad['Lucro Última Sessão'] = (df_ad['last_session_revenue'] - df_ad['spend']).round(2)
+    df_ad['Taxa de Correspondência'] = (df_ad['last_session_transactions'] / df_ad['purchases'] * 100).round(2)
     
     df_ad = df_ad.sort_values('purchase_value', ascending=False)
     
     st.data_editor(
         df_ad[[
-            'ad_name', 'impressions', 'clicks', 'purchases', 'CTR', 'CPC',
-            'spend', 'purchase_value', 'Lucro', 'ROAS', 'Taxa Conv.', 'CPM', 'CPV'
+            'ad_name',  # Nome do anúncio
+            'impressions', 'clicks',  # Métricas de alcance
+            'purchases', 'last_session_transactions',  # Vendas
+            'spend', 'purchase_value', 'last_session_revenue',  # Receita
+            'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
+            'CPC', 'CPM', 'CPV',  # Custos
+            'ROAS', 'ROAS Última Sessão',  # ROAS
+            'Lucro', 'Lucro Última Sessão',  # Lucro
+            'Taxa de Correspondência'  # Taxa de correspondência
         ]].rename(columns={
             'ad_name': 'Anúncio',
-            'impressions': 'Impressões',
-            'clicks': 'Cliques',
-            'purchases': 'Vendas',
-            'spend': 'Investimento',
-            'purchase_value': 'Receita'
+            'impressions': 'Impressões (Pixel)',
+            'clicks': 'Cliques (Pixel)',
+            'purchases': 'Vendas (Pixel)',
+            'last_session_transactions': 'Vendas (Última Sessão)',
+            'spend': 'Investimento (Pixel)',
+            'purchase_value': 'Receita (Pixel)',
+            'last_session_revenue': 'Receita (Última Sessão)',
+            'CTR': 'CTR (Pixel)',
+            'Taxa Conv.': 'Taxa Conv. (Pixel)',
+            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
+            'CPC': 'CPC (Pixel)',
+            'CPM': 'CPM (Pixel)',
+            'CPV': 'CPV (Pixel)',
+            'ROAS': 'ROAS (Pixel)',
+            'ROAS Última Sessão': 'ROAS (Última Sessão)',
+            'Lucro': 'Lucro (Pixel)',
+            'Lucro Última Sessão': 'Lucro (Última Sessão)',
+            'Taxa de Correspondência': 'Taxa de Correspondência'
         }).style.format({
-            'Impressões': '{:,.0f}',
-            'Cliques': '{:,.0f}',
-            'Vendas': '{:,.0f}',
-            'CTR': '{:.2f}%',
-            'CPC': 'R$ {:.2f}',
-            'CPM': 'R$ {:.2f}',
-            'CPV': 'R$ {:.2f}',
-            'Investimento': 'R$ {:.2f}',
-            'Receita': 'R$ {:.2f}',
-            'Lucro': 'R$ {:.2f}',
-            'ROAS': '{:.2f}',
-            'Taxa Conv.': '{:.2f}%'
+            'Impressões (Pixel)': '{:,.0f}',
+            'Cliques (Pixel)': '{:,.0f}',
+            'Vendas (Pixel)': '{:,.0f}',
+            'Vendas (Última Sessão)': '{:,.0f}',
+            'CTR (Pixel)': '{:.2f}%',
+            'CPC (Pixel)': 'R$ {:.2f}',
+            'CPM (Pixel)': 'R$ {:.2f}',
+            'CPV (Pixel)': 'R$ {:.2f}',
+            'Investimento (Pixel)': 'R$ {:.2f}',
+            'Receita (Pixel)': 'R$ {:.2f}',
+            'Receita (Última Sessão)': 'R$ {:.2f}',
+            'Lucro (Pixel)': 'R$ {:.2f}',
+            'Lucro (Última Sessão)': 'R$ {:.2f}',
+            'ROAS (Pixel)': '{:.2f}',
+            'ROAS (Última Sessão)': '{:.2f}',
+            'Taxa Conv. (Pixel)': '{:.2f}%',
+            'Taxa Conv. (Última Sessão)': '{:.2f}%',
+            'Taxa de Correspondência': '{:.2f}%'
         }),
         hide_index=True,
         use_container_width=True
