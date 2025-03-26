@@ -29,13 +29,12 @@ def initialize_cache():
     if 'background_tasks' not in st.session_state:
         st.session_state.background_tasks = {}
 
-def background_cache(ttl_hours=1, max_age_days=7):
+def background_cache(ttl_hours=1):
     """
     Decorator que implementa cache com atualização em background.
     
     Args:
         ttl_hours (int): Tempo em horas antes de iniciar atualização em background
-        max_age_days (int): Tempo máximo em dias que o cache pode ser mantido
     """
     def decorator(func):
         @wraps(func)
@@ -64,8 +63,8 @@ def background_cache(ttl_hours=1, max_age_days=7):
                     # Calcular idade do cache
                     age = datetime.now() - last_update
                     
-                    # Se o cache ainda é válido (menos de 7 dias)
-                    if age < timedelta(days=max_age_days):
+                    # Se o cache ainda é válido (menos de 1 dia)
+                    if age < timedelta(days=1):
                         # Se passou 1 hora, iniciar atualização em background
                         if age > timedelta(hours=ttl_hours):
                             _start_background_update(func, cache_key, args, kwargs)
@@ -121,7 +120,7 @@ def clear_expired_cache():
         last_update = datetime.fromisoformat(timestamp)
         age = current_time - last_update
         
-        if age > timedelta(days=7):  # 7 dias é o máximo
+        if age > timedelta(days=1):  # 1 dia é o máximo
             expired_keys.append(cache_key)
     
     for key in expired_keys:
@@ -250,7 +249,7 @@ def run_queries(queries):
         results = [future.result() for future in futures]
     return results
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_basic_data():
     if toast_alerts():
         st.toast("Carregando dados básicos...")
@@ -339,7 +338,7 @@ def load_basic_data():
 
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_detailed_data():
     """
     Carrega dados detalhados com todos os filtros aplicados.
@@ -434,7 +433,7 @@ def load_detailed_data():
     
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_goals():
     if toast_alerts():
         st.toast("Carregando metas...")
@@ -455,7 +454,7 @@ def load_goals():
     rows = [dict(row) for row in rows_raw]
     return pd.DataFrame(rows)
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_check_zero_metrics():
     if toast_alerts():
         st.toast("Carregando métricas zeradas...")
@@ -481,7 +480,7 @@ def load_check_zero_metrics():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_fbclid_coverage():
     if toast_alerts():
         st.toast("Carregando cobertura de fbclid...")
@@ -503,7 +502,7 @@ def load_fbclid_coverage():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_meta_ads():
     if toast_alerts():
         st.toast("Carregando dados do Meta Ads...")
@@ -533,7 +532,7 @@ def load_meta_ads():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_popup_leads():
     if toast_alerts():
         st.toast("Carregando leads via popup...")
@@ -592,7 +591,7 @@ def load_popup_leads():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_rfm_segments():
     """
     Carrega dados de segmentação RFM do BigQuery.
@@ -623,7 +622,7 @@ def load_rfm_segments():
     
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_current_month_revenue():
     if toast_alerts():
         st.toast("Carregando receita do mês...")
@@ -645,7 +644,7 @@ def load_current_month_revenue():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_today_data():
     if toast_alerts():
         st.toast("Carregando dados do dia...")
@@ -681,7 +680,7 @@ def load_today_data():
     df['Cluster'] = df.apply(traffic_cluster, axis=1)
     return df
     
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_leads_popup():
     if toast_alerts():
         st.toast("Carregando leads via popup...")
@@ -971,7 +970,7 @@ def load_funnel_data():
     
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_enhanced_ecommerce_funnel():
     if toast_alerts():
         st.toast("Carregando funnel...")
@@ -1009,7 +1008,7 @@ def load_enhanced_ecommerce_funnel():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_paid_media():
     if toast_alerts():
         st.toast("Carregando mídias pagas...")
@@ -1043,7 +1042,7 @@ def load_paid_media():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_performance_alerts():
     if toast_alerts():
         st.toast("Carregando alertas de performance...")
@@ -1099,7 +1098,7 @@ def load_performance_alerts():
     df = run_queries([query])[0]
     return df
 
-@background_cache(ttl_hours=1, max_age_days=7)
+@background_cache(ttl_hours=1)
 def load_last_orders():
     if toast_alerts():
         st.toast("Carregando últimos pedidos...")
