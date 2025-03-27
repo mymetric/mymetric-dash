@@ -1,13 +1,11 @@
 import pandas as pd
 import streamlit as st
-from modules.load_data import load_detailed_data, load_basic_data
 
 def sort_by_sessions(series, df):
     session_counts = df.groupby(series).Sessões.sum().sort_values(ascending=False)
     return ["Selecionar Todos"] + session_counts.index.tolist()
 
 def date_filters():
-
     today = pd.to_datetime("today").date()
     yesterday = today - pd.Timedelta(days=1)
     seven_days_ago = today - pd.Timedelta(days=7)
@@ -41,7 +39,7 @@ def date_filters():
                         type="secondary",
                         help="Dados de hoje",
                         use_container_width=True,
-                        key="hoje_button"):
+                        key="hoje"):
                 start_date = today
                 end_date = today
                 st.session_state.active_button = "hoje"
@@ -50,7 +48,7 @@ def date_filters():
                         type="secondary",
                         help="Dados dos últimos 7 dias",
                         use_container_width=True,
-                        key="7d_button"):
+                        key="7d"):
                 start_date = seven_days_ago
                 end_date = today
                 st.session_state.active_button = "7d"
@@ -59,7 +57,7 @@ def date_filters():
                         type="secondary",
                         help="Dados do mês atual",
                         use_container_width=True,
-                        key="mes_button"):
+                        key="mes"):
                 start_date = first_day_of_month
                 end_date = today
                 st.session_state.active_button = "mes"
@@ -69,7 +67,7 @@ def date_filters():
                         type="secondary",
                         help="Dados de ontem",
                         use_container_width=True,
-                        key="ontem_button"):
+                        key="ontem"):
                 start_date = yesterday
                 end_date = yesterday
                 st.session_state.active_button = "ontem"
@@ -78,7 +76,7 @@ def date_filters():
                         type="secondary",
                         help="Dados dos últimos 30 dias",
                         use_container_width=True,
-                        key="30d_button"):
+                        key="30d"):
                 start_date = thirty_days_ago
                 end_date = today
                 st.session_state.active_button = "30d"
@@ -87,7 +85,7 @@ def date_filters():
                         type="secondary",
                         help="Dados do mês passado",
                         use_container_width=True,
-                        key="mes_passado_button"):
+                        key="mes_passado"):
                 start_date = first_day_of_prev_month
                 end_date = last_day_of_prev_month
                 st.session_state.active_button = "mes_passado"
@@ -101,13 +99,11 @@ def date_filters():
         if custom_start != start_date or custom_end != end_date:
             start_date = custom_start
             end_date = custom_end
-            st.session_state.active_button = "custom"
 
     st.session_state.start_date = start_date
     st.session_state.end_date = end_date
 
-def traffic_filters():
-
+def traffic_filters(df):
     if "cluster_selected" not in st.session_state:
         st.session_state.cluster_selected = ["Selecionar Todos"]
         st.session_state.origem_selected = ["Selecionar Todos"]
@@ -116,13 +112,9 @@ def traffic_filters():
         st.session_state.conteudo_selected = ["Selecionar Todos"]
         st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
 
-    df = load_basic_data()
-
     with st.sidebar:
-
-        # Filtros existentes
+        # Filtros Básicos
         with st.expander("Filtros Básicos", expanded=True):
-            
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
             all_clusters = sort_by_sessions('Cluster', df)
             all_origins = sort_by_sessions('Origem', df)
@@ -151,10 +143,7 @@ def traffic_filters():
             st.session_state.origem_selected = origem_selected
             st.session_state.midia_selected = midia_selected
 
-
-def attribution_filters():
-
-    with st.sidebar:
+        # Filtro de atribuição (sempre por último)
         with st.expander("Modelos de Atribuição", expanded=True):
             # Adiciona opções de atribuição
             all_attribution = ["Último Clique Não Direto", "Primeiro Clique"]
@@ -194,21 +183,16 @@ def attribution_filters():
                     - Útil para entender quais canais são mais eficientes em trazer novos usuários
                 """)
 
-def traffic_filters_detailed():
-
-    df = load_detailed_data()
-
+def traffic_filters_detailed(df):
     with st.sidebar:
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
-
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
             
             # Criar os elementos de filtro
-            
             campanha_selected = st.multiselect(
                 "Campanha",
                 options=all_campaigns,

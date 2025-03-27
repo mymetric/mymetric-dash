@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import traceback
+import time
 from modules.components import tabs_css
 
-from tabs.filters import date_filters, traffic_filters_detailed, traffic_filters, attribution_filters
+from tabs.filters import date_filters, traffic_filters_detailed, traffic_filters
 from tabs.tab_general import display_tab_general
 from tabs.tab_detailed import display_tab_detailed
 from tabs.tab_today import display_tab_today
@@ -23,8 +24,16 @@ from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
 from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
 from tabs_custom.tab_holysoup_social import display_tab_holysoup_social
 
-from modules.load_data import load_paid_media, load_popup_leads, save_event_name
+from modules.load_data import load_paid_media, load_popup_leads, save_event_name, load_basic_data, load_detailed_data
 from modules.utilities import send_message
+
+def show_loading_toast(message, start_time=None):
+    if st.session_state.username == "mymetric":
+        if start_time:
+            elapsed_time = time.time() - start_time
+            st.toast(f"{message} ⏱️ {elapsed_time:.1f}s")
+        else:
+            st.toast(message)
 
 def load_app():
     try:
@@ -38,22 +47,51 @@ def load_app():
         # Carregar CSS e filtros
         tabs_css()
         
-        # Carregar filtros apenas se não estiver na página de Atribuição 2.0
-        if st.session_state.selected_page != "Atribuição 2.0":
+        # Definir quais filtros devem ser carregados para cada aba
+        pages_without_filters = ["Atribuição 2.0", "Master", "Configurações", "Análise do Dia"]
+        pages_with_only_date = ["Mídia Paga", "Taxas de Conversão"]
+        pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
+        pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
+
+        # Carregar filtros baseado na aba selecionada
+        if st.session_state.selected_page not in pages_without_filters:
+            # Carregar filtro de data para todas as abas que não estão em pages_without_filters
             date_filters()
-            traffic_filters()
-            attribution_filters()
-            traffic_filters_detailed()
+            
+            # Carregar filtros básicos e de atribuição para abas específicas
+            if st.session_state.selected_page in pages_with_basic_filters:
+                show_loading_toast("🔄 Carregando dados básicos...")
+                start_time = time.time()
+                df_basic = load_basic_data()
+                traffic_filters(df_basic)
+                show_loading_toast("✅ Dados básicos carregados", start_time)
+            
+            # Carregar filtros detalhados para abas específicas
+            if st.session_state.selected_page in pages_with_detailed_filters:
+                show_loading_toast("🔄 Carregando dados detalhados...")
+                start_time = time.time()
+                df_detailed = load_detailed_data()
+                traffic_filters_detailed(df_detailed)
+                show_loading_toast("✅ Dados detalhados carregados", start_time)
 
         is_admin = st.session_state.admin
 
         # Load paid media data
+        show_loading_toast("🔄 Carregando dados de mídia paga...")
+        start_time = time.time()
         paid_media = load_paid_media()
+        show_loading_toast("✅ Dados de mídia paga carregados", start_time)
+        
+        show_loading_toast("🔄 Carregando dados de leads...")
+        start_time = time.time()
         popup_leads = load_popup_leads()
+        show_loading_toast("✅ Dados de leads carregados", start_time)
+        
         # Check if all values in 'Data do Cadastro' are None/NaN
         if popup_leads is not None and not popup_leads.empty and popup_leads['Data do Cadastro'].isna().all():
             popup_leads = None
 
+        show_loading_toast("🎉 Carregamento concluído!")
 
         # Define navigation options based on data availability
         nav_options = ["Visão Geral"]

@@ -5,6 +5,7 @@ from tabs.filters import traffic_filters
 from modules.utilities import send_message
 from core.users import load_users
 from partials.performance import check_performance_alerts
+from modules.load_data import load_basic_data
 
 
 def pending_checks():
@@ -84,3 +85,10 @@ for user in users:
     print(user['slug'])
     st.session_state.tablename = user['slug']
     pending_checks()
+
+def check_qa():
+    st.title("QA")
+    
+    # Carregar dados básicos para os filtros
+    df_basic = load_basic_data()
+    traffic_filters(df_basic)
