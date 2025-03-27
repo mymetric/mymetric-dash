@@ -22,13 +22,11 @@ def date_filters():
         else:
             st.markdown("## " + st.session_state.tablename.upper())
 
-    # Sempre inicializa com o mês atual
-    start_date = first_day_of_month
-    end_date = today
-    
     # Inicializa o estado do botão ativo se não existir
     if 'active_button' not in st.session_state:
         st.session_state.active_button = "mes"
+        st.session_state.start_date = first_day_of_month
+        st.session_state.end_date = today
     
     # Filtro de datas interativo
     with st.sidebar.expander("Datas", expanded=True):
@@ -40,27 +38,27 @@ def date_filters():
                         help="Dados de hoje",
                         use_container_width=True,
                         key="hoje"):
-                start_date = today
-                end_date = today
                 st.session_state.active_button = "hoje"
+                st.session_state.start_date = today
+                st.session_state.end_date = today
             
             if st.button("Últimos 7 Dias",
                         type="secondary",
                         help="Dados dos últimos 7 dias",
                         use_container_width=True,
                         key="7d"):
-                start_date = seven_days_ago
-                end_date = today
                 st.session_state.active_button = "7d"
+                st.session_state.start_date = seven_days_ago
+                st.session_state.end_date = today
             
             if st.button("Mês Atual",
                         type="secondary",
                         help="Dados do mês atual",
                         use_container_width=True,
                         key="mes"):
-                start_date = first_day_of_month
-                end_date = today
                 st.session_state.active_button = "mes"
+                st.session_state.start_date = first_day_of_month
+                st.session_state.end_date = today
                 
         with col2:
             if st.button("Ontem",
@@ -68,40 +66,46 @@ def date_filters():
                         help="Dados de ontem",
                         use_container_width=True,
                         key="ontem"):
-                start_date = yesterday
-                end_date = yesterday
                 st.session_state.active_button = "ontem"
+                st.session_state.start_date = yesterday
+                st.session_state.end_date = yesterday
             
             if st.button("Últimos 30 Dias",
                         type="secondary",
                         help="Dados dos últimos 30 dias",
                         use_container_width=True,
                         key="30d"):
-                start_date = thirty_days_ago
-                end_date = today
                 st.session_state.active_button = "30d"
+                st.session_state.start_date = thirty_days_ago
+                st.session_state.end_date = today
             
             if st.button("Mês Passado",
                         type="secondary",
                         help="Dados do mês passado",
                         use_container_width=True,
                         key="mes_passado"):
-                start_date = first_day_of_prev_month
-                end_date = last_day_of_prev_month
                 st.session_state.active_button = "mes_passado"
+                st.session_state.start_date = first_day_of_prev_month
+                st.session_state.end_date = last_day_of_prev_month
 
         date_col1, date_col2 = st.columns(2)
         with date_col1:
-            custom_start = st.date_input("Data Inicial", start_date, key="custom_start_date")
+            custom_start = st.date_input("Data Inicial", st.session_state.start_date, key="custom_start_date")
         with date_col2:
-            custom_end = st.date_input("Data Final", end_date, key="custom_end_date")
+            custom_end = st.date_input("Data Final", st.session_state.end_date, key="custom_end_date")
         
-        if custom_start != start_date or custom_end != end_date:
-            start_date = custom_start
-            end_date = custom_end
+        # Botão para aplicar período personalizado
+        if st.button("Aplicar Período", 
+                    type="primary",
+                    help="Aplicar o período selecionado",
+                    use_container_width=True):
+            st.session_state.active_button = "custom"
+            st.session_state.start_date = custom_start
+            st.session_state.end_date = custom_end
 
-    st.session_state.start_date = start_date
-    st.session_state.end_date = end_date
+    # Atualizar as variáveis locais com os valores da sessão
+    start_date = st.session_state.start_date
+    end_date = st.session_state.end_date
 
 def traffic_filters(df):
     if "cluster_selected" not in st.session_state:
