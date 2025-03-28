@@ -46,6 +46,12 @@ def load_app():
         if 'quote_container' not in st.session_state:
             st.session_state.quote_container = st.empty()
 
+        # Inicializar datas se não existirem
+        if 'start_date' not in st.session_state:
+            st.session_state.start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if 'end_date' not in st.session_state:
+            st.session_state.end_date = datetime.now().strftime('%Y-%m-%d')
+
         # Calcular tempo decorrido desde o início da citação
         elapsed_time = time.time() - st.session_state.quote_start_time
         
