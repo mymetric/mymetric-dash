@@ -121,28 +121,8 @@ def load_app():
         pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
         pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
 
-        # Carregar filtros baseado na aba selecionada
-        if st.session_state.selected_page not in pages_without_filters:
-            # Carregar filtro de data para todas as abas que não estão em pages_without_filters
-            date_filters()
-            
-            # Carregar filtros básicos e de atribuição para abas específicas
-            if st.session_state.selected_page in pages_with_basic_filters:
-                show_loading_toast("🔄 Carregando dados básicos...")
-                start_time = time.time()
-                df_basic = load_basic_data()
-                traffic_filters(df_basic)
-                show_loading_toast("✅ Dados básicos carregados", start_time)
-            
-            # Carregar filtros detalhados para abas específicas
-            if st.session_state.selected_page in pages_with_detailed_filters:
-                show_loading_toast("🔄 Carregando dados detalhados...")
-                start_time = time.time()
-                df_detailed = load_detailed_data()
-                traffic_filters_detailed(df_detailed)
-                show_loading_toast("✅ Dados detalhados carregados", start_time)
-
-        is_admin = st.session_state.admin
+        # Definir is_admin
+        is_admin = st.session_state.get('admin', False)
 
         # Load paid media data
         show_loading_toast("🔄 Carregando dados de mídia paga...")
@@ -204,6 +184,27 @@ def load_app():
         if st.session_state.selected_page != selected_page:
             st.session_state.selected_page = selected_page
             st.rerun()
+
+        # Carregar filtros baseado na aba selecionada
+        if selected_page not in pages_without_filters:
+            # Carregar filtro de data para todas as abas que não estão em pages_without_filters
+            date_filters()
+            
+            # Carregar filtros básicos e de atribuição para abas específicas
+            if selected_page in pages_with_basic_filters:
+                show_loading_toast("🔄 Carregando dados básicos...")
+                start_time = time.time()
+                df_basic = load_basic_data()
+                traffic_filters(df_basic)
+                show_loading_toast("✅ Dados básicos carregados", start_time)
+            
+            # Carregar filtros detalhados para abas específicas
+            if selected_page in pages_with_detailed_filters:
+                show_loading_toast("🔄 Carregando dados detalhados...")
+                start_time = time.time()
+                df_detailed = load_detailed_data()
+                traffic_filters_detailed(df_detailed)
+                show_loading_toast("✅ Dados detalhados carregados", start_time)
 
         # Exibir conteúdo baseado na seleção
         if selected_page == "Visão Geral":
