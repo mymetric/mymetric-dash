@@ -48,7 +48,7 @@ def load_app():
         tabs_css()
         
         # Definir quais filtros devem ser carregados para cada aba
-        pages_without_filters = ["Atribuição 2.0", "Master", "Configurações", "Análise do Dia"]
+        pages_without_filters = ["Atribuição 2.0", "Master", "Configurações", "Análise do Dia", "Usuários"]
         pages_with_only_date = ["Mídia Paga", "Taxas de Conversão"]
         pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
         pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]

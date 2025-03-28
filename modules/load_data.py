@@ -1169,18 +1169,24 @@ def save_goals(metas):
 def load_coffeemais_users():
     
     query = f"""
-        
         select
-
-        updated_at `Data de Atualização`,
-        email `E-mail`,
-        pagbrasil_subscription_link `Link da Assinatura`,
-        pagbrasil_payment_date `Data do Pagamento`,
-        pagbrasil_subscription_status `Status da Assinatura`,
-        pagbrasil_order_status `Status do Pedido`
-
+            updated_at,
+            email,
+            name,
+            phone,
+            first_lead_source,
+            first_lead_medium,
+            first_lead_campaign,
+            first_lead_content,
+            first_lead_term,
+            first_lead_page_location,
+            pagbrasil_recurrence_id,
+            pagbrasil_recurrence_number,
+            pagbrasil_subscription_link,
+            pagbrasil_payment_date,
+            pagbrasil_subscription_status,
+            pagbrasil_order_status
         from `coffee-mais-mkt-data-lake.df_summary.users`
-        
         order by updated_at desc
     """
 
