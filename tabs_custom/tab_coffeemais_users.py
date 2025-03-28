@@ -2,7 +2,6 @@ import streamlit as st
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-
 from modules.load_data import load_coffeemais_users
 from modules.components import big_number_box
 
@@ -18,11 +17,6 @@ def display_tab_coffeemais_users():
     
     # Remover mensagem de loading
     loading_placeholder.empty()
-
-    # Exibir citação aleatória
-    with st.container():
-        st.markdown(f"*{get_random_quote()}*")
-        st.divider()
 
     # Converter coluna de data e tratar valores nulos
     df['updated_at'] = pd.to_datetime(df['updated_at'])

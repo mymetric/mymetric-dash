@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import traceback
 import time
 from modules.components import tabs_css
-from modules.data_quotes import get_random_quote
 
 from tabs.filters import date_filters, traffic_filters_detailed, traffic_filters
 from tabs.tab_general import display_tab_general
@@ -38,86 +37,12 @@ def show_loading_toast(message, start_time=None):
 
 def load_app():
     try:
-        # Inicializar os estados da sessão necessários
-        if 'quote_start_time' not in st.session_state:
-            st.session_state.quote_start_time = time.time()
-            st.session_state.current_quote = get_random_quote()
-        
-        if 'quote_container' not in st.session_state:
-            st.session_state.quote_container = st.empty()
-
         # Inicializar datas se não existirem
         if 'start_date' not in st.session_state:
             st.session_state.start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         if 'end_date' not in st.session_state:
             st.session_state.end_date = datetime.now().strftime('%Y-%m-%d')
 
-        # Calcular tempo decorrido desde o início da citação
-        elapsed_time = time.time() - st.session_state.quote_start_time
-        
-        # Mostrar citação apenas nos primeiros 5 segundos
-        if elapsed_time < 5:
-            # Adicionar CSS para o efeito de fade out
-            st.markdown("""
-                <style>
-                    .quote-container {
-                        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                        padding: 1.5rem;
-                        border-radius: 1rem;
-                        margin: 1rem 0;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                        border: 1px solid rgba(79, 70, 229, 0.1);
-                        transition: all 0.5s ease-out;
-                    }
-                    .quote-text {
-                        font-family: 'DM Sans', sans-serif;
-                        font-style: italic;
-                        color: #4f46e5;
-                        text-align: center;
-                        margin: 0;
-                        font-size: 1.2rem;
-                        line-height: 1.6;
-                        position: relative;
-                    }
-                    .quote-text::before,
-                    .quote-text::after {
-                        content: '"';
-                        font-size: 2rem;
-                        color: #4f46e5;
-                        opacity: 0.3;
-                        position: absolute;
-                    }
-                    .quote-text::before {
-                        left: -1rem;
-                        top: -0.5rem;
-                    }
-                    .quote-text::after {
-                        right: -1rem;
-                        bottom: -0.5rem;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            # Calcular opacidade baseada no tempo decorrido
-            opacity = max(0, 1 - (elapsed_time - 3) / 2)  # Começa a desaparecer após 3 segundos
-            
-            # Exibir citação com estilo
-            st.session_state.quote_container.markdown(f"""
-                <div class="quote-container" style="opacity: {opacity};">
-                    <p class="quote-text">{st.session_state.current_quote}</p>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            # Remover a citação após 5 segundos
-            st.session_state.quote_container.empty()
-
-        # Inicializar o estado da página selecionada se não existir
-        if 'selected_page' not in st.session_state:
-            st.session_state.selected_page = "Visão Geral"
-        # Atualizar o valor se for "Leads" para "Atribuição 2.0"
-        elif st.session_state.selected_page == "Leads":
-            st.session_state.selected_page = "Atribuição 2.0"
-            
         # Carregar CSS e filtros
         tabs_css()
         
