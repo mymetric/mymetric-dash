@@ -2,6 +2,7 @@ import streamlit as st
 from modules.load_data import load_popup_leads
 import pandas as pd
 from modules.components import big_number_box
+import altair as alt
 
 def display_tab_leads():
 
@@ -18,28 +19,22 @@ def display_tab_leads():
             
         # Inicializar datas se não existirem
         if 'data_cadastro_inicio' not in st.session_state:
-            min_cadastro = popup_leads['Data do Cadastro'].min()
-            if pd.isna(min_cadastro):
-                min_cadastro = pd.Timestamp.now() - pd.Timedelta(days=30)
-            st.session_state['data_cadastro_inicio'] = pd.Timestamp(min_cadastro).date()
+            hoje = pd.Timestamp.now()
+            inicio_ano = hoje.replace(month=1, day=1).date()
+            st.session_state['data_cadastro_inicio'] = inicio_ano
         
         if 'data_cadastro_fim' not in st.session_state:
-            max_cadastro = popup_leads['Data do Cadastro'].max()
-            if pd.isna(max_cadastro):
-                max_cadastro = pd.Timestamp.now()
-            st.session_state['data_cadastro_fim'] = pd.Timestamp(max_cadastro).date()
+            hoje = pd.Timestamp.now()
+            st.session_state['data_cadastro_fim'] = hoje.date()
         
         if 'data_compra_inicio' not in st.session_state:
-            min_compra = popup_leads['Data da Compra'].min()
-            if pd.isna(min_compra):
-                min_compra = pd.Timestamp.now() - pd.Timedelta(days=30)
-            st.session_state['data_compra_inicio'] = pd.Timestamp(min_compra).date()
+            hoje = pd.Timestamp.now()
+            inicio_ano = hoje.replace(month=1, day=1).date()
+            st.session_state['data_compra_inicio'] = inicio_ano
         
         if 'data_compra_fim' not in st.session_state:
-            max_compra = popup_leads['Data da Compra'].max()
-            if pd.isna(max_compra):
-                max_compra = pd.Timestamp.now()
-            st.session_state['data_compra_fim'] = pd.Timestamp(max_compra).date()
+            hoje = pd.Timestamp.now()
+            st.session_state['data_compra_fim'] = hoje.date()
             
         # Filtros na sidebar
         st.subheader("Filtros")
@@ -52,6 +47,12 @@ def display_tab_leads():
             # Botões de datas padrão
             col1, col2 = st.columns(2)
             with col1:
+                if st.button("Ano Atual", key="btn_current_year_cadastro", use_container_width=True, type="primary"):
+                    hoje = pd.Timestamp.now()
+                    inicio_ano = hoje.replace(month=1, day=1).date()
+                    st.session_state['data_cadastro_inicio'] = inicio_ano
+                    st.session_state['data_cadastro_fim'] = hoje.date()
+                    st.rerun()
                 if st.button("7 dias", key="btn_7d_cadastro", use_container_width=True, type="primary"):
                     st.session_state['data_cadastro_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=7)).date()
                     st.session_state['data_cadastro_fim'] = pd.Timestamp.now().date()
@@ -112,6 +113,12 @@ def display_tab_leads():
             # Botões de datas padrão
             col1, col2 = st.columns(2)
             with col1:
+                if st.button("Ano Atual", key="btn_current_year_compra", use_container_width=True, type="primary"):
+                    hoje = pd.Timestamp.now()
+                    inicio_ano = hoje.replace(month=1, day=1).date()
+                    st.session_state['data_compra_inicio'] = inicio_ano
+                    st.session_state['data_compra_fim'] = hoje.date()
+                    st.rerun()
                 if st.button("7 dias", key="btn_7d_compra", use_container_width=True, type="primary"):
                     st.session_state['data_compra_inicio'] = (pd.Timestamp.now() - pd.Timedelta(days=7)).date()
                     st.session_state['data_compra_fim'] = pd.Timestamp.now().date()
@@ -426,6 +433,117 @@ def display_tab_leads():
             "Compras com Lead",
             hint="Percentual de compras que tiveram um lead antes de serem realizadas"
         )
+    
+    st.markdown("---")
+    
+    # Timeline de Leads e Vendas
+    st.subheader("Timeline de Leads e Vendas")
+    
+    # Preparar dados para a timeline
+    timeline_data = filtered_df.copy()
+    
+    # Agrupar por data do cadastro (leads)
+    leads_daily = timeline_data[timeline_data['Data do Cadastro'].notna()].groupby(
+        timeline_data['Data do Cadastro'].dt.date
+    ).agg({
+        'E-mail': 'count'
+    }).reset_index()
+    
+    # Agrupar por data da compra (vendas)
+    vendas_daily = timeline_data[timeline_data['Data da Compra'].notna()].groupby(
+        timeline_data['Data da Compra'].dt.date
+    ).agg({
+        'ID da Compra': lambda x: x.notna().sum()
+    }).reset_index()
+    
+    # Renomear colunas
+    leads_daily.columns = ['Data', 'Leads']
+    vendas_daily.columns = ['Data', 'Vendas']
+    
+    # Juntar os dados
+    timeline_df = pd.merge(leads_daily, vendas_daily, on='Data', how='outer')
+    
+    # Preencher valores nulos com 0
+    timeline_df = timeline_df.fillna(0)
+    
+    # Ordenar por data
+    timeline_df = timeline_df.sort_values('Data')
+    
+    # Formata os valores para o tooltip
+    timeline_df['Leads_fmt'] = timeline_df['Leads'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    timeline_df['Vendas_fmt'] = timeline_df['Vendas'].apply(lambda x: f"{int(x):,}".replace(",", "."))
+    
+    # Cria o gráfico de Vendas com a cor #3B82F6 (azul)
+    line_vendas = alt.Chart(timeline_df).mark_line(color='#3B82F6', strokeWidth=2.5).encode(
+        x=alt.X('Data:T', 
+                title='Data',
+                axis=alt.Axis(format='%d/%m', labelAngle=0)),
+        y=alt.Y('Vendas:Q', 
+                axis=alt.Axis(title='Vendas',
+                             format=',.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+            alt.Tooltip('Vendas_fmt:N', title='Vendas')
+        ]
+    )
+
+    # Cria o gráfico de Leads com barras estilosas
+    bar_leads = alt.Chart(timeline_df).mark_bar(color='#E5E7EB', size=20).encode(
+        x=alt.X('Data:T', title='Data'),
+        y=alt.Y('Leads:Q', 
+                axis=alt.Axis(title='Leads',
+                             format=',.0f',
+                             titlePadding=10)),
+        tooltip=[
+            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+            alt.Tooltip('Leads_fmt:N', title='Leads')
+        ]
+    )
+
+    # Combine os dois gráficos com melhorias visuais
+    combined_chart = alt.layer(
+        bar_leads,
+        line_vendas
+    ).resolve_scale(
+        y='independent'
+    ).properties(
+        width=700,
+        height=400,
+        title=alt.TitleParams(
+            text='Evolução de Leads e Vendas',
+            fontSize=16,
+            font='DM Sans',
+            anchor='start',
+            dy=-10
+        )
+    ).configure_axis(
+        grid=True,
+        gridOpacity=0.1,
+        labelFontSize=12,
+        titleFontSize=13,
+        labelFont='DM Sans',
+        titleFont='DM Sans'
+    ).configure_view(
+        strokeWidth=0
+    )
+
+    # Exibe o gráfico no Streamlit
+    st.altair_chart(combined_chart, use_container_width=True)
+
+    # Adiciona legenda manual com design melhorado
+    st.markdown("""
+        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Vendas</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
+                <span style="color: #4B5563; font-size: 14px;">Leads</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
