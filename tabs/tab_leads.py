@@ -97,13 +97,11 @@ def display_tab_leads():
             with col1:
                 data_cadastro_inicio = st.date_input(
                     "Início",
-                    value=st.session_state['data_cadastro_inicio'],
                     key='data_cadastro_inicio'
                 )
             with col2:
                 data_cadastro_fim = st.date_input(
                     "Fim",
-                    value=st.session_state['data_cadastro_fim'],
                     key='data_cadastro_fim'
                 )
                 
