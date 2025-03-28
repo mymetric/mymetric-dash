@@ -9,9 +9,21 @@ from modules.components import big_number_box
 def display_tab_coffeemais_users():
     st.title("Usuários")
 
-    # Load data
+    # Exibir mensagem de loading
+    loading_placeholder = st.empty()
+    loading_placeholder.info("Carregando dados dos usuários...")
+
+    # Carregar dados
     df = load_coffeemais_users()
     
+    # Remover mensagem de loading
+    loading_placeholder.empty()
+
+    # Exibir citação aleatória
+    with st.container():
+        st.markdown(f"*{get_random_quote()}*")
+        st.divider()
+
     # Converter coluna de data e tratar valores nulos
     df['updated_at'] = pd.to_datetime(df['updated_at'])
     df['pagbrasil_subscription_status'] = df['pagbrasil_subscription_status'].fillna('Não Definido')
@@ -23,7 +35,6 @@ def display_tab_coffeemais_users():
 
     # Adicionar seção colapsável com os big numbers existentes
     with st.expander("Assinantes PagBrasil - Big Numbers", expanded=False):
-
         st.subheader("Assinantes PagBrasil")
 
         # Criar colunas para os big numbers

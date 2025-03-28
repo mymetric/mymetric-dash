@@ -1431,7 +1431,6 @@ def save_event_name(event_name, event_params=None):
         username = st.session_state.get('username')
         
         if not tablename or not username:
-            st.toast("❌ Erro: tablename ou username não estão definidos na sessão")
             return False
             
         # Converter parâmetros para JSON se existirem
@@ -1461,7 +1460,6 @@ def save_event_name(event_name, event_params=None):
         
         # Verificar se houve erros
         if query_job.errors:
-            st.toast(f"❌ Erro na query: {query_job.errors}")
             return False
             
         # Verificar se o evento foi realmente inserido
@@ -1478,13 +1476,7 @@ def save_event_name(event_name, event_params=None):
         verify_result = verify_job.result()
         count = next(verify_result).count
         
-        if count > 0:
-            st.toast(f"✅ Evento '{event_name}' salvo com sucesso")
-            return True
-        else:
-            st.toast("❌ Evento não foi encontrado após inserção")
-            return False
+        return count > 0
         
     except Exception as e:
-        st.toast(f"❌ Erro ao salvar evento: {str(e)}")
         return False
