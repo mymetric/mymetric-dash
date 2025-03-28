@@ -1415,14 +1415,17 @@ def save_event_name(event_name, event_params=None):
     Args:
         event_name (str): Nome do evento
         event_params (dict, optional): Parâmetros adicionais do evento
+        
+    Returns:
+        bool: True se o evento foi salvo com sucesso, False caso contrário
     """
     try:
         # Obter informações da sessão
         tablename = st.session_state.get('tablename')
-        user = st.session_state.get('user')
+        username = st.session_state.get('username')
         
-        if not tablename or not user:
-            print("Erro: tablename ou user não estão definidos na sessão")
+        if not tablename or not username:
+            st.toast("❌ Erro: tablename ou username não estão definidos na sessão")
             return False
             
         # Converter parâmetros para JSON se existirem
@@ -1440,19 +1443,42 @@ def save_event_name(event_name, event_params=None):
         job_config = bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
-                bigquery.ScalarQueryParameter("user", "STRING", user),
+                bigquery.ScalarQueryParameter("user", "STRING", username),
                 bigquery.ScalarQueryParameter("event_name", "STRING", event_name),
                 bigquery.ScalarQueryParameter("event_params", "STRING", event_params_json),
             ]
         )
         
         # Executar query
-        client.query(query, job_config=job_config).result()
-        return True
+        query_job = client.query(query, job_config=job_config)
+        query_job.result()  # Aguardar conclusão
+        
+        # Verificar se houve erros
+        if query_job.errors:
+            st.toast(f"❌ Erro na query: {query_job.errors}")
+            return False
+            
+        # Verificar se o evento foi realmente inserido
+        verify_query = """
+            SELECT COUNT(*) as count
+            FROM `mymetric-hub-shopify.dbt_config.events`
+            WHERE tablename = @tablename
+            AND user = @user
+            AND event_name = @event_name
+            AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 MINUTE)
+        """
+        
+        verify_job = client.query(verify_query, job_config=job_config)
+        verify_result = verify_job.result()
+        count = next(verify_result).count
+        
+        if count > 0:
+            st.toast(f"✅ Evento '{event_name}' salvo com sucesso")
+            return True
+        else:
+            st.toast("❌ Evento não foi encontrado após inserção")
+            return False
         
     except Exception as e:
-        print(f"Erro ao salvar evento: {str(e)}")
-        print(f"Tipo do erro: {type(e)}")
-        import traceback
-        print(f"Stack trace: {traceback.format_exc()}")
+        st.toast(f"❌ Erro ao salvar evento: {str(e)}")
         return False
