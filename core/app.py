@@ -43,6 +43,13 @@ def load_app():
         if 'end_date' not in st.session_state:
             st.session_state.end_date = datetime.now().strftime('%Y-%m-%d')
 
+        # Inicializar a página selecionada se não existir
+        if 'selected_page' not in st.session_state:
+            st.session_state.selected_page = "Visão Geral"
+        # Atualizar o valor se for "Leads" para "Atribuição 2.0"
+        elif st.session_state.selected_page == "Leads":
+            st.session_state.selected_page = "Atribuição 2.0"
+
         # Carregar CSS e filtros
         tabs_css()
         
