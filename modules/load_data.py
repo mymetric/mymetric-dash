@@ -1480,3 +1480,95 @@ def save_event_name(event_name, event_params=None):
         
     except Exception as e:
         return False
+
+def save_client(tablename, configs):
+    """
+    Salva os dados de um cliente no BigQuery.
+    
+    Args:
+        tablename (str): Nome da tabela do cliente
+        configs (str): JSON string com as configurações do cliente
+        
+    Returns:
+        bool: True se o cliente foi salvo com sucesso, False caso contrário
+    """
+    try:
+        # Query para inserir ou atualizar o cliente
+        query = """
+            MERGE `mymetric-hub-shopify.dbt_config.customers` AS target
+            USING (SELECT @tablename as tablename, @configs as configs) AS source
+            ON target.tablename = source.tablename
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    configs = source.configs,
+                    updated_at = CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN
+                INSERT (tablename, configs, created_at, updated_at)
+                VALUES (source.tablename, source.configs, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+        """
+        
+        # Configurar parâmetros da query
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+                bigquery.ScalarQueryParameter("configs", "STRING", configs),
+            ]
+        )
+        
+        # Executar query
+        query_job = client.query(query, job_config=job_config)
+        query_job.result()  # Aguardar conclusão
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao salvar cliente: {str(e)}")
+        return False
+
+def load_clients():
+    """
+    Carrega todos os clientes cadastrados do BigQuery.
+    
+    Returns:
+        pd.DataFrame: DataFrame com os dados dos clientes
+    """
+    try:
+        print("Iniciando carregamento de clientes...")
+        
+        query = """
+            SELECT 
+                tablename,
+                configs,
+                created_at,
+                updated_at
+            FROM `mymetric-hub-shopify.dbt_config.customers`
+            ORDER BY tablename
+        """
+        
+        print("Executando query...")
+        query_job = client.query(query)
+        
+        print("Aguardando resultado da query...")
+        rows = query_job.result()
+        
+        print("Convertendo resultados para DataFrame...")
+        df = pd.DataFrame([dict(row) for row in rows])
+        
+        print(f"DataFrame criado com {len(df)} linhas")
+        
+        # Converter configs de JSON para dicionário
+        if not df.empty and 'configs' in df.columns:
+            print("Convertendo configs de JSON para dicionário...")
+            df['configs'] = df['configs'].apply(lambda x: json.loads(x) if x else {})
+            print("Conversão concluída")
+        else:
+            print("DataFrame vazio ou coluna 'configs' não encontrada")
+        
+        return df
+        
+    except Exception as e:
+        print(f"Erro ao carregar clientes: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return pd.DataFrame()
