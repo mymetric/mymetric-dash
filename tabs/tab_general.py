@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup
+from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup, load_costs
 from modules.components import big_number_box
 from partials.run_rate import display_run_rate
 from partials.pendings import display_pendings
@@ -173,6 +173,12 @@ def big_numbers(df):
                 hint="Considera apenas o que foi atribuído em last click a Mídia Paga"
             )
         
+        st.markdown("---")
+
+    # Carregar custos
+    costs_df = load_costs()
+    
+    if costs_df is not None and not costs_df.empty:
         st.markdown("---")
 
 def tables(df):
@@ -357,7 +363,69 @@ def tables(df):
     # Reordenar as colunas
     display_df = display_df[['Cluster', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
     
-    st.data_editor(display_df, hide_index=1, use_container_width=1, key="general_cluster_origens")
+    st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_cluster_origens")
+
+    st.markdown("---")
+
+    # Tabela de Cálculo de ROI
+    # Carregar custos
+    costs_df = load_costs()
+    
+    if not costs_df.empty:
+        st.header("Cálculo de ROI")
+        
+        # Fazer left join com os custos
+        # Primeiro, vamos pegar o mês mais recente dos custos
+        latest_month = costs_df['Mês'].max()
+        
+        # Filtrar custos apenas do mês mais recente
+        latest_costs = costs_df[costs_df['Mês'] == latest_month]
+        
+        # Fazer o left join
+        merged_df = pd.merge(
+            aggregated_df[['Cluster', 'Receita']],
+            latest_costs[['Categoria', 'Custo do Produto (%)', 'Custo Total']],
+            left_on='Cluster',
+            right_on='Categoria',
+            how='left'
+        )
+        
+        # Remover a coluna Categoria duplicada
+        if 'Categoria' in merged_df.columns:
+            merged_df = merged_df.drop('Categoria', axis=1)
+        
+        # Preencher valores nulos com 0
+        merged_df['Custo do Produto (%)'] = merged_df['Custo do Produto (%)'].fillna(0)
+        merged_df['Custo Total'] = merged_df['Custo Total'].fillna(0)
+        
+        # Calcular Custo do Produto Absoluto
+        merged_df['Custo do Produto Absoluto'] = merged_df['Receita'] * (merged_df['Custo do Produto (%)'] / 100)
+        
+        # Calcular Custo Geral
+        merged_df['Custo Geral'] = merged_df['Custo Total'] + merged_df['Custo do Produto Absoluto']
+        
+        # Calcular Retorno Absoluto
+        merged_df['Retorno Absoluto'] = merged_df['Receita'] - merged_df['Custo Total'] - merged_df['Custo do Produto Absoluto']
+        
+        # Calcular ROI considerando Custo Total e Custo do Produto Absoluto
+        merged_df['ROI'] = ((merged_df['Receita'] - merged_df['Custo Total'] - merged_df['Custo do Produto Absoluto']) / (merged_df['Custo Total'] + merged_df['Custo do Produto Absoluto']) * 100).fillna(0)
+        
+        # Formatar os números antes de exibir
+        display_df = merged_df.copy()
+        display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+        display_df['Custo Total'] = display_df['Custo Total'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+        display_df['Custo do Produto Absoluto'] = display_df['Custo do Produto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+        display_df['Custo Geral'] = display_df['Custo Geral'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+        display_df['Retorno Absoluto'] = display_df['Retorno Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+        display_df['Custo do Produto (%)'] = display_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
+        
+        # Formatar ROI substituindo inf% por "-" ou "0"
+        display_df['ROI'] = display_df['ROI'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+        
+        # Reordenar as colunas
+        display_df = display_df[['Cluster', 'Receita', 'Custo do Produto (%)', 'Custo do Produto Absoluto', 'Custo Total', 'Custo Geral', 'Retorno Absoluto', 'ROI']]
+        
+        st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs")
 
 def display_tab_general():
 

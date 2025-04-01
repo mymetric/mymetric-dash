@@ -1572,3 +1572,193 @@ def load_clients():
         import traceback
         print(f"Stack trace: {traceback.format_exc()}")
         return pd.DataFrame()
+
+def load_costs():
+    """
+    Carrega os custos do BigQuery.
+    """
+    if toast_alerts():
+        st.toast("Carregando custos...")
+
+    tablename = st.session_state.get('tablename')
+    print(f"Tablename obtido da sessão: {tablename}")
+
+    if not tablename:
+        print("Erro: tablename não está definido na sessão")
+        return pd.DataFrame()
+
+    try:
+        # Usar parâmetros de consulta para evitar problemas com caracteres especiais
+        query = """
+            SELECT 
+                configs as Configs
+            FROM `mymetric-hub-shopify.dbt_config.costs`
+            WHERE tablename = @tablename
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+            ]
+        )
+        
+        print(f"Executando query com tablename: {tablename}")
+        query_job = client.query(query, job_config=job_config)
+        rows = query_job.result()
+        
+        # Inicializar lista de registros
+        records = []
+        
+        # Processar cada linha do resultado
+        for row in rows:
+            if row.Configs:
+                try:
+                    # Converter configs de JSON para dicionário
+                    configs = json.loads(row.Configs)
+                    print(f"Configs carregadas: {configs}")
+                    
+                    # Criar registros para cada mês e categoria
+                    for month, month_data in configs.items():
+                        for category, category_data in month_data.items():
+                            records.append({
+                                'Mês': month,
+                                'Categoria': category,
+                                'Custo do Produto (%)': category_data.get('cost_of_product_percentage', 0),
+                                'Custo Total': category_data.get('total_cost', 0)
+                            })
+                except json.JSONDecodeError as e:
+                    print(f"Erro ao decodificar JSON: {e}")
+                    continue
+        
+        # Criar DataFrame com os registros
+        if records:
+            df = pd.DataFrame(records)
+            print(f"DataFrame criado com {len(df)} registros")
+            return df
+        else:
+            print("Nenhum registro encontrado")
+            return pd.DataFrame()
+        
+    except Exception as e:
+        print(f"Erro ao carregar custos: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return pd.DataFrame()
+
+def save_costs(month, category, cost_of_product_percentage, total_cost):
+    """
+    Salva os custos no BigQuery.
+    """
+    if toast_alerts():
+        st.toast("Salvando custos...")
+
+    tablename = st.session_state.tablename
+    print(f"Salvando custos para tablename: {tablename}")
+    print(f"Dados recebidos: month={month}, category={category}, cost_of_product_percentage={cost_of_product_percentage}, total_cost={total_cost}")
+
+    try:
+        # Verificar se a tabela existe
+        check_table_query = """
+            SELECT COUNT(*) as count
+            FROM `mymetric-hub-shopify.dbt_config.__TABLES__`
+            WHERE table_id = 'costs'
+        """
+        table_exists = client.query(check_table_query).result()
+        if not table_exists:
+            print("Tabela costs não existe. Criando...")
+            create_table_query = """
+                CREATE TABLE IF NOT EXISTS `mymetric-hub-shopify.dbt_config.costs`
+                (
+                    tablename STRING,
+                    configs STRING,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+            """
+            client.query(create_table_query).result()
+            print("Tabela costs criada com sucesso")
+
+        # Carregar configurações existentes
+        query = """
+            SELECT configs
+            FROM `mymetric-hub-shopify.dbt_config.costs`
+            WHERE tablename = @tablename
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+            ]
+        )
+        
+        query_job = client.query(query, job_config=job_config)
+        rows = query_job.result()
+        
+        # Inicializar ou carregar configs existentes
+        configs = {}
+        for row in rows:
+            if row.configs:
+                try:
+                    configs = json.loads(row.configs)
+                    print(f"Configs carregadas: {configs}")
+                    break
+                except json.JSONDecodeError as e:
+                    print(f"Erro ao decodificar JSON existente: {e}")
+                    configs = {}
+                    break
+        
+        # Garantir que o mês existe
+        if month not in configs:
+            configs[month] = {}
+            print(f"Novo mês adicionado: {month}")
+        
+        # Atualizar ou criar categoria
+        configs[month][category] = {
+            "cost_of_product_percentage": float(cost_of_product_percentage),
+            "total_cost": float(total_cost)
+        }
+        print(f"Configs atualizadas: {configs}")
+        
+        # Converter configs para JSON
+        configs_json = json.dumps(configs)
+        print(f"JSON gerado: {configs_json}")
+        
+        # Inserir ou atualizar usando MERGE
+        merge_query = """
+            MERGE `mymetric-hub-shopify.dbt_config.costs` AS target
+            USING (SELECT @tablename as tablename, @configs as configs) AS source
+            ON target.tablename = source.tablename
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    configs = source.configs,
+                    updated_at = CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN
+                INSERT (tablename, configs, created_at, updated_at)
+                VALUES (source.tablename, source.configs, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+        """
+        
+        merge_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+                bigquery.ScalarQueryParameter("configs", "STRING", configs_json),
+            ]
+        )
+        
+        merge_job = client.query(merge_query, job_config=merge_config)
+        merge_job.result()  # Aguardar conclusão
+        
+        # Verificar se houve erros
+        if merge_job.errors:
+            print(f"Erros na query MERGE: {merge_job.errors}")
+            return False
+            
+        print(f"Custos salvos com sucesso")
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao salvar custos: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return False
