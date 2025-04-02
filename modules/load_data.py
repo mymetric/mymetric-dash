@@ -1762,3 +1762,39 @@ def save_costs(month, category, cost_of_product_percentage, total_cost):
         import traceback
         print(f"Stack trace: {traceback.format_exc()}")
         return False
+
+
+
+def load_kaisan_erp_orders():
+
+    query = """
+SELECT
+
+  date(event_timestamp) date,
+  order_status status,
+  carrier_name transportadora,
+  marketplace_store marketplace,
+  address_state estado,
+  address_city cidade,
+  payment_description metodo_pagamento,
+
+  sum(case when item_no = 1 then total_value end) receita,
+  sum(case when item_no = 1 then total_discount end) descontos,
+  sum(case when item_no = 1 then 1 end) pedidos,
+  sum(qty) itens_vendidos,
+  sum(qty*costValue) custo,
+
+FROM `gtm-nc5rvpcz-y2e0m.erp.orders_dedup`
+
+group by all
+
+
+    """
+
+    df = run_queries([query])[0]
+
+    return df
+
+
+
+

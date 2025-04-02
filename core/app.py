@@ -23,6 +23,7 @@ from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
 from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
 from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
 from tabs_custom.tab_holysoup_social import display_tab_holysoup_social
+from tabs_custom.tab_kaisan_erp import display_tab_kaisan_erp
 
 from modules.load_data import load_paid_media, load_popup_leads, save_event_name, load_basic_data, load_detailed_data
 from modules.utilities import send_message
@@ -54,7 +55,7 @@ def load_app():
         tabs_css()
         
         # Definir quais filtros devem ser carregados para cada aba
-        pages_without_filters = ["Atribuição 2.0", "Master", "Configurações", "Análise do Dia", "Usuários"]
+        pages_without_filters = ["Atribuição 2.0", "Master", "Configurações", "Análise do Dia", "Usuários", "ERP"]
         pages_with_only_date = ["Mídia Paga", "Taxas de Conversão"]
         pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
         pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
@@ -102,6 +103,9 @@ def load_app():
         if st.session_state.tablename == 'holysoup':
             nav_options.extend(["CRM"])
             nav_options.extend(["Social"])
+
+        if st.session_state.tablename == 'kaisan':
+            nav_options.extend(["ERP"])
 
         if is_admin:
             nav_options.extend(["Configurações"])
@@ -204,6 +208,10 @@ def load_app():
         elif selected_page == "Social" and st.session_state.tablename == 'holysoup':
             save_event_name(event_name="tab_view", event_params={"tab": "social"})
             display_tab_holysoup_social()
+        
+        elif selected_page == "ERP" and st.session_state.tablename == 'kaisan':
+            save_event_name(event_name="tab_view", event_params={"tab": "erp"})
+            display_tab_kaisan_erp()
 
     except Exception as e:
         st.error(f"Erro ao carregar a aplicação: {str(e)}")
