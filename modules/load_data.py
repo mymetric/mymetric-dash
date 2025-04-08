@@ -282,9 +282,9 @@ def load_basic_data():
             COUNTIF(event_name = 'session') `Sessões`,
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
+            SUM(CASE WHEN event_name = '{attribution_model}' then value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) end) `Receita`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`
+            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Paga`
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
