@@ -121,8 +121,6 @@ def traffic_filters(df):
         with st.expander("Filtros Básicos", expanded=True):
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
             all_clusters = sort_by_sessions('Cluster', df)
-            all_origins = sort_by_sessions('Origem', df)
-            all_media = sort_by_sessions('Mídia', df)
             
             # Criar os elementos de filtro
             cluster_selected = st.multiselect(
@@ -131,21 +129,7 @@ def traffic_filters(df):
                 default=["Selecionar Todos"]
             )
             
-            origem_selected = st.multiselect(
-                "Origem",
-                options=all_origins,
-                default=["Selecionar Todos"]
-            )
-            
-            midia_selected = st.multiselect(
-                "Mídia",
-                options=all_media,
-                default=["Selecionar Todos"]
-            )
-            
             st.session_state.cluster_selected = cluster_selected
-            st.session_state.origem_selected = origem_selected
-            st.session_state.midia_selected = midia_selected
 
         # Filtro de atribuição (sempre por último)
         with st.expander("Modelos de Atribuição", expanded=True):
@@ -166,7 +150,7 @@ def traffic_filters(df):
                 st.session_state.show_attribution_info = False
 
             # Botão para mostrar/ocultar
-            if st.button('Sobre Modelos de Atribuição'):
+            if st.button('Sobre Modelos de Atribuição', key='attribution_info_button'):
                 st.session_state.show_attribution_info = not st.session_state.show_attribution_info
 
             # Conteúdo que será mostrado/ocultado
@@ -192,11 +176,25 @@ def traffic_filters_detailed(df):
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
+            all_origins = sort_by_sessions('Origem', df)
+            all_media = sort_by_sessions('Mídia', df)
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
             
             # Criar os elementos de filtro
+            origem_selected = st.multiselect(
+                "Origem",
+                options=all_origins,
+                default=["Selecionar Todos"]
+            )
+            
+            midia_selected = st.multiselect(
+                "Mídia",
+                options=all_media,
+                default=["Selecionar Todos"]
+            )
+            
             campanha_selected = st.multiselect(
                 "Campanha",
                 options=all_campaigns,
@@ -215,6 +213,8 @@ def traffic_filters_detailed(df):
                 default=["Selecionar Todos"]
             )
             
+            st.session_state.origem_selected = origem_selected
+            st.session_state.midia_selected = midia_selected
             st.session_state.campanha_selected = campanha_selected
             st.session_state.conteudo_selected = conteudo_selected
             st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected

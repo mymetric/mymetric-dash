@@ -273,12 +273,7 @@ def load_basic_data():
     query = f"""
         SELECT
             event_date AS Data,
-            source Origem,
-            medium `Mídia`,
-            campaign Campanha,
-            content `Conteúdo`,
-            page_location `Página de Entrada`,
-
+            traffic_category `Cluster`,
             COUNTIF(event_name = 'session') `Sessões`,
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
@@ -293,45 +288,6 @@ def load_basic_data():
     """
 
     df = run_queries([query])[0]
-    
-    # Inicializar a coluna Cluster com valores padrão
-    df['Cluster'] = df.apply(traffic_cluster, axis=1)
-    
-    # Carregar categorias de tráfego
-    categories_df = load_traffic_categories()
-    
-    # Aplicar categorias de tráfego
-    if not categories_df.empty:
-        print("Aplicando categorias de tráfego...")
-        for _, category in categories_df.iterrows():
-            rules = category['Regras'].get('rules', {})
-            if not rules:
-                continue
-                
-            # Criar máscara para cada regra
-            mask = pd.Series(True, index=df.index)
-            for field, pattern in rules.items():
-                if pattern:
-                    # Mapear nomes de campos
-                    field_mapping = {
-                        'origem': 'Origem',
-                        'midia': 'Mídia',
-                        'campanha': 'Campanha',
-                        'conteudo': 'Conteúdo',
-                        'pagina_de_entrada': 'Página de Entrada'
-                    }
-                    
-                    mapped_field = field_mapping.get(field)
-                    if mapped_field and mapped_field in df.columns:
-                        try:
-                            field_mask = df[mapped_field].astype(str).str.contains(pattern, regex=True, na=False)
-                            mask &= field_mask
-                        except Exception as e:
-                            print(f"Erro ao aplicar regra {pattern} para campo {mapped_field}: {str(e)}")
-            
-            # Aplicar categoria onde a máscara é True
-            df.loc[mask, 'Cluster'] = category['Nome']
-            print(f"Categoria {category['Nome']} aplicada em {mask.sum()} linhas")
     
     # Aplicar filtros
     df = apply_filters(df)
