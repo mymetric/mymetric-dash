@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_coffeemais_crm
+from modules.load_data import load_coffeemais_crm, load_coffeemais_gupshup_errors
 from modules.components import big_number_box
 import pandas as pd
 
@@ -20,7 +20,7 @@ def display_tab_coffeemais_crm():
         """)
     
     # Create tabs for different views
-    tab_geral, tab_email, tab_whatsapp = st.tabs(["Geral", "E-mail", "WhatsApp"])
+    tab_geral, tab_email, tab_whatsapp, tab_erros = st.tabs(["Geral", "E-mail", "WhatsApp", "Erros WhatsApp"])
     
     # Calculate metrics for all channels
     total_sent = df['sent'].sum()
@@ -265,3 +265,103 @@ def display_tab_coffeemais_crm():
             )
         }
     )
+
+    # Display WhatsApp errors analysis
+    with tab_erros:
+        # Load WhatsApp errors data
+        df_errors = load_coffeemais_gupshup_errors()
+        
+        if not df_errors.empty:
+            # Convert datetime to date for better grouping
+            df_errors['date'] = pd.to_datetime(df_errors['datetime']).dt.date
+            
+            # Filter by date range from session state
+            start_date = pd.to_datetime(st.session_state.start_date).date()
+            end_date = pd.to_datetime(st.session_state.end_date).date()
+            df_errors = df_errors[
+                (df_errors['date'] >= start_date) & 
+                (df_errors['date'] <= end_date)
+            ]
+            
+            if not df_errors.empty:
+                # Calculate total errors
+                total_errors = len(df_errors)
+                
+                # Calculate number of days in the period
+                days_in_period = (end_date - start_date).days + 1
+                
+                # Group by fail reason
+                errors_by_reason = df_errors.groupby('fail_reason').size().reset_index(name='count')
+                errors_by_reason = errors_by_reason.sort_values('count', ascending=False)
+                
+                # Group by date
+                errors_by_date = df_errors.groupby('date').size().reset_index(name='count')
+                
+                # Display metrics
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    big_number_box(
+                        data=f"{total_errors:,}".replace(",", "."),
+                        label="Total de Erros",
+                        hint=f"Número total de erros no período selecionado ({start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')})"
+                    )
+                
+                with col2:
+                    big_number_box(
+                        data=f"{(total_errors/days_in_period):.1f}".replace(".", ","),
+                        label="Média Diária de Erros",
+                        hint=f"Média de erros por dia no período selecionado"
+                    )
+                
+                # Display error reasons table
+                st.subheader("Distribuição de Erros por Motivo")
+                st.dataframe(
+                    errors_by_reason.rename(columns={
+                        'fail_reason': 'Motivo do Erro',
+                        'count': 'Quantidade'
+                    }),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Display error evolution chart
+                st.subheader("Evolução de Erros ao Longo do Tempo")
+                
+                # Add error type filter
+                error_types = ['Todos'] + sorted(df_errors['fail_reason'].unique().tolist())
+                selected_error = st.selectbox('Filtrar por Tipo de Erro:', error_types)
+                
+                # Filter errors by type if selected
+                if selected_error != 'Todos':
+                    df_errors_filtered = df_errors[df_errors['fail_reason'] == selected_error]
+                    errors_by_date = df_errors_filtered.groupby('date').size().reset_index(name='count')
+                else:
+                    errors_by_date = df_errors.groupby('date').size().reset_index(name='count')
+                
+                # Format date for better display
+                errors_by_date['date'] = pd.to_datetime(errors_by_date['date']).dt.strftime('%d/%m/%Y')
+                
+                # Create bar chart
+                st.bar_chart(
+                    errors_by_date.set_index('date'),
+                    use_container_width=True,
+                    height=400
+                )
+                
+                # Display detailed error log
+                st.subheader("Log Detalhado de Erros")
+                st.dataframe(
+                    df_errors.rename(columns={
+                        'datetime': 'Data/Hora',
+                        'message_id': 'ID da Mensagem',
+                        'fail_reason': 'Motivo do Erro',
+                        'phone_destination': 'Telefone de Destino'
+                    }),
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info(f"Não foram encontrados erros de envio de WhatsApp no período selecionado ({start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')}).")
+        else:
+            st.info("Não foram encontrados erros de envio de WhatsApp no período.")

@@ -1751,6 +1751,25 @@ group by all
 
     return df
 
+def load_coffeemais_gupshup_errors():
 
+    query = """
 
+        SELECT
+  
+        datetime(timestamp_millis(timestamp), "America/Sao_Paulo") datetime,
+        message_id,
+        fail_reason,
+        fail_destination phone_destination
 
+        FROM `gtm-ppnx52h-ytkzm.gupshup.structured`
+
+        where
+
+        source = "gupshup_fail"    
+        and datetime(timestamp_millis(timestamp), "America/Sao_Paulo") >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+    """
+
+    df = run_queries([query])[0]
+
+    return df
