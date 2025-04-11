@@ -1,0 +1,14 @@
+Cadastro Promo Popup	[Aut] Popup Modal Zero compras
+1p2	[Aut] 1 compra
+2p3	[Aut] 2 compras
+Winback	[Aut] Winback
+zero	Zero compras sem modal
+zmodal	Modal Zero compras
+1p	1 compra
+2e3p	2 e 3 compras
+grd_d	4+ compras
+_livelo_	Livelo
+adm	Adormecidos (241 a 280)
+winb	Winback
+Clube Coffee ++	Assinantes
+_ex_ass_	Ex Assinantes 

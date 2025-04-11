@@ -1,0 +1,15 @@
+Livelo	[Aut] Origem Livelo
+Esfera	[Aut] Origem Esfera
+281D	[Aut] Winback 281D
+361D	[Aut] Winback 361D
+541D	[Aut] Winback 541D
+721D	[Aut] Winback 710D
+710D	[Aut] Winback 710D
+520D	[Aut] Winback 520D
+modal	Modal Zero compras
+_281_	Winback 281 - (301 a 340d)
+_361_	Winback 361 - (400 a 495d)
+_541_	Winback 541 - (610 a 680d)
+_721_	Winback 710 - (740 a 820d)
+_740_	Winback 710 - (740 a 820d)
+4m	Winback 4+ - (301 a 340) 

@@ -7,6 +7,65 @@ def display_tab_coffeemais_crm():
     # Load the data
     df = load_coffeemais_crm()
     
+    # Load notification to segment mapping
+    with open('mappings/coffeemais_notification_segment_mapping.txt', 'r') as f:
+        mapping_lines = f.readlines()
+    
+    # Create notification to segment mapping dictionary
+    segment_mapping = {}
+    for line in mapping_lines:
+        if line.strip():
+            notification, segment = line.strip().split('\t')
+            segment_mapping[notification] = segment
+    
+    # Load segment type mapping
+    with open('mappings/coffeemais_segment_type_mapping.txt', 'r') as f:
+        type_mapping_lines = f.readlines()
+    
+    # Create segment type mapping dictionary
+    type_mapping = {}
+    for line in type_mapping_lines:
+        if line.strip():
+            key, value = line.strip().split('\t')
+            type_mapping[key] = value
+    
+    # Load disparo type mapping
+    with open('mappings/coffeemais_disparo_type_mapping.txt', 'r') as f:
+        disparo_mapping_lines = f.readlines()
+    
+    # Create disparo type mapping dictionary
+    disparo_mapping = {}
+    for line in disparo_mapping_lines:
+        if line.strip():
+            key, value = line.strip().split('\t')
+            disparo_mapping[key] = value
+    
+    # Function to find matching segment
+    def find_segment(name):
+        for key, value in segment_mapping.items():
+            if key in name:
+                return value
+        return 'Outros'
+    
+    # Function to find matching segment type
+    def find_segment_type(name):
+        for key, value in type_mapping.items():
+            if key in name:
+                return value
+        return 'Outros'
+    
+    # Function to find matching disparo type
+    def find_disparo_type(name):
+        for key, value in disparo_mapping.items():
+            if key in name:
+                return value
+        return 'Campanha'
+    
+    # Add segment, segment type and disparo type columns to dataframe
+    df['segment'] = df['name'].apply(find_segment)
+    df['segment_type'] = df['name'].apply(find_segment_type)
+    df['disparo_type'] = df['name'].apply(find_disparo_type)
+    
     # Add a title
     st.title("CRM")
     
@@ -166,7 +225,7 @@ def display_tab_coffeemais_crm():
     st.markdown("---")
     
     # Add filters
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         # Filter by channel
@@ -183,21 +242,24 @@ def display_tab_coffeemais_crm():
         )
     
     with col2:
-        # Filter by notification name
-        notification_names = ['Todos'] + sorted(df['name'].unique().tolist())
-        selected_notification = st.selectbox('Filtrar por Nome da Notificação:', notification_names)
+        # Filter by segment
+        segment_names = ['Todos'] + sorted(df['segment'].unique().tolist())
+        selected_segment = st.selectbox('Filtrar por Segmento:', segment_names)
     
     with col3:
-        # Sort options
-        sort_options = {
-            'Mensagens Enviadas (Maior)': ('sent', False),
-            'Mensagens Enviadas (Menor)': ('sent', True),
-            'Receita (Maior)': ('revenue', False),
-            'Receita (Menor)': ('revenue', True),
-            'Taxa de Conversão (Maior)': ('conversion_rate', False),
-            'Taxa de Conversão (Menor)': ('conversion_rate', True)
-        }
-        selected_sort = st.selectbox('Ordenar por:', list(sort_options.keys()))
+        # Filter by segment type
+        segment_types = ['Todos'] + sorted(df['segment_type'].unique().tolist())
+        selected_segment_type = st.selectbox('Filtrar por Tipo de Segmento:', segment_types)
+    
+    with col4:
+        # Filter by disparo type
+        disparo_types = ['Todos'] + sorted(df['disparo_type'].unique().tolist())
+        selected_disparo_type = st.selectbox('Filtrar por Tipo de Disparo:', disparo_types)
+    
+    # Add notification filter in a new line with full width
+    # Filter by notification name
+    notification_names = ['Todos'] + sorted(df['name'].unique().tolist())
+    selected_notification = st.selectbox('Filtrar por Nome da Notificação:', notification_names)
     
     # Filter the dataframe
     filtered_df = df.copy()
@@ -206,16 +268,24 @@ def display_tab_coffeemais_crm():
     if selected_channel != 'Todos':
         filtered_df = filtered_df[filtered_df['channel'] == selected_channel]
     
+    # Apply segment filter
+    if selected_segment != 'Todos':
+        filtered_df = filtered_df[filtered_df['segment'] == selected_segment]
+    
+    # Apply segment type filter
+    if selected_segment_type != 'Todos':
+        filtered_df = filtered_df[filtered_df['segment_type'] == selected_segment_type]
+    
+    # Apply disparo type filter
+    if selected_disparo_type != 'Todos':
+        filtered_df = filtered_df[filtered_df['disparo_type'] == selected_disparo_type]
+    
     # Apply notification filter
     if selected_notification != 'Todos':
         filtered_df = filtered_df[filtered_df['name'] == selected_notification]
     
     # Calculate conversion rate for each row
     filtered_df['conversion_rate'] = (filtered_df['orders'] / filtered_df['sent'] * 100).round(2)
-    
-    # Sort the dataframe
-    sort_column, ascending = sort_options[selected_sort]
-    filtered_df = filtered_df.sort_values(by=sort_column, ascending=ascending)
     
     # Format the dates
     filtered_df['date_first_sent'] = pd.to_datetime(filtered_df['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
@@ -228,6 +298,9 @@ def display_tab_coffeemais_crm():
         'date_last_sent': 'Último Envio',
         'days_between': 'Dias Entre Envios',
         'name': 'Nome da Notificação',
+        'segment': 'Nome do Segmento',
+        'segment_type': 'Tipo de Segmento',
+        'disparo_type': 'Tipo de Disparo',
         'sent': 'Mensagens Enviadas',
         'orders': 'Pedidos',
         'revenue': 'Receita',
@@ -237,6 +310,9 @@ def display_tab_coffeemais_crm():
     # Reorder columns
     columns_order = [
         'Canal',
+        'Tipo de Disparo',
+        'Nome do Segmento',
+        'Tipo de Segmento',
         'Nome da Notificação',
         'Primeiro Envio',
         'Último Envio',
@@ -247,11 +323,9 @@ def display_tab_coffeemais_crm():
     ]
     filtered_df = filtered_df[columns_order]
     
-    # Display the dataframe
-    st.data_editor(
-        filtered_df.reset_index(drop=True),
-        num_rows="dynamic",
-        height=500,
+    # Display the dataframe with sorting enabled
+    st.dataframe(
+        filtered_df,
         use_container_width=True,
         hide_index=True,
         column_config={
