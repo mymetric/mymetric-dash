@@ -1,4 +1,10 @@
 import streamlit as st
+st.set_page_config(
+    page_title="MyMetricHUB",
+    page_icon="https://mymetric.com.br/wp-content/uploads/2023/07/cropped-Novo-Logo-Icone-32x32.jpg",
+    layout="wide"
+)
+
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
@@ -11,12 +17,6 @@ from modules.utilities import send_message
 from modules.load_data import load_all_users, save_event_name
 from streamlit_cookies_controller import CookieController
 import pytz
-
-st.set_page_config(
-    page_title="MyMetricHUB",
-    page_icon="https://mymetric.com.br/wp-content/uploads/2023/07/cropped-Novo-Logo-Icone-32x32.jpg",
-    layout="wide"
-)
 
 # Adiciona fonte e estilos globais
 st.markdown("""
