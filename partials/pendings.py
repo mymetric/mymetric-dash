@@ -104,13 +104,12 @@ def check_pending_items():
         pendencias.append(pendencia)
     
     # Verificar tagueamento do Meta Ads
-    df_ads = load_paid_media()
     df = load_basic_data()
 
-    if not df_ads.empty:
+    if not df.empty:
         
         # Verificar connect rate do Google Ads
-        df_google_ads = df_ads[df_ads['Plataforma'] == 'google_ads']
+        df_google_ads = df[df['Cluster'] == "🟢 Google Ads"]
         if not df_google_ads.empty and df_google_ads['Cliques'].sum() > 0:
             google_sessions = df[df['Cluster'] == "🟢 Google Ads"]["Sessões"].sum()
             google_clicks = df_google_ads['Cliques'].sum()
@@ -149,7 +148,7 @@ def check_pending_items():
                 pendencias.append(pendencia)
         
         # Verificar connect rate do Meta Ads
-        df_meta_ads = df_ads[df_ads['Plataforma'] == 'meta_ads']
+        df_meta_ads = df[df['Cluster'] == "🔵 Meta Ads"]
         if not df_meta_ads.empty and df_meta_ads['Cliques'].sum() > 0:
             meta_sessions = df[df['Cluster'] == "🔵 Meta Ads"]["Sessões"].sum()
             meta_clicks = df_meta_ads['Cliques'].sum()

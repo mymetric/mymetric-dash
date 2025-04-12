@@ -274,6 +274,8 @@ def load_basic_data():
         SELECT
             event_date AS Data,
             traffic_category `Cluster`,
+            SUM(CASE WHEN event_name = 'paid_media' then value else 0 end) `Investimento`,
+            SUM(CASE WHEN event_name = 'paid_media' then clicks else 0 end) `Cliques`,
             COUNTIF(event_name = 'session') `Sessões`,
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,

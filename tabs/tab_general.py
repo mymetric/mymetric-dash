@@ -23,7 +23,6 @@ def big_numbers(df):
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (pedidos_pagos / pedidos) * 100 if total_receita_capturada > 0 else 0
     rps = total_receita_paga / sessoes if sessoes > 0 else 0
-    leads = load_leads_popup()
 
     st.header("Big Numbers")
 
@@ -80,13 +79,13 @@ def big_numbers(df):
             hint="Percentual da receita total capturada que foi efetivamente paga"
         )
     
-    if leads is not None and not leads.empty:
-        with col4:
-            big_number_box(
-                f"{leads['E-mails'].sum():,.0f}".replace(",", "."), 
-                "Leads",
-                hint="Total de leads capturados via popup no período"
-            )
+    # if leads is not None and not leads.empty:
+    #     with col4:
+    #         big_number_box(
+    #             f"{leads['E-mails'].sum():,.0f}".replace(",", "."), 
+    #             "Leads",
+    #             hint="Total de leads capturados via popup no período"
+    #         )
     
     col1, col2, col3 = st.columns(4)[:3]
 
@@ -114,14 +113,14 @@ def big_numbers(df):
     st.markdown("---")
     
     # Carrega dados de mídia paga
-    df_paid = load_paid_media()
+    df_paid = load_basic_data()
 
     if df_paid is not None and not df_paid.empty:
     
         total_investimento = df_paid["Investimento"].sum()
         receita = df_paid["Receita"].sum()
-        investimento_google = df_paid[df_paid["Plataforma"] == "google_ads"]["Investimento"].sum()
-        investimento_meta = df_paid[df_paid["Plataforma"] == "meta_ads"]["Investimento"].sum()
+        investimento_google = df_paid[df_paid["Cluster"] == "🟢 Google Ads"]["Investimento"].sum()
+        investimento_meta = df_paid[df_paid["Cluster"] == "🔵 Meta Ads"]["Investimento"].sum()
         tacos = (total_investimento/total_receita_paga * 100) if total_receita_paga > 0 else 0
         roas_geral = total_receita_paga/total_investimento if total_investimento > 0 else 0
         roas_especifico = receita/total_investimento if total_investimento > 0 else 0
@@ -428,27 +427,32 @@ def tables(df):
         st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs")
 
 def display_tab_general():
-
-    display_pendings()
+    with st.spinner("🔄 Carregando pendências..."):
+        display_pendings()
     
-    df = load_basic_data()
-    df = apply_filters(df)
+    with st.spinner("🔄 Carregando dados básicos..."):
+        df = load_basic_data()
+        df = apply_filters(df)
     
-    display_run_rate(df)
+    with st.spinner("🔄 Calculando run rate..."):
+        display_run_rate(df)
 
-    big_numbers(df)
-    tables(df)
+    with st.spinner("🔄 Calculando métricas principais..."):
+        big_numbers(df)
+    
+    with st.spinner("🔄 Gerando gráficos e tabelas..."):
+        tables(df)
 
     # display_performance()
 
-    
-    def set_cookies():
-        controller = CookieController()
-        if "authenticated" in st.session_state:
-            max_age=8*60*60
-            controller.set("mm_authenticated", st.session_state.authenticated, max_age = max_age)
-            controller.set("mm_username", st.session_state.username, max_age = max_age)
-            controller.set("mm_tablename", st.session_state.tablename, max_age = max_age)
-            controller.set("mm_admin", st.session_state.admin, max_age = max_age)
+    with st.spinner("🔄 Configurando cookies..."):
+        def set_cookies():
+            controller = CookieController()
+            if "authenticated" in st.session_state:
+                max_age=8*60*60
+                controller.set("mm_authenticated", st.session_state.authenticated, max_age = max_age)
+                controller.set("mm_username", st.session_state.username, max_age = max_age)
+                controller.set("mm_tablename", st.session_state.tablename, max_age = max_age)
+                controller.set("mm_admin", st.session_state.admin, max_age = max_age)
 
-    set_cookies()
+        set_cookies()
