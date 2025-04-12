@@ -263,7 +263,20 @@ def load_basic_data():
 
     date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date between '{start_date_str}' and '{end_date_str}'"
 
+    # Usa o modelo de atribuição da sessão, com fallback para o padrão
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
+    
+    # Adiciona o modelo de atribuição ao cache key para forçar recarregamento quando mudar
+    cache_key = f"basic_data_{tablename}_{start_date_str}_{end_date_str}_{attribution_model}"
+
+    # Limpa o cache se o modelo de atribuição mudou
+    if 'last_attribution_model' in st.session_state and st.session_state.last_attribution_model != attribution_model:
+        if cache_key in st.session_state.cache_data:
+            del st.session_state.cache_data[cache_key]
+        if cache_key in st.session_state.cache_timestamps:
+            del st.session_state.cache_timestamps[cache_key]
+        if cache_key in st.session_state.background_tasks:
+            del st.session_state.background_tasks[cache_key]
 
     if attribution_model == 'Último Clique Não Direto':
         attribution_model = 'purchase'

@@ -140,10 +140,27 @@ def traffic_filters(df):
                 "Modelo de Atribuição",
                 options=all_attribution,
                 index=0,
-                help="Escolha o modelo de atribuição para análise dos dados"
+                help="Escolha o modelo de atribuição para análise dos dados",
+                key="attribution_model_radio"
             )
             
-            st.session_state.attribution_model = attribution_model
+            # Força recarregamento dos dados quando o modelo muda
+            if 'last_attribution_model' not in st.session_state:
+                st.session_state.last_attribution_model = attribution_model
+            
+            if st.session_state.last_attribution_model != attribution_model:
+                st.session_state.last_attribution_model = attribution_model
+                st.session_state.attribution_model = attribution_model
+                # Limpa o cache antes de recarregar
+                if 'cache_data' in st.session_state:
+                    st.session_state.cache_data = {}
+                if 'cache_timestamps' in st.session_state:
+                    st.session_state.cache_timestamps = {}
+                if 'background_tasks' in st.session_state:
+                    st.session_state.background_tasks = {}
+                st.rerun()
+            else:
+                st.session_state.attribution_model = attribution_model
 
             # Inicializa o estado se não existir
             if 'show_attribution_info' not in st.session_state:
