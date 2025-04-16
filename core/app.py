@@ -25,7 +25,7 @@ from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
 from tabs_custom.tab_holysoup_social import display_tab_holysoup_social
 from tabs_custom.tab_kaisan_erp import display_tab_kaisan_erp
 
-from modules.load_data import load_paid_media, load_popup_leads, save_event_name, load_basic_data, load_detailed_data
+from modules.load_data import save_event_name, load_basic_data, load_detailed_data, load_leads_popup
 from modules.utilities import send_message
 
 def load_app():
@@ -66,21 +66,21 @@ def load_app():
             else:
                 paid_media = pd.DataFrame()
         
-        # with st.spinner("🔄 Carregando dados de leads..."):
-        #     # Load popup leads data
-        #     popup_leads = load_popup_leads()
+        with st.spinner("🔄 Carregando dados de leads..."):
+            # Load popup leads data
+            popup_leads = load_leads_popup()
         
-        # # Check if all values in 'Data do Cadastro' are None/NaN
-        # if popup_leads is not None and not popup_leads.empty and popup_leads['Data do Cadastro'].isna().all():
-        #     popup_leads = None
+        # Check if all values in 'Data do Cadastro' are None/NaN
+        if popup_leads is not None and not popup_leads.empty and popup_leads['Data do Cadastro'].isna().all():
+            popup_leads = None
 
         with st.spinner("🔄 Configurando navegação..."):
             # Define navigation options based on data availability
             nav_options = ["Visão Geral"]
             nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos"])    
 
-            # if popup_leads is not None and not popup_leads.empty:
-            #     nav_options.extend(["Atribuição 2.0"])
+            if popup_leads is not None and not popup_leads.empty:
+                nav_options.extend(["Atribuição 2.0"])
 
             if paid_media is not None and not paid_media.empty:
                 nav_options.extend(["Mídia Paga"])

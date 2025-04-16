@@ -515,50 +515,11 @@ def load_popup_leads():
         raise ValueError("tablename não está definido na sessão")
 
     query = f"""
-        with
-        leads as (
-            select
-                subscribe_timestamp,
-                name,
-                phone,
-                email,
-                source,
-                medium,
-                campaign,
-                ROW_NUMBER() OVER (PARTITION BY email ORDER BY subscribe_timestamp) as rn
-            from `mymetric-hub-shopify.dbt_join.{tablename}_leads_sessions`
-        ),
-        orders as (
-            select
-                created_at purchase_timestamp,
-                transaction_id,
-                value,
-                email,
-                source,
-                medium,
-                campaign
-            from `mymetric-hub-shopify.dbt_join.{tablename}_orders_sessions`
-            group by all
-        )
+
         select
-            a.subscribe_timestamp `Data do Cadastro`,
-            a.name `Nome`,
-            a.phone `Telefone`,
-            a.email `E-mail`,
-            a.source `Origem do Cadastro`,
-            a.medium `Mídia do Cadastro`,
-            a.campaign `Campanha do Cadastro`,
-            b.transaction_id `ID da Compra`,
-            b.purchase_timestamp `Data da Compra`,
-            b.value `Valor da Compra`,
-            b.source `Origem da Compra`,
-            b.medium `Mídia da Compra`,
-            b.campaign `Campanha da Compra`,
-            date_diff(b.purchase_timestamp, a.subscribe_timestamp, day) `Dias entre Cadastro e Compra`,
-            datetime_diff(b.purchase_timestamp, a.subscribe_timestamp, minute) `Minutos entre Cadastro e Compra`
-        from leads a
-        full outer join orders b on a.email = b.email and a.subscribe_timestamp < b.purchase_timestamp and a.rn = 1
-        order by subscribe_timestamp desc
+        *
+        from `mymetric-hub-shopify.dbt_join.{tablename}_leads_orders`
+                
     """
 
     df = run_queries([query])[0]
@@ -667,12 +628,12 @@ def load_leads_popup():
 
     query = f"""
         SELECT
-            date_received_at `Data`,
-            count(distinct email) `E-mails`
-        FROM `mymetric-hub-shopify.dbt_granular.popup_subscribe`
-        where event_name like "%{tablename}%"
-        and date(date_received_at) between "{start_date}" and "{end_date}"
-        group by all
+            date `Data do Cadastro`,
+            emails `E-mails`
+        FROM `mymetric-hub-shopify.dbt_aggregated.{tablename}_daily_leads`
+        where
+        date between "{start_date}" and "{end_date}"
+        
         order by 1 desc
     """
 

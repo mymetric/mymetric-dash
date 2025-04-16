@@ -269,84 +269,42 @@ def display_tab_leads():
     if not incluir_compras_sem_lead:
         filtered_df = filtered_df[filtered_df['E-mail'].notna()]
     
-    # Filtro de data do cadastro (ajustado para incluir compras sem lead)
+    # Filtro de data do cadastro
     filtered_df = filtered_df[
-        (filtered_df['Data do Cadastro'].isna()) |  # Incluir compras sem lead
-        ((filtered_df['Data do Cadastro'].dt.date >= pd.Timestamp(data_cadastro_inicio).date()) &
-        (filtered_df['Data do Cadastro'].dt.date <= pd.Timestamp(data_cadastro_fim).date()))
+        (filtered_df['Data do Cadastro'].dt.date >= pd.Timestamp(data_cadastro_inicio).date()) &
+        (filtered_df['Data do Cadastro'].dt.date <= pd.Timestamp(data_cadastro_fim).date())
     ]
     
-    # Filtro de data da compra (ajustado para incluir leads sem compra)
+    # Filtro de data da compra
     filtered_df = filtered_df[
         (filtered_df['Data da Compra'].isna()) |  # Incluir leads sem compra
         ((filtered_df['Data da Compra'].dt.date >= pd.Timestamp(data_compra_inicio).date()) &
         (filtered_df['Data da Compra'].dt.date <= pd.Timestamp(data_compra_fim).date()))
     ]
     
-    # Filtro de origem do cadastro (ajustado para incluir compras sem lead)
+    # Filtro de origem do cadastro
     if selected_origem_cadastro != "Todos":
-        filtered_df = filtered_df[
-            (filtered_df['Origem do Cadastro'].isna()) |  # Incluir compras sem lead
-            (filtered_df['Origem do Cadastro'] == selected_origem_cadastro)
-        ]
+        filtered_df = filtered_df[filtered_df['Origem do Cadastro'] == selected_origem_cadastro]
     
-    # Filtro de origem da compra (ajustado para incluir leads sem compra)
+    # Filtro de origem da compra
     if selected_origem_compra == "Sem Compra":
         filtered_df = filtered_df[filtered_df['Origem da Compra'].isna()]
     elif selected_origem_compra != "Todos":
         filtered_df = filtered_df[filtered_df['Origem da Compra'] == selected_origem_compra]
         
-    # Filtro de mídia do cadastro (ajustado para incluir compras sem lead)
+    # Filtro de mídia do cadastro
     if selected_midia_cadastro != "Todos":
-        filtered_df = filtered_df[
-            (filtered_df['Mídia do Cadastro'].isna()) |  # Incluir compras sem lead
-            (filtered_df['Mídia do Cadastro'] == selected_midia_cadastro)
-        ]
+        filtered_df = filtered_df[filtered_df['Mídia do Cadastro'] == selected_midia_cadastro]
         
-    # Filtro de mídia da compra (ajustado para incluir leads sem compra)
+    # Filtro de mídia da compra
     if selected_midia_compra == "Sem Compra":
         filtered_df = filtered_df[filtered_df['Mídia da Compra'].isna()]
     elif selected_midia_compra != "Todos":
         filtered_df = filtered_df[filtered_df['Mídia da Compra'] == selected_midia_compra]
         
-    # Filtro de campanha do cadastro (ajustado para incluir compras sem lead)
+    # Filtro de campanha do cadastro
     if selected_campanha_cadastro != "Todos":
-        filtered_df = filtered_df[
-            (filtered_df['Campanha do Cadastro'].isna()) |  # Incluir compras sem lead
-            (filtered_df['Campanha do Cadastro'] == selected_campanha_cadastro)
-        ]
-        
-    # Filtro de campanha da compra (ajustado para incluir leads sem compra)
-    if selected_campanha_compra == "Sem Compra":
-        filtered_df = filtered_df[filtered_df['Campanha da Compra'].isna()]
-    elif selected_campanha_compra != "Todos":
-        filtered_df = filtered_df[filtered_df['Campanha da Compra'] == selected_campanha_compra]
-        
-    # Filtro de dias entre cadastro e compra (ajustado para incluir leads sem compra)
-    if incluir_sem_compra:
-        filtered_df = filtered_df[
-            (filtered_df['Dias entre Cadastro e Compra'].isna()) |  # Incluir leads sem compra
-            ((filtered_df['Dias entre Cadastro e Compra'] >= selected_dias[0]) & 
-            (filtered_df['Dias entre Cadastro e Compra'] <= selected_dias[1]))
-        ]
-    else:
-        filtered_df = filtered_df[
-            (filtered_df['Dias entre Cadastro e Compra'] >= selected_dias[0]) & 
-            (filtered_df['Dias entre Cadastro e Compra'] <= selected_dias[1])
-        ]
-    
-    # Filtro de minutos entre cadastro e compra (ajustado para incluir leads sem compra)
-    if incluir_sem_compra:
-        filtered_df = filtered_df[
-            (filtered_df['Minutos entre Cadastro e Compra'].isna()) |  # Incluir leads sem compra
-            ((filtered_df['Minutos entre Cadastro e Compra'] >= selected_minutos[0]) & 
-            (filtered_df['Minutos entre Cadastro e Compra'] <= selected_minutos[1]))
-        ]
-    else:
-        filtered_df = filtered_df[
-            (filtered_df['Minutos entre Cadastro e Compra'] >= selected_minutos[0]) & 
-            (filtered_df['Minutos entre Cadastro e Compra'] <= selected_minutos[1])
-        ]
+        filtered_df = filtered_df[filtered_df['Campanha do Cadastro'] == selected_campanha_cadastro]
     
     # Big Numbers
     st.header("Big Numbers")

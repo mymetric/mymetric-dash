@@ -79,13 +79,14 @@ def big_numbers(df):
             hint="Percentual da receita total capturada que foi efetivamente paga"
         )
     
-    # if leads is not None and not leads.empty:
-    #     with col4:
-    #         big_number_box(
-    #             f"{leads['E-mails'].sum():,.0f}".replace(",", "."), 
-    #             "Leads",
-    #             hint="Total de leads capturados via popup no período"
-    #         )
+    leads = load_leads_popup()
+    if leads is not None and not leads.empty:
+        with col4:
+            big_number_box(
+                f"{leads['E-mails'].sum():,.0f}".replace(",", "."), 
+                "Leads",
+                hint="Total de leads capturados via popup no período"
+            )
     
     col1, col2, col3 = st.columns(4)[:3]
 
