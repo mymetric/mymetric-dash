@@ -1749,3 +1749,34 @@ def load_coffeemais_gupshup_errors():
     df = run_queries([query])[0]
 
     return df
+
+@background_cache(ttl_hours=0.1666)
+def load_purchase_items():
+    if toast_alerts():
+        st.toast("Carregando itens de compra...")
+
+    tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
+
+    query = f"""
+        SELECT
+            event_timestamp,
+            concat(ga_session_id, user_pseudo_id) session_id,
+            transaction_id,
+            item_category,
+            item_name,
+            quantity,
+            item_revenue,
+            source,
+            medium,
+            campaign,
+            content,
+            term,
+            page_location
+        FROM
+            `mymetric-hub-shopify.dbt_join.{tablename}_purchases_items_sessions_realtime`
+    """
+
+    df = run_queries([query])[0]
+    return df

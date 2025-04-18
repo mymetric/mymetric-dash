@@ -435,6 +435,29 @@ def display_tab_general():
         df = load_basic_data()
         df = apply_filters(df)
     
+    # Aviso de reformulação (só aparece na primeira vez após o login)
+    if 'reformulacao_aviso' not in st.session_state:
+        # Criar um container vazio para o aviso
+        aviso_container = st.empty()
+        
+        # Adicionar o aviso dentro do container
+        with aviso_container.container():
+            col1, col2 = st.columns([0.9, 0.1])
+            with col1:
+                st.info("""
+                🎉 **A aba Análise do Dia foi reformulada!**  
+                
+                Novidades:
+                - Projeção do dia com base no progresso atual
+                - Gráfico de receita por hora em barras
+                - Métricas mais detalhadas por origem, mídia, campanha, conteúdo, termo e página
+                - Visualização mais clara e intuitiva dos dados
+                """)
+            with col2:
+                if st.button("✕", key="fechar_aviso"):
+                    aviso_container.empty()
+                    st.session_state.reformulacao_aviso = True
+    
     with st.spinner("🔄 Calculando run rate..."):
         display_run_rate(df)
 
