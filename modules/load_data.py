@@ -1780,3 +1780,48 @@ def load_purchase_items():
 
     df = run_queries([query])[0]
     return df
+
+@background_cache(ttl_hours=1)
+def load_purchase_items_sessions():
+    if toast_alerts():
+        st.toast("Carregando itens de compra por sessão...")
+
+    tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
+
+    start_date_str = st.session_state.start_date
+    end_date_str = st.session_state.end_date
+
+    # Otimização para quando as datas são iguais
+    date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date BETWEEN '{start_date_str}' AND '{end_date_str}'"
+
+    query = f"""
+        SELECT
+            event_date `Data`,
+            item.item_id `ID do Produto`,
+            item.item_name `Nome do Produto`,
+            item.item_revenue `Receita`,
+            item.quantity `Quantidade`,
+            traffic_category `Cluster`,
+            source `Origem`,
+            medium `Mídia`,
+            campaign `Campanha`,
+            content `Conteúdo`,
+            term `Termo`,
+            landing_page `Página de Entrada`
+        FROM `mymetric-hub-shopify.dbt_join.{tablename}_enhanced_ecommerce_sessions`, 
+        UNNEST(items) as item
+        WHERE event_name = "purchase"
+        AND {date_condition}
+        ORDER BY event_date DESC
+    """
+
+    try:
+        query_job = client.query(query)
+        rows = query_job.result()
+        df = pd.DataFrame([dict(row) for row in rows])
+        return df
+    except Exception as e:
+        print(f"Erro ao carregar itens de compra: {str(e)}")
+        return pd.DataFrame()

@@ -16,6 +16,7 @@ from tabs.tab_last_orders import display_tab_last_orders
 from tabs.tab_leads import display_tab_leads
 from tabs.tab_master import display_tab_master
 from tabs.tab_rfm import display_tab_rfm
+from tabs.tab_items_sold import display_tab_items_sold
 
 # Custom Tabs
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
@@ -77,7 +78,7 @@ def load_app():
         with st.spinner("🔄 Configurando navegação..."):
             # Define navigation options based on data availability
             nav_options = ["Visão Geral"]
-            nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos"])    
+            nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos", "Itens Vendidos"])    
 
             if popup_leads is not None and not popup_leads.empty:
                 nav_options.extend(["Atribuição 2.0"])
@@ -174,6 +175,10 @@ def load_app():
             elif selected_page == "Taxas de Conversão":
                 save_event_name(event_name="tab_view", event_params={"tab": "funnel"})
                 display_tab_funnel()
+            
+            elif selected_page == "Itens Vendidos":
+                save_event_name(event_name="tab_view", event_params={"tab": "items_sold"})
+                display_tab_items_sold()
             
             elif selected_page == "Configurações":
                 save_event_name(event_name="tab_view", event_params={"tab": "config"})
