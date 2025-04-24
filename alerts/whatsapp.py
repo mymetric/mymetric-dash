@@ -222,9 +222,23 @@ def send_alerts_to_all_groups():
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "all":
         send_alerts_to_all_groups()
-    elif len(sys.argv) > 2:
-        send_goal_alert(sys.argv[1], sys.argv[2])
+    elif len(sys.argv) > 1:
+        # Get the client's WhatsApp group from configuration
+        users = load_users()
+        client_slug = sys.argv[1]
+        client_group = None
+        
+        # Find the WhatsApp group for the specified client
+        for user in users:
+            if user.get('slug') == client_slug and user.get('wpp_group'):
+                client_group = user.get('wpp_group')
+                break
+        
+        if client_group:
+            send_goal_alert(client_slug, client_group)
+        else:
+            print(f"❌ Grupo de WhatsApp não encontrado para o cliente {client_slug}")
     else:
         print("❌ Uso incorreto do script")
-        print("Para enviar para um grupo específico: python3 alerts/whatsapp.py [slug] [wpp_group]")
+        print("Para enviar para um cliente específico: python3 alerts/whatsapp.py [slug]")
         print("Para enviar para todos os grupos: python3 alerts/whatsapp.py all") 
