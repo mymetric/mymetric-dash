@@ -1,6 +1,7 @@
 import streamlit as st
 from modules.load_data import load_paid_media, load_meta_ads
 import altair as alt
+import plotly.express as px
 from modules.components import big_number_box
 from datetime import datetime
 import pandas as pd
@@ -564,102 +565,6 @@ def display_general_view(df_ads):
         ℹ️ Os resultados apresentados nesta aba são baseados na atribuição de último clique não direto, cruzando dados de Google e Meta Ads, Google Analytics e Plataforma de E-commerce.
     """)
 
-    # Unique options for dropdown filters
-    platform_options = ["All"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
-    campaign_options = ["All"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        selected_platform = st.selectbox("Plataforma:", platform_options)
-
-    with col2:
-        campaign_filter = st.text_input("Campanha:", "")
-
-    if selected_platform != "All":
-        df_ads = df_ads[df_ads['Plataforma'] == selected_platform]
-
-    if campaign_filter:
-        df_ads = df_ads[df_ads['Campanha'].str.contains(campaign_filter, case=False, na=False)]
-
-    df_grouped = df_ads.groupby('Data').agg({'Receita': 'sum', 'Investimento': 'sum'}).reset_index()
-
-    # Formata os valores para o tooltip
-    df_grouped['Receita_fmt'] = df_grouped['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    df_grouped['Investimento_fmt'] = df_grouped['Investimento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
-    # Cria o gráfico de Receita com a cor #3B82F6 (azul)
-    line_receita = alt.Chart(df_grouped).mark_line(color='#3B82F6', strokeWidth=2.5).encode(
-        x=alt.X('Data:T', 
-                title='Data',
-                axis=alt.Axis(format='%d/%m', labelAngle=0)),
-        y=alt.Y('Receita:Q', 
-                axis=alt.Axis(title='Receita',
-                             format='$,.0f',
-                             titlePadding=10)),
-        tooltip=[
-            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
-            alt.Tooltip('Receita_fmt:N', title='Receita')
-        ]
-    )
-
-    # Cria o gráfico de Investimento com barras estilosas
-    bar_investimento = alt.Chart(df_grouped).mark_bar(color='#E5E7EB', size=20).encode(
-        x=alt.X('Data:T', title='Data'),
-        y=alt.Y('Investimento:Q', 
-                axis=alt.Axis(title='Investimento',
-                             format='$,.0f',
-                             titlePadding=10)),
-        tooltip=[
-            alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
-            alt.Tooltip('Investimento_fmt:N', title='Investimento')
-        ]
-    )
-
-    # Combine os dois gráficos com melhorias visuais
-    combined_chart = alt.layer(
-        bar_investimento,
-        line_receita
-    ).resolve_scale(
-        y='independent'
-    ).properties(
-        width=700,
-        height=400,
-        title=alt.TitleParams(
-            text='Evolução de Investimento e Receita',
-            fontSize=16,
-            font='DM Sans',
-            anchor='start',
-            dy=-10
-        )
-    ).configure_axis(
-        grid=True,
-        gridOpacity=0.1,
-        labelFontSize=12,
-        titleFontSize=13,
-        labelFont='DM Sans',
-        titleFont='DM Sans'
-    ).configure_view(
-        strokeWidth=0
-    )
-
-    # Exibe o gráfico no Streamlit
-    st.altair_chart(combined_chart, use_container_width=True)
-
-    # Adiciona legenda manual com design melhorado
-    st.markdown("""
-        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 20px; height: 2.5px; background-color: #3B82F6;"></div>
-                <span style="color: #4B5563; font-size: 14px;">Receita</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 20px; height: 12px; background-color: #E5E7EB;"></div>
-                <span style="color: #4B5563; font-size: 14px;">Investimento</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
     # Métricas gerais
     total_impressoes = df_ads['Impressões'].sum()
     total_cliques = df_ads['Cliques'].sum()
@@ -740,6 +645,131 @@ def display_general_view(df_ads):
 
     st.markdown("---")
 
+    # Gráficos de distribuição por plataforma
+    st.subheader("Distribuição por Plataforma")
+    
+    # Agrupar dados por plataforma
+    df_platform = df_ads.groupby('Plataforma').agg({
+        'Investimento': 'sum',
+        'Cliques': 'sum',
+        'Receita': 'sum'
+    }).reset_index()
+    
+    # Garantir que os valores sejam numéricos
+    df_platform['Investimento'] = pd.to_numeric(df_platform['Investimento'], errors='coerce')
+    df_platform['Cliques'] = pd.to_numeric(df_platform['Cliques'], errors='coerce')
+    df_platform['Receita'] = pd.to_numeric(df_platform['Receita'], errors='coerce')
+    
+    # Remover linhas com valores nulos
+    df_platform = df_platform.dropna()
+    
+    # Criar três colunas para os gráficos
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Investimento**")
+        # Calcular percentuais
+        total_investimento = df_platform['Investimento'].sum()
+        df_platform['Investimento_pct'] = (df_platform['Investimento'] / total_investimento * 100).round(1)
+        
+        # Gráfico de pizza para Investimento
+        fig = px.pie(df_platform, 
+                    values='Investimento', 
+                    names='Plataforma',
+                    title='')
+        
+        fig.update_traces(textposition='inside', 
+                         textinfo='percent',
+                         textfont_size=14)
+        
+        fig.update_layout(showlegend=True,
+                         legend=dict(
+                             orientation="v",
+                             yanchor="middle",
+                             y=0.5,
+                             xanchor="right",
+                             x=1.2
+                         ))
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        st.markdown("**Cliques**")
+        # Calcular percentuais
+        total_cliques = df_platform['Cliques'].sum()
+        df_platform['Cliques_pct'] = (df_platform['Cliques'] / total_cliques * 100).round(1)
+        
+        # Gráfico de pizza para Cliques
+        fig = px.pie(df_platform, 
+                    values='Cliques', 
+                    names='Plataforma',
+                    title='')
+        
+        fig.update_traces(textposition='inside', 
+                         textinfo='percent',
+                         textfont_size=14)
+        
+        fig.update_layout(showlegend=True,
+                         legend=dict(
+                             orientation="v",
+                             yanchor="middle",
+                             y=0.5,
+                             xanchor="right",
+                             x=1.2
+                         ))
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col3:
+        st.markdown("**Receita**")
+        # Calcular percentuais
+        total_receita = df_platform['Receita'].sum()
+        df_platform['Receita_pct'] = (df_platform['Receita'] / total_receita * 100).round(1)
+        
+        # Gráfico de pizza para Receita
+        fig = px.pie(df_platform, 
+                    values='Receita', 
+                    names='Plataforma',
+                    title='')
+        
+        fig.update_traces(textposition='inside', 
+                         textinfo='percent',
+                         textfont_size=14)
+        
+        fig.update_layout(showlegend=True,
+                         legend=dict(
+                             orientation="v",
+                             yanchor="middle",
+                             y=0.5,
+                             xanchor="right",
+                             x=1.2
+                         ))
+        
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+
+    # Filtros para a tabela
+    st.subheader("Dados Detalhados")
+    
+    # Unique options for dropdown filters
+    platform_options = ["All"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
+    campaign_options = ["All"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        selected_platform = st.selectbox("Plataforma:", platform_options)
+
+    with col2:
+        campaign_filter = st.text_input("Campanha:", "")
+
+    if selected_platform != "All":
+        df_ads = df_ads[df_ads['Plataforma'] == selected_platform]
+
+    if campaign_filter:
+        df_ads = df_ads[df_ads['Campanha'].str.contains(campaign_filter, case=False, na=False)]
+
     # Display the aggregated data in Streamlit data editor
     df_ads_agg = df_ads.groupby(['Plataforma', 'Campanha']).agg({
         'Investimento': 'sum',
@@ -752,6 +782,12 @@ def display_general_view(df_ads):
     df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
     df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
     df_ads_agg = df_ads_agg.sort_values(by='Receita', ascending=False)
+    
+    # Format the columns to have at most 2 decimal places
+    df_ads_agg['Investimento'] = df_ads_agg['Investimento'].round(2)
+    df_ads_agg['Receita'] = df_ads_agg['Receita'].round(2)
+    df_ads_agg['ROAS'] = df_ads_agg['ROAS'].round(2)
+    df_ads_agg['CPV'] = df_ads_agg['CPV'].round(2)
     
     st.data_editor(
         df_ads_agg,
