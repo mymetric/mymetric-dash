@@ -11,6 +11,10 @@ def display_tab_leads():
 
     popup_leads = load_popup_leads()
     
+    # Converter colunas de data para datetime
+    popup_leads['Data do Cadastro'] = pd.to_datetime(popup_leads['Data do Cadastro'])
+    popup_leads['Data da Compra'] = pd.to_datetime(popup_leads['Data da Compra'])
+    
     # Botão para resetar filtros (movido para a sidebar)
     with st.sidebar:
         if st.button("Resetar Filtros", key="reset_filters", use_container_width=True):
@@ -265,21 +269,27 @@ def display_tab_leads():
     # Aplicar filtros
     filtered_df = popup_leads.copy()
     
+    # Converter datas de entrada para datetime
+    data_cadastro_inicio_dt = pd.Timestamp(data_cadastro_inicio)
+    data_cadastro_fim_dt = pd.Timestamp(data_cadastro_fim)
+    data_compra_inicio_dt = pd.Timestamp(data_compra_inicio)
+    data_compra_fim_dt = pd.Timestamp(data_compra_fim)
+    
     # Filtro de compras sem lead (movido para o início e ajustado)
     if not incluir_compras_sem_lead:
         filtered_df = filtered_df[filtered_df['E-mail'].notna()]
     
     # Filtro de data do cadastro
     filtered_df = filtered_df[
-        (filtered_df['Data do Cadastro'].dt.date >= pd.Timestamp(data_cadastro_inicio).date()) &
-        (filtered_df['Data do Cadastro'].dt.date <= pd.Timestamp(data_cadastro_fim).date())
+        (filtered_df['Data do Cadastro'] >= data_cadastro_inicio_dt) &
+        (filtered_df['Data do Cadastro'] <= data_cadastro_fim_dt)
     ]
     
     # Filtro de data da compra
     filtered_df = filtered_df[
         (filtered_df['Data da Compra'].isna()) |  # Incluir leads sem compra
-        ((filtered_df['Data da Compra'].dt.date >= pd.Timestamp(data_compra_inicio).date()) &
-        (filtered_df['Data da Compra'].dt.date <= pd.Timestamp(data_compra_fim).date()))
+        ((filtered_df['Data da Compra'] >= data_compra_inicio_dt) &
+        (filtered_df['Data da Compra'] <= data_compra_fim_dt))
     ]
     
     # Filtro de origem do cadastro
@@ -376,7 +386,8 @@ def display_tab_leads():
         )
     
     with col3:
-        leads_hoje = len(filtered_df[filtered_df['Data do Cadastro'].dt.date == pd.Timestamp.now().date()])
+        hoje = pd.Timestamp.now().normalize()
+        leads_hoje = len(filtered_df[filtered_df['Data do Cadastro'].dt.normalize() == hoje])
         big_number_box(
             f"{leads_hoje:,.0f}".replace(",", "."),
             "Leads Hoje",
