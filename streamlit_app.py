@@ -213,7 +213,7 @@ def logout():
 # Executa a função de autenticação
 if check_password():
     # Verifica se o usuário é 'mymetric' (usuário mestre)
-    if st.session_state.username == "mymetric":
+    if st.session_state.username == "mymetric" or st.session_state.username == "alvisi":
         # Gera um dropdown para escolher outros usuários
         with st.sidebar.expander("Conta Mestre", expanded=True):
             users = load_users()

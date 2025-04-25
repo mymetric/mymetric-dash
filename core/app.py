@@ -106,7 +106,7 @@ def load_app():
             if is_admin:
                 nav_options.extend(["Configurações"])
             
-            if st.session_state.username == 'mymetric':
+            if st.session_state.username == 'mymetric' or st.session_state.username == 'alvisi':
                 nav_options.extend(["Master"])
             
             # Criar radio buttons para navegação com key para manter o estado

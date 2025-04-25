@@ -221,20 +221,117 @@ def display_tab_master():
         seven_days_ago = now - timedelta(days=7)
         one_day_ago = now - timedelta(days=1)
         
+        st.subheader("Métricas por Empresa")
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            mau = df_logins[df_logins['created_at'] >= thirty_days_ago]['user'].nunique()
-            big_number_box(mau, "MAU", hint="Usuários únicos que fizeram login nos últimos 30 dias")
+            mau = df_logins[df_logins['created_at'] >= thirty_days_ago]['tablename'].nunique()
+            big_number_box(mau, "MAU", hint="Empresas únicas que fizeram login nos últimos 30 dias")
         
         with col2:
-            wau = df_logins[df_logins['created_at'] >= seven_days_ago]['user'].nunique()
-            big_number_box(wau, "WAU", hint="Usuários únicos que fizeram login nos últimos 7 dias")
+            wau = df_logins[df_logins['created_at'] >= seven_days_ago]['tablename'].nunique()
+            big_number_box(wau, "WAU", hint="Empresas únicas que fizeram login nos últimos 7 dias")
         
         with col3:
-            dau = df_logins[df_logins['created_at'] >= one_day_ago]['user'].nunique()
-            big_number_box(dau, "DAU", hint="Usuários únicos que fizeram login nas últimas 24 horas")
+            dau = df_logins[df_logins['created_at'] >= one_day_ago]['tablename'].nunique()
+            big_number_box(dau, "DAU", hint="Empresas únicas que fizeram login nas últimas 24 horas")
 
+        st.divider()
+        
+        # Segunda linha de métricas baseada em load_internal_events
+        st.subheader("Métricas por Usuário")
+        
+        # Filtrar usuários específicos para análise
+        df_filtered = df[~df['user'].isin(['mymetric', 'buildgrowth', 'alvisi'])]
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            mau_events = df_filtered[df_filtered['created_at'] >= thirty_days_ago]['user'].nunique()
+            big_number_box(mau_events, "MAU", hint="Usuários únicos que realizaram eventos nos últimos 30 dias")
+        
+        with col2:
+            wau_events = df_filtered[df_filtered['created_at'] >= seven_days_ago]['user'].nunique()
+            big_number_box(wau_events, "WAU", hint="Usuários únicos que realizaram eventos nos últimos 7 dias")
+        
+        with col3:
+            dau_events = df_filtered[df_filtered['created_at'] >= one_day_ago]['user'].nunique()
+            big_number_box(dau_events, "DAU", hint="Usuários únicos que realizaram eventos nas últimas 24 horas")
+        
+        st.divider()
+        
+        # Insights
+        st.subheader("Insights")
+        st.markdown("---")
+        
+        # Empresa mais ativa (mais eventos nos últimos 30 dias)
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**🏆 Empresa Mais Ativa**")
+            empresa_mais_ativa = (df[df['created_at'] >= thirty_days_ago]
+                                .groupby('tablename')
+                                .size()
+                                .sort_values(ascending=False)
+                                .head(1))
+            
+            if not empresa_mais_ativa.empty:
+                empresa = empresa_mais_ativa.index[0]
+                eventos = empresa_mais_ativa.values[0]
+                st.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: #1f77b4;">{empresa}</h3>
+                        <p style="margin: 5px 0 0 0; color: #666;">{eventos:,} eventos nos últimos 30 dias</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.info("Sem dados suficientes para determinar a empresa mais ativa")
+        
+        with col2:
+            st.markdown("**👥 Empresa com Mais Usuários Ativos**")
+            empresa_mais_usuarios = (df[df['created_at'] >= thirty_days_ago]
+                                   .groupby('tablename')['user']
+                                   .nunique()
+                                   .sort_values(ascending=False)
+                                   .head(1))
+            
+            if not empresa_mais_usuarios.empty:
+                empresa = empresa_mais_usuarios.index[0]
+                usuarios = empresa_mais_usuarios.values[0]
+                st.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: #1f77b4;">{empresa}</h3>
+                        <p style="margin: 5px 0 0 0; color: #666;">{usuarios:,} usuários únicos nos últimos 30 dias</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.info("Sem dados suficientes para determinar a empresa com mais usuários ativos")
+        
+        st.markdown("---")
+        
+        # Top 5 empresas por atividade
+        st.markdown("**📊 Top 5 Empresas por Atividade**")
+        st.markdown("")
+        top_empresas = (df[df['created_at'] >= thirty_days_ago]
+                       .groupby('tablename')
+                       .size()
+                       .sort_values(ascending=False)
+                       .head(5))
+        
+        if not top_empresas.empty:
+            st.dataframe(
+                pd.DataFrame({
+                    'Empresa': top_empresas.index,
+                    'Eventos': top_empresas.values
+                }),
+                hide_index=True,
+                use_container_width=True
+            )
+        else:
+            st.info("Sem dados suficientes para mostrar o ranking de empresas")
+        
+        st.markdown("---")
         st.divider()
         
         # Análise por Tabela
