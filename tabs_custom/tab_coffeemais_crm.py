@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_coffeemais_crm, load_coffeemais_gupshup_errors
+from modules.load_data import load_coffeemais_crm, load_coffeemais_gupshup_errors, load_coffeemais_crm_detailed
 from modules.components import big_number_box
 import pandas as pd
 
@@ -76,6 +76,7 @@ def display_tab_coffeemais_crm():
         - A conversão é atribuída ao envio da mensagem (e-mail ou WhatsApp)
         - O prazo de conversão considerado é de até 7 dias após o envio da mensagem
         - Pedidos realizados após 7 dias do envio não são contabilizados nesta análise
+        - Se mais de uma mensagem for enviada nesse prazo e o cliente comprar, apenas a última mensagem será considerada como responsável pela venda
         """)
     
     # Create tabs for different views
@@ -287,6 +288,10 @@ def display_tab_coffeemais_crm():
     # Calculate conversion rate for each row
     filtered_df['conversion_rate'] = (filtered_df['orders'] / filtered_df['sent'] * 100).round(2)
     
+    # Calculate open rate and failure rate
+    filtered_df['open_rate'] = (filtered_df['read'] / filtered_df['sent'] * 100).round(2)
+    filtered_df['failure_rate'] = (filtered_df['failed'] / filtered_df['sent'] * 100).round(2)
+    
     # Format the dates
     filtered_df['date_first_sent'] = pd.to_datetime(filtered_df['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
     filtered_df['date_last_sent'] = pd.to_datetime(filtered_df['date_last_sent']).dt.strftime('%d/%m/%Y %H:%M')
@@ -304,7 +309,9 @@ def display_tab_coffeemais_crm():
         'sent': 'Mensagens Enviadas',
         'orders': 'Pedidos',
         'revenue': 'Receita',
-        'conversion_rate': 'Taxa de Conversão (%)'
+        'conversion_rate': 'Taxa de Conversão (%)',
+        'open_rate': 'Taxa de Abertura (%)',
+        'failure_rate': 'Taxa de Falha (%)'
     })
     
     # Reorder columns
@@ -319,6 +326,8 @@ def display_tab_coffeemais_crm():
         'Mensagens Enviadas',
         'Pedidos',
         'Taxa de Conversão (%)',
+        'Taxa de Abertura (%)',
+        'Taxa de Falha (%)',
         'Receita'
     ]
     filtered_df = filtered_df[columns_order]
@@ -336,9 +345,83 @@ def display_tab_coffeemais_crm():
             'Taxa de Conversão (%)': st.column_config.NumberColumn(
                 'Taxa de Conversão (%)',
                 format="%.2f%%"
+            ),
+            'Taxa de Abertura (%)': st.column_config.NumberColumn(
+                'Taxa de Abertura (%)',
+                format="%.2f%%"
+            ),
+            'Taxa de Falha (%)': st.column_config.NumberColumn(
+                'Taxa de Falha (%)',
+                format="%.2f%%"
             )
         }
     )
+
+    with st.spinner("Carregando dados detalhados de envio..."):
+        df_detailed = load_coffeemais_crm_detailed()
+        
+        # Format dates
+        df_detailed['date_first_sent'] = pd.to_datetime(df_detailed['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
+        df_detailed['date_last_sent'] = pd.to_datetime(df_detailed['date_last_sent']).dt.strftime('%d/%m/%Y %H:%M')
+        
+        # Add title
+        st.subheader("Detalhamento de Mensagens")
+        
+        # Add email search filter
+        email_search = st.text_input('Buscar por E-mail:', '')
+        if email_search:
+            df_detailed = df_detailed[df_detailed['email'].str.contains(email_search, case=False, na=False)]
+        
+        # Sort by date_first_sent in descending order
+        df_detailed = df_detailed.sort_values('date_first_sent', ascending=False)
+        
+        # Rename columns
+        df_detailed = df_detailed.rename(columns={
+            'channel': 'Canal',
+            'id_notificacao': 'ID da Notificação',
+            'id_disparo': 'ID do Disparo',
+            'email': 'E-mail',
+            'date_first_sent': 'Data do Envio',
+            'name': 'Nome da Notificação',
+            'sent': 'Mensagens Enviadas',
+            'delivered': 'Mensagens Entregues',
+            'failed': 'Mensagens com Falha',
+            'read': 'Mensagens Lidas',
+            'order_id': 'ID Pedido',
+            'orders': 'Pedidos',
+            'revenue': 'Receita'
+        })
+        
+        # Reorder columns
+        columns_order = [
+            'Canal',
+            'ID da Notificação',
+            'ID do Disparo',
+            'E-mail',
+            'Nome da Notificação',
+            'Data do Envio',
+            'Mensagens Enviadas',
+            'Mensagens Entregues',
+            'Mensagens com Falha',
+            'Mensagens Lidas',
+            'ID Pedido',
+            'Pedidos',
+            'Receita'
+        ]
+        df_detailed = df_detailed[columns_order]
+        
+        # Display the dataframe with sorting enabled
+        st.dataframe(
+            df_detailed,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                'Receita': st.column_config.NumberColumn(
+                    'Receita',
+                    format="R$ %.2f"
+                )
+            }
+        )
 
     # Display WhatsApp errors analysis
     with tab_erros:
