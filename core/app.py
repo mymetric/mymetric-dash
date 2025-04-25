@@ -212,6 +212,10 @@ def load_app():
                 save_event_name(event_name="tab_view", event_params={"tab": "erp"})
                 display_tab_kaisan_erp()
 
+            elif selected_page == "RFM" and st.session_state.tablename == 'oculosshop':
+                save_event_name(event_name="tab_view", event_params={"tab": "rfm"})
+                display_tab_rfm()
+                
     except Exception as e:
         st.error(f"Erro ao carregar a aplicação: {str(e)}")
         st.error(traceback.format_exc())
