@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import time
 
 def sort_by_sessions(series, df):
     session_counts = df.groupby(series).Sessões.sum().sort_values(ascending=False)
@@ -136,12 +137,17 @@ def traffic_filters(df):
             # Adiciona opções de atribuição
             all_attribution = ["Último Clique Não Direto", "Primeiro Clique"]
             
+            # Create a unique key using timestamp
+            timestamp = int(time.time() * 1000)
+            unique_key = f"attribution_model_radio_{timestamp}"
+            unique_button_key = f"attribution_info_button_{timestamp}"
+            
             attribution_model = st.radio(
                 "Modelo de Atribuição",
                 options=all_attribution,
                 index=0,
                 help="Escolha o modelo de atribuição para análise dos dados",
-                key="attribution_model_radio"
+                key=unique_key
             )
             
             # Força recarregamento dos dados quando o modelo muda
@@ -158,16 +164,13 @@ def traffic_filters(df):
                     st.session_state.cache_timestamps = {}
                 if 'background_tasks' in st.session_state:
                     st.session_state.background_tasks = {}
-                st.rerun()
-            else:
-                st.session_state.attribution_model = attribution_model
 
             # Inicializa o estado se não existir
             if 'show_attribution_info' not in st.session_state:
                 st.session_state.show_attribution_info = False
 
             # Botão para mostrar/ocultar
-            if st.button('Sobre Modelos de Atribuição', key='attribution_info_button'):
+            if st.button('Sobre Modelos de Atribuição', key=unique_button_key):
                 st.session_state.show_attribution_info = not st.session_state.show_attribution_info
 
             # Conteúdo que será mostrado/ocultado

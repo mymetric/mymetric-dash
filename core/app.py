@@ -29,6 +29,20 @@ from tabs_custom.tab_kaisan_erp import display_tab_kaisan_erp
 from modules.load_data import save_event_name, load_basic_data, load_detailed_data, load_leads_popup
 from modules.utilities import send_message
 
+# Lista de abas que usam filtros básicos
+pages_with_basic_filters = [
+    "Visão Geral",
+    "Itens Vendidos",
+    "Leads",
+    "RFM"
+]
+
+# Lista de abas que usam filtros detalhados
+pages_with_detailed_filters = [
+    "Visão Detalhada",
+    "Leads"
+]
+
 def load_app():
     try:
         with st.spinner("🔄 Inicializando aplicação..."):
@@ -130,15 +144,14 @@ def load_app():
                 date_filters()
             
             # Carregar filtros básicos e de atribuição para abas específicas
-            if selected_page in pages_with_basic_filters:
-                
+            if selected_page in pages_with_basic_filters and selected_page != "Visão Detalhada":
                 df_basic = load_basic_data()
                 
                 with st.spinner("🔄 Aplicando filtros de tráfego..."):
                     traffic_filters(df_basic)
             
             # Carregar filtros detalhados para abas específicas
-            if selected_page in pages_with_detailed_filters:
+            if selected_page in pages_with_detailed_filters and selected_page != "Visão Detalhada":
                 with st.spinner("🔄 Carregando dados detalhados..."):
                     start_time = time.time()
                     df_detailed = load_detailed_data()

@@ -2,6 +2,7 @@ import streamlit as st
 from modules.load_data import load_detailed_data
 import pandas as pd
 import altair as alt
+from tabs.filters import traffic_filters, traffic_filters_detailed, apply_filters
 
 def tables_detailed(df):
 
@@ -494,6 +495,30 @@ def tables_detailed(df):
     st.data_editor(display_df, hide_index=1, use_container_width=1, key="detailed_cupons")
 
 def display_tab_detailed():
-
     df = load_detailed_data()
+    
+    # Apply filters
+    from tabs.filters import traffic_filters, traffic_filters_detailed, apply_filters
+    
+    # Initialize session state for filters if not already done
+    if "cluster_selected" not in st.session_state:
+        st.session_state.cluster_selected = ["Selecionar Todos"]
+        st.session_state.origem_selected = ["Selecionar Todos"]
+        st.session_state.midia_selected = ["Selecionar Todos"]
+        st.session_state.campanha_selected = ["Selecionar Todos"]
+        st.session_state.conteudo_selected = ["Selecionar Todos"]
+        st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+    
+    # Show filters in sidebar
+    with st.sidebar:
+        # Show basic filters and attribution model
+        traffic_filters(df)
+        
+        # Show advanced filters
+        traffic_filters_detailed(df)
+    
+    # Apply filters to the data
+    df = apply_filters(df)
+    
+    # Display tables with filtered data
     tables_detailed(df)
