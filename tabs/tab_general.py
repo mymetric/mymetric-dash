@@ -353,17 +353,50 @@ def tables(df):
     
     # Formatar os números antes de exibir
     display_df = aggregated_df.copy()
-    display_df['Sessões'] = display_df['Sessões'].apply(lambda x: f"{int(x):,}".replace(",", "."))
-    display_df['Adições ao Carrinho'] = display_df['Adições ao Carrinho'].apply(lambda x: f"{int(x):,}".replace(",", "."))
-    display_df['Pedidos'] = display_df['Pedidos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
-    display_df['Pedidos Pagos'] = display_df['Pedidos Pagos'].apply(lambda x: f"{int(x):,}".replace(",", "."))
-    display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-    display_df['Receita Paga'] = display_df['Receita Paga'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+    
+    # Converter taxas para números
+    display_df['Tx Adições ao Carrinho'] = display_df['Tx Adições ao Carrinho'].str.rstrip('%').astype(float) / 100
+    display_df['Tx Conversão'] = display_df['Tx Conversão'].str.rstrip('%').astype(float) / 100
+    display_df['% Receita'] = display_df['% Receita'].str.rstrip('%').astype(float) / 100
+    
+    # Converter valores monetários para números
+    display_df['RPS'] = display_df['RPS'].str.replace('R$ ', '').str.replace('.', '').str.replace(',', '.').astype(float)
     
     # Reordenar as colunas
-    display_df = display_df[['Cluster', 'Sessões', 'Adições ao Carrinho', 'Tx Adições ao Carrinho', 'Pedidos', 'Tx Conversão', 'Pedidos Pagos', 'Receita', 'Receita Paga', 'RPS', '% Receita']]
+    display_df = display_df[[
+        'Cluster', 
+        'Sessões',
+        'Adições ao Carrinho',
+        'Tx Adições ao Carrinho',
+        'Pedidos',
+        'Tx Conversão',
+        'Pedidos Pagos',
+        'Receita',
+        'Receita Paga',
+        'RPS',
+        '% Receita'
+    ]]
     
-    st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_cluster_origens")
+    # Aplicar formatação usando pandas styling
+    styled_df = display_df.style.format({
+        'Sessões': lambda x: f"{int(x):,}".replace(",", "."),
+        'Adições ao Carrinho': lambda x: f"{int(x):,}".replace(",", "."),
+        'Tx Adições ao Carrinho': lambda x: f"{float(x)*100:.2f}%".replace(".", ","),
+        'Pedidos': lambda x: f"{int(x):,}".replace(",", "."),
+        'Tx Conversão': lambda x: f"{float(x)*100:.2f}%".replace(".", ","),
+        'Pedidos Pagos': lambda x: f"{int(x):,}".replace(",", "."),
+        'Receita': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+        'Receita Paga': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+        'RPS': lambda x: f"R$ {float(x):.2f}".replace(".", ","),
+        '% Receita': lambda x: f"{float(x)*100:.2f}%".replace(".", ",")
+    })
+    
+    # Exibir a tabela
+    st.dataframe(
+        styled_df,
+        hide_index=True,
+        use_container_width=True
+    )
 
     st.markdown("---")
 
