@@ -319,13 +319,13 @@ def tables(df):
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
     aggregated_df['Tx Conversão'] = aggregated_df.apply(
-        lambda x: f"{(x['Pedidos'] / x['Sessões'] * 100):.2f}%" if x['Sessões'] > 0 else "0%",
+        lambda x: (x['Pedidos'] / x['Sessões'] * 100) if x['Sessões'] > 0 else 0,
         axis=1
     )
     
     # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
     aggregated_df['RPS'] = aggregated_df.apply(
-        lambda x: f"R$ {(x['Receita Paga'] / x['Sessões']):.2f}".replace(".", ",") if x['Sessões'] > 0 else "R$ 0,00",
+        lambda x: (x['Receita Paga'] / x['Sessões']) if x['Sessões'] > 0 else 0,
         axis=1
     )
     
@@ -333,34 +333,29 @@ def tables(df):
     total_adicoes = aggregated_df['Adições ao Carrinho'].sum()
     if total_adicoes > 0:
         aggregated_df['Tx Adições ao Carrinho'] = aggregated_df.apply(
-            lambda x: f"{((x['Adições ao Carrinho'] / total_adicoes) * 100):.2f}%",
+            lambda x: (x['Adições ao Carrinho'] / total_adicoes) * 100,
             axis=1
         )
     else:
-        aggregated_df['Tx Adições ao Carrinho'] = '0%'
+        aggregated_df['Tx Adições ao Carrinho'] = 0
     
     # Calcula percentual de receita com tratamento para divisão por zero
     total_receita = aggregated_df['Receita'].sum()
     if total_receita > 0:
         aggregated_df['% Receita'] = aggregated_df.apply(
-            lambda x: f"{((x['Receita'] / total_receita) * 100):.2f}%",
+            lambda x: (x['Receita'] / total_receita) * 100,
             axis=1
         )
     else:
-        aggregated_df['% Receita'] = '0%'
+        aggregated_df['% Receita'] = 0
     
     aggregated_df = aggregated_df.sort_values(by='Pedidos', ascending=False)
     
+    # Remover linhas onde Sessões e Pedidos são iguais a 0
+    aggregated_df = aggregated_df[~((aggregated_df['Sessões'] == 0) & (aggregated_df['Pedidos'] == 0))]
+    
     # Formatar os números antes de exibir
     display_df = aggregated_df.copy()
-    
-    # Converter taxas para números
-    display_df['Tx Adições ao Carrinho'] = display_df['Tx Adições ao Carrinho'].str.rstrip('%').astype(float) / 100
-    display_df['Tx Conversão'] = display_df['Tx Conversão'].str.rstrip('%').astype(float) / 100
-    display_df['% Receita'] = display_df['% Receita'].str.rstrip('%').astype(float) / 100
-    
-    # Converter valores monetários para números
-    display_df['RPS'] = display_df['RPS'].str.replace('R$ ', '').str.replace('.', '').str.replace(',', '.').astype(float)
     
     # Reordenar as colunas
     display_df = display_df[[
@@ -381,14 +376,14 @@ def tables(df):
     styled_df = display_df.style.format({
         'Sessões': lambda x: f"{int(x):,}".replace(",", "."),
         'Adições ao Carrinho': lambda x: f"{int(x):,}".replace(",", "."),
-        'Tx Adições ao Carrinho': lambda x: f"{float(x)*100:.2f}%".replace(".", ","),
+        'Tx Adições ao Carrinho': lambda x: f"{float(x):.2f}%".replace(".", ","),
         'Pedidos': lambda x: f"{int(x):,}".replace(",", "."),
-        'Tx Conversão': lambda x: f"{float(x)*100:.2f}%".replace(".", ","),
+        'Tx Conversão': lambda x: f"{float(x):.2f}%".replace(".", ","),
         'Pedidos Pagos': lambda x: f"{int(x):,}".replace(",", "."),
         'Receita': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
         'Receita Paga': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
         'RPS': lambda x: f"R$ {float(x):.2f}".replace(".", ","),
-        '% Receita': lambda x: f"{float(x)*100:.2f}%".replace(".", ",")
+        '% Receita': lambda x: f"{float(x):.2f}%".replace(".", ",")
     })
     
     # Exibir a tabela
