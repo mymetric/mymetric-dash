@@ -17,12 +17,14 @@ def big_numbers(df):
     pedidos = df["Pedidos"].sum()
     adicoes_carrinho = df["Adições ao Carrinho"].sum()
     pedidos_pagos = df["Pedidos Pagos"].sum()
+    novos_clientes = df["Novos Clientes"].sum()
     tx_conv = (df["Pedidos"].sum()/df["Sessões"].sum())*100 if df["Sessões"].sum() > 0 else 0
     tx_adicao = (adicoes_carrinho/sessoes)*100 if sessoes > 0 else 0
     total_receita_paga = df["Receita Paga"].sum()
     total_receita_capturada = df["Receita"].sum()
     percentual_pago = (pedidos_pagos / pedidos) * 100 if total_receita_capturada > 0 else 0
     rps = total_receita_paga / sessoes if sessoes > 0 else 0
+    tx_novos_clientes = (novos_clientes / pedidos_pagos * 100) if pedidos_pagos > 0 else 0
 
     st.header("Big Numbers")
 
@@ -88,7 +90,7 @@ def big_numbers(df):
                 hint="Total de leads capturados via popup no período"
             )
     
-    col1, col2, col3 = st.columns(4)[:3]
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         big_number_box(
@@ -109,6 +111,22 @@ def big_numbers(df):
             f"R$ {rps:.2f}".replace(".", ","), 
             "RPS",
             hint="Receita por Sessão (Receita Paga/Sessões)"
+        )
+
+    with col4:
+        big_number_box(
+            f"{novos_clientes:,.0f}".replace(",", "."), 
+            "Novos Clientes",
+            hint="Total de pedidos pagos de clientes que fizeram sua primeira compra no período"
+        )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        big_number_box(
+            f"{tx_novos_clientes:.1f}%", 
+            "% Novos Clientes",
+            hint="Percentual de pedidos pagos que vieram de novos clientes"
         )
 
     st.markdown("---")
@@ -314,7 +332,8 @@ def tables(df):
         'Pedidos Pagos': 'sum', 
         'Receita': 'sum', 
         'Receita Paga': 'sum',
-        'Adições ao Carrinho': 'sum'
+        'Adições ao Carrinho': 'sum',
+        'Novos Clientes': 'sum'
     }).reset_index()
     
     # Adiciona coluna de taxa de conversão com tratamento para divisão por zero
@@ -326,6 +345,12 @@ def tables(df):
     # Calcula RPS (Receita por Sessão) com tratamento para divisão por zero
     aggregated_df['RPS'] = aggregated_df.apply(
         lambda x: (x['Receita Paga'] / x['Sessões']) if x['Sessões'] > 0 else 0,
+        axis=1
+    )
+
+    # Calcula percentual de novos clientes em relação aos pedidos pagos
+    aggregated_df['% Novos Clientes'] = aggregated_df.apply(
+        lambda x: (x['Novos Clientes'] / x['Pedidos Pagos'] * 100) if x['Pedidos Pagos'] > 0 else 0,
         axis=1
     )
     
@@ -366,6 +391,8 @@ def tables(df):
         'Pedidos',
         'Tx Conversão',
         'Pedidos Pagos',
+        'Novos Clientes',
+        '% Novos Clientes',
         'Receita',
         'Receita Paga',
         'RPS',
@@ -380,6 +407,8 @@ def tables(df):
         'Pedidos': lambda x: f"{int(x):,}".replace(",", "."),
         'Tx Conversão': lambda x: f"{float(x):.2f}%".replace(".", ","),
         'Pedidos Pagos': lambda x: f"{int(x):,}".replace(",", "."),
+        'Novos Clientes': lambda x: f"{int(x):,}".replace(",", "."),
+        '% Novos Clientes': lambda x: f"{float(x):.1f}%".replace(".", ","),
         'Receita': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
         'Receita Paga': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
         'RPS': lambda x: f"R$ {float(x):.2f}".replace(".", ","),
@@ -387,11 +416,7 @@ def tables(df):
     })
     
     # Exibir a tabela
-    st.dataframe(
-        styled_df,
-        hide_index=True,
-        use_container_width=True
-    )
+    st.dataframe(styled_df, hide_index=True, use_container_width=True)
 
     st.markdown("---")
 
