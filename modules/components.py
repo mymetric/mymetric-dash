@@ -63,6 +63,57 @@ def tabs_css():
                 text-align: center !important;
                 font-size: 0.9rem !important;
             }
+
+            /* Date filter buttons styling */
+            .stButton button[data-testid="baseButton-secondary"] {
+                border: 1px solid #e5e7eb !important;
+                background-color: white !important;
+                border-radius: 8px !important;
+                padding: 8px 16px !important;
+                margin: 0 0 4px 0 !important;
+                transition: all 0.3s ease !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+                width: 100% !important;
+                color: #374151 !important;
+                font-size: 0.9rem !important;
+                font-weight: normal !important;
+            }
+
+            .stButton button[data-testid="baseButton-secondary"]:hover {
+                border-color: #d1d5db !important;
+                background-color: #f9fafb !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+            }
+
+            .stButton button[data-testid="baseButton-secondary"].active {
+                background-color: #4f46e5 !important;
+                border-color: #4f46e5 !important;
+                color: white !important;
+                font-weight: 500 !important;
+                box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2) !important;
+            }
+
+            /* Apply button styling */
+            .stButton button[data-testid="baseButton-primary"] {
+                background-color: #4f46e5 !important;
+                border-color: #4f46e5 !important;
+                color: white !important;
+                font-weight: 500 !important;
+                border-radius: 8px !important;
+                padding: 8px 16px !important;
+                margin: 4px 0 !important;
+                transition: all 0.3s ease !important;
+                box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2) !important;
+                width: 100% !important;
+            }
+
+            .stButton button[data-testid="baseButton-primary"]:hover {
+                background-color: #4338ca !important;
+                border-color: #4338ca !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3) !important;
+            }
         </style>
     """, unsafe_allow_html=True)
 
