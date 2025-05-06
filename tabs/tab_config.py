@@ -185,11 +185,27 @@ def traffic_categories_config():
     categories_df = load_traffic_categories()
     print(f"Categorias carregadas: {categories_df}")
     
-    # Formulário para adicionar nova categoria
-    with st.form("nova_categoria"):
-        st.markdown("### Nova Categoria")
-        category_name = st.text_input("Nome da Categoria")
-        description = st.text_area("Descrição")
+    # Inicializar estado de edição se não existir
+    if 'editing_category' not in st.session_state:
+        st.session_state.editing_category = None
+    
+    # Formulário para adicionar/editar categoria
+    with st.form("categoria_form"):
+        st.markdown("### Nova Categoria" if not st.session_state.editing_category else "### Editar Categoria")
+        
+        # Se estiver editando, preencher com valores existentes
+        if st.session_state.editing_category:
+            category_data = categories_df[categories_df['Nome'] == st.session_state.editing_category].iloc[0]
+            default_name = category_data['Nome']
+            default_description = category_data['Descrição']
+            default_rules = category_data['Regras']['rules'] if category_data['Regras'] and 'rules' in category_data['Regras'] else {}
+        else:
+            default_name = ""
+            default_description = ""
+            default_rules = {}
+        
+        category_name = st.text_input("Nome da Categoria", value=default_name)
+        description = st.text_area("Descrição", value=default_description)
         
         # Campos para regras
         st.markdown("### Regras de Classificação")
@@ -198,30 +214,41 @@ def traffic_categories_config():
         rules = {
             "type": "regex",
             "rules": {
-                "origem": st.text_input("Origem (regex)"),
-                "midia": st.text_input("Mídia (regex)"),
-                "campanha": st.text_input("Campanha (regex)"),
-                "conteudo": st.text_input("Conteúdo (regex)"),
-                "pagina_de_entrada": st.text_input("Página de Entrada (regex)"),
-                "termo": st.text_input("Termo (regex)"),
-                "cupom": st.text_input("Cupom (regex)")
+                "origem": st.text_input("Origem (regex)", value=default_rules.get('origem', '')),
+                "midia": st.text_input("Mídia (regex)", value=default_rules.get('midia', '')),
+                "campanha": st.text_input("Campanha (regex)", value=default_rules.get('campanha', '')),
+                "conteudo": st.text_input("Conteúdo (regex)", value=default_rules.get('conteudo', '')),
+                "pagina_de_entrada": st.text_input("Página de Entrada (regex)", value=default_rules.get('pagina_de_entrada', '')),
+                "termo": st.text_input("Termo (regex)", value=default_rules.get('termo', '')),
+                "cupom": st.text_input("Cupom (regex)", value=default_rules.get('cupom', ''))
             }
         }
         
-        submitted = st.form_submit_button("Adicionar Categoria")
+        submitted = st.form_submit_button("Salvar Categoria")
         
         if submitted:
             if category_name:
                 # Remover regras vazias
                 rules["rules"] = {k: v for k, v in rules["rules"].items() if v}
                 
+                # Se estiver editando, primeiro deletar a categoria antiga
+                if st.session_state.editing_category:
+                    delete_traffic_category(st.session_state.editing_category)
+                
                 if save_traffic_categories(category_name, description, rules):
-                    st.success("Categoria adicionada com sucesso!")
+                    st.success("Categoria salva com sucesso!")
+                    st.session_state.editing_category = None
                     st.rerun()
                 else:
-                    st.error("Erro ao adicionar categoria.")
+                    st.error("Erro ao salvar categoria.")
             else:
                 st.error("Por favor, preencha o nome da categoria.")
+    
+    # Botão para cancelar edição
+    if st.session_state.editing_category:
+        if st.button("Cancelar Edição"):
+            st.session_state.editing_category = None
+            st.rerun()
     
     # Exibir categorias existentes
     if not categories_df.empty:
@@ -249,12 +276,18 @@ def traffic_categories_config():
                         if value:
                             st.markdown(f"- {field.title()}: `{value}`")
                 
-                if st.button("🗑️ Deletar", key=f"delete_{row['Nome']}"):
-                    if delete_traffic_category(row['Nome']):
-                        st.success("Categoria deletada com sucesso!")
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    if st.button("✏️ Editar", key=f"edit_{row['Nome']}"):
+                        st.session_state.editing_category = row['Nome']
                         st.rerun()
-                    else:
-                        st.error("Erro ao deletar categoria.")
+                with col2:
+                    if st.button("🗑️ Deletar", key=f"delete_{row['Nome']}"):
+                        if delete_traffic_category(row['Nome']):
+                            st.success("Categoria deletada com sucesso!")
+                            st.rerun()
+                        else:
+                            st.error("Erro ao deletar categoria.")
     else:
         st.info("Nenhuma categoria cadastrada ainda.")
 
