@@ -159,12 +159,13 @@ def display_tab_items_sold():
 
     st.markdown("""---""")
 
-    # Top 10 Produtos por Receita
-    st.subheader("Top 10 Produtos por Receita")
+    # Top N Produtos por Receita
+    st.subheader("Top Produtos por Receita")
+    
     revenue_by_product = df.groupby('Nome do Produto').agg({
         'Receita': 'sum',
         'Quantidade': 'sum'
-    }).reset_index().sort_values('Receita', ascending=False).head(10)
+    }).reset_index().sort_values('Receita', ascending=False)
 
     # Formatar a tabela
     revenue_by_product['Receita'] = revenue_by_product['Receita'].apply(lambda x: f"R$ {x:,.2f}")
