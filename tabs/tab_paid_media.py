@@ -643,6 +643,24 @@ def display_general_view(df_ads):
             hint="Custo Por Venda Médio - Média do valor gasto em anúncios para conseguir uma venda"
         )
 
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        primeiras_compras = df_ads['Primeiras Compras'].sum()
+        big_number_box(
+            f"{primeiras_compras:,.0f}".replace(",", "."),
+            "Primeiras Compras",
+            hint="Número total de novos clientes adquiridos através de mídia paga"
+        )
+
+    with col2:
+        cpa = df_ads['Investimento'].sum() / primeiras_compras if primeiras_compras > 0 else 0
+        big_number_box(
+            f"R$ {cpa:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            "CPA Médio",
+            hint="Custo Por Aquisição - Média do valor gasto em anúncios para conseguir um novo cliente"
+        )
+
     st.markdown("---")
 
     # Gráficos de distribuição por plataforma
@@ -776,11 +794,13 @@ def display_general_view(df_ads):
         'Impressões': 'sum',
         'Cliques': 'sum',
         'Transações': 'sum',
+        'Primeiras Compras': 'sum',
         'Receita': 'sum'
     }).reset_index()
 
     df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
     df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
+    df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras'].replace(0, float('nan'))).round(2)
     df_ads_agg = df_ads_agg.sort_values(by='Receita', ascending=False)
     
     # Format the columns to have at most 2 decimal places
@@ -788,9 +808,20 @@ def display_general_view(df_ads):
     df_ads_agg['Receita'] = df_ads_agg['Receita'].round(2)
     df_ads_agg['ROAS'] = df_ads_agg['ROAS'].round(2)
     df_ads_agg['CPV'] = df_ads_agg['CPV'].round(2)
+    df_ads_agg['CPA'] = df_ads_agg['CPA'].round(2)
     
     st.data_editor(
-        df_ads_agg,
+        df_ads_agg.style.format({
+            'Investimento': 'R$ {:,.2f}',
+            'Impressões': '{:,.0f}',
+            'Cliques': '{:,.0f}',
+            'Transações': '{:,.0f}',
+            'Primeiras Compras': '{:,.0f}',
+            'Receita': 'R$ {:,.2f}',
+            'ROAS': '{:,.2f}',
+            'CPV': 'R$ {:,.2f}',
+            'CPA': 'R$ {:,.2f}'
+        }),
         hide_index=True,
         use_container_width=True
     )

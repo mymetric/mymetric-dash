@@ -967,6 +967,7 @@ def load_paid_media():
             sum(impressions) `Impressões`,
             sum(clicks) `Cliques`,
             sum(transactions) `Transações`,
+            sum(first_transaction) `Primeiras Compras`,
             sum(revenue) `Receita`
         FROM
             `mymetric-hub-shopify.dbt_join.{tablename}_ads_campaigns_results`
