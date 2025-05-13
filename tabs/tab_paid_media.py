@@ -6,6 +6,19 @@ from modules.components import big_number_box
 from datetime import datetime
 import pandas as pd
 from partials.performance import analyze_meta_insights
+import locale
+
+# Configurar locale para português do Brasil
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+
+def format_currency(value):
+    return locale.currency(value, grouping=True, symbol='R$ ')
+
+def format_number(value):
+    return locale.format_string('%.0f', value, grouping=True)
+
+def format_decimal(value):
+    return locale.format_string('%.2f', value, grouping=True)
 
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
@@ -362,7 +375,7 @@ def display_meta_ads_analysis():
             'CPC', 'CPM', 'CPV', 'CPL',  # Custos
             'ROAS', 'ROAS Última Sessão',  # ROAS
             'Lucro', 'Lucro Última Sessão',  # Lucro
-            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas'  # Taxas e Leads
+            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas',  # Taxas e Leads
         ]].rename(columns={
             'campaign_name': 'Campanha',
             'impressions': 'Impressões (Pixel)',
@@ -386,7 +399,7 @@ def display_meta_ads_analysis():
             'Lucro Última Sessão': 'Lucro (Última Sessão)',
             'Taxa de Correspondência': 'Taxa de Correspondência',
             'Taxa Conv. Leads': 'Taxa Conv. Leads',
-            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas'
+            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas',
         }).style.format({
             'Impressões (Pixel)': '{:,.0f}',
             'Cliques (Pixel)': '{:,.0f}',
@@ -409,7 +422,7 @@ def display_meta_ads_analysis():
             'Taxa Conv. (Última Sessão)': '{:.2f}%',
             'Taxa de Correspondência': '{:.2f}%',
             'Taxa Conv. Leads': '{:.2f}%',
-            'Taxa Conv. Leads/Vendas': '{:.2f}%'
+            'Taxa Conv. Leads/Vendas': '{:.2f}%',
         }),
         hide_index=True,
         use_container_width=True
@@ -468,7 +481,7 @@ def display_meta_ads_analysis():
             'CPC', 'CPM', 'CPV', 'CPL',  # Custos
             'ROAS', 'ROAS Última Sessão',  # ROAS
             'Lucro', 'Lucro Última Sessão',  # Lucro
-            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas'  # Taxas e Leads
+            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas',  # Taxas e Leads
         ]].rename(columns={
             'adset_name': 'Grupo de Anúncios',
             'impressions': 'Impressões (Pixel)',
@@ -491,7 +504,7 @@ def display_meta_ads_analysis():
             'Lucro Última Sessão': 'Lucro (Última Sessão)',
             'Taxa de Correspondência': 'Taxa de Correspondência',
             'Taxa Conv. Leads': 'Taxa Conv. Leads',
-            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas'
+            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas',
         }).style.format({
             'Impressões (Pixel)': '{:,.0f}',
             'Cliques (Pixel)': '{:,.0f}',
@@ -514,7 +527,7 @@ def display_meta_ads_analysis():
             'Taxa Conv. (Última Sessão)': '{:.2f}%',
             'Taxa de Correspondência': '{:.2f}%',
             'Taxa Conv. Leads': '{:.2f}%',
-            'Taxa Conv. Leads/Vendas': '{:.2f}%'
+            'Taxa Conv. Leads/Vendas': '{:.2f}%',
         }),
         hide_index=True,
         use_container_width=True
@@ -574,7 +587,7 @@ def display_meta_ads_analysis():
             'CPC', 'CPM', 'CPV', 'CPL',  # Custos
             'ROAS', 'ROAS Última Sessão',  # ROAS
             'Lucro', 'Lucro Última Sessão',  # Lucro
-            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas'  # Taxas e Leads
+            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas',  # Taxas e Leads
         ]].rename(columns={
             'ad_name': 'Anúncio',
             'impressions': 'Impressões (Pixel)',
@@ -597,7 +610,7 @@ def display_meta_ads_analysis():
             'Lucro Última Sessão': 'Lucro (Última Sessão)',
             'Taxa de Correspondência': 'Taxa de Correspondência',
             'Taxa Conv. Leads': 'Taxa Conv. Leads',
-            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas'
+            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas',
         }).style.format({
             'Impressões (Pixel)': '{:,.0f}',
             'Cliques (Pixel)': '{:,.0f}',
@@ -620,7 +633,7 @@ def display_meta_ads_analysis():
             'Taxa Conv. (Última Sessão)': '{:.2f}%',
             'Taxa de Correspondência': '{:.2f}%',
             'Taxa Conv. Leads': '{:.2f}%',
-            'Taxa Conv. Leads/Vendas': '{:.2f}%'
+            'Taxa Conv. Leads/Vendas': '{:.2f}%',
         }),
         hide_index=True,
         use_container_width=True
@@ -738,17 +751,116 @@ def display_general_view(df_ads):
             hint="Número total de leads gerados através de mídia paga"
         )
 
+    # Nova linha - Métricas de Vendas
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        vendas = df_ads['Transações'].sum()
+        big_number_box(
+            f"{vendas:,.0f}".replace(",", "."),
+            "Vendas",
+            hint="Número total de vendas atribuídas à mídia paga (modelo de último clique)"
+        )
+
+    with col2:
+        receita = df_ads['Receita'].sum()
+        big_number_box(
+            f"R$ {receita:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            "Receita",
+            hint="Receita total gerada pela mídia paga (modelo de último clique)"
+        )
+
+    with col3:
+        roas = receita / df_ads['Investimento'].sum() if df_ads['Investimento'].sum() > 0 else 0
+        big_number_box(
+            f"{roas:.2f}".replace(".", ","),
+            "ROAS",
+            hint="Return On Ad Spend - Retorno sobre investimento (modelo de último clique)"
+        )
+
+    # Nova linha - Métricas First Lead
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        fsm_transactions = df_ads['Transações Primeiro Lead'].sum()
+        big_number_box(
+            f"{fsm_transactions:,.0f}".replace(",", "."),
+            "Vendas (First Lead)",
+            hint="Número total de vendas atribuídas ao primeiro lead"
+        )
+
+    with col2:
+        fsm_revenue = df_ads['Receita Primeiro Lead'].sum()
+        big_number_box(
+            f"R$ {fsm_revenue:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            "Receita (First Lead)",
+            hint="Receita total atribuída ao primeiro lead"
+        )
+
+    with col3:
+        fsm_roas = fsm_revenue / df_ads['Investimento'].sum() if df_ads['Investimento'].sum() > 0 else 0
+        big_number_box(
+            f"{fsm_roas:.2f}".replace(".", ","),
+            "ROAS (First Lead)",
+            hint="Return On Ad Spend baseado no primeiro lead"
+        )
+
     st.markdown("---")
 
     # Gráficos de distribuição por plataforma
     st.subheader("Distribuição por Plataforma")
+    
+    # Expander com explicações sobre os modelos de atribuição
+    with st.expander("ℹ️ Entenda os Modelos de Atribuição", expanded=False):
+        st.markdown("""
+            ### Modelos de Atribuição Disponíveis
+
+            #### Last Non Direct Click
+            - Atribui a conversão ao último clique não direto antes da compra
+            - Ignora cliques diretos (quando o usuário acessa o site digitando a URL)
+            - Útil para entender qual canal foi o último a influenciar a compra
+            - Métricas incluídas:
+                - Transações
+                - Receita
+                - ROAS
+                - CPV (Custo por Venda)
+                - Primeiras Compras
+                - CPA (Custo por Aquisição)
+
+            #### First Lead
+            - Atribui a conversão ao primeiro lead gerado
+            - Considera todo o caminho de conversão desde o primeiro contato
+            - Útil para entender o impacto inicial na jornada do cliente
+            - Métricas incluídas:
+                - Transações Primeiro Lead
+                - Receita Primeiro Lead
+                - ROAS First Lead
+                - CPV First Lead
+                - Primeiras Compras Primeiro Lead
+                - CPA First Lead
+
+            ### Por que usar diferentes modelos?
+            - **Last Non Direct Click**: Melhor para otimização de campanhas e análise de performance imediata
+            - **First Lead**: Melhor para entender o impacto inicial e a jornada completa do cliente
+            - A comparação entre os modelos ajuda a entender o papel de cada canal na jornada de conversão
+        """)
+    
+    # Seletor de modelo de atribuição
+    modelo_atribuicao = st.radio(
+        "Modelo de Atribuição:",
+        ["Last Non Direct Click", "First Lead"],
+        horizontal=True,
+        help="Last Non Direct Click: atribui a conversão ao último clique não direto antes da compra. First Lead: atribui a conversão ao primeiro lead gerado."
+    )
     
     # Agrupar dados por plataforma
     df_platform = df_ads.groupby('Plataforma').agg({
         'Investimento': 'sum',
         'Cliques': 'sum',
         'Receita': 'sum',
-        'Leads': 'sum'
+        'Leads': 'sum',
+        'Transações Primeiro Lead': 'sum',
+        'Receita Primeiro Lead': 'sum'
     }).reset_index()
     
     # Garantir que os valores sejam numéricos
@@ -756,6 +868,8 @@ def display_general_view(df_ads):
     df_platform['Cliques'] = pd.to_numeric(df_platform['Cliques'], errors='coerce')
     df_platform['Receita'] = pd.to_numeric(df_platform['Receita'], errors='coerce')
     df_platform['Leads'] = pd.to_numeric(df_platform['Leads'], errors='coerce')
+    df_platform['Transações Primeiro Lead'] = pd.to_numeric(df_platform['Transações Primeiro Lead'], errors='coerce')
+    df_platform['Receita Primeiro Lead'] = pd.to_numeric(df_platform['Receita Primeiro Lead'], errors='coerce')
     
     # Remover linhas com valores nulos
     df_platform = df_platform.dropna()
@@ -820,12 +934,13 @@ def display_general_view(df_ads):
     with col3:
         st.markdown("**Receita**")
         # Calcular percentuais
-        total_receita = df_platform['Receita'].sum()
-        df_platform['Receita_pct'] = (df_platform['Receita'] / total_receita * 100).round(1)
+        receita_col = 'Receita Primeiro Lead' if modelo_atribuicao == "First Lead" else 'Receita'
+        total_receita = df_platform[receita_col].sum()
+        df_platform['Receita_pct'] = (df_platform[receita_col] / total_receita * 100).round(1)
         
         # Gráfico de pizza para Receita
         fig = px.pie(df_platform, 
-                    values='Receita', 
+                    values=receita_col, 
                     names='Plataforma',
                     title='')
         
@@ -902,36 +1017,79 @@ def display_general_view(df_ads):
         'Transações': 'sum',
         'Primeiras Compras': 'sum',
         'Leads': 'sum',
-        'Receita': 'sum'
+        'Receita': 'sum',
+        'Transações Primeiro Lead': 'sum',
+        'Receita Primeiro Lead': 'sum',
+        'Primeiras Compras Primeiro Lead': 'sum'
     }).reset_index()
 
-    df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
-    df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
-    df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras'].replace(0, float('nan'))).round(2)
-    df_ads_agg['CPL'] = (df_ads_agg['Investimento'] / df_ads_agg['Leads'].replace(0, float('nan'))).round(2)
-    df_ads_agg = df_ads_agg.sort_values(by='Receita', ascending=False)
+    # Calcular métricas baseado no modelo de atribuição selecionado
+    if modelo_atribuicao == "Last Non Direct Click":
+        df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
+        df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
+        df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras'].replace(0, float('nan'))).round(2)
+        df_ads_agg['CPL'] = (df_ads_agg['Investimento'] / df_ads_agg['Leads'].replace(0, float('nan'))).round(2)
+        
+        # Reorganizar colunas em grupos lógicos para Last Non Direct Click
+        columns_order = [
+            # Identificação
+            'Plataforma', 'Campanha',
+            # Investimento
+            'Investimento',
+            # Métricas de Alcance
+            'Impressões', 'Cliques',
+            # Métricas de Aquisição
+            'Leads', 'CPL',
+            # Métricas de Vendas (Last Non Direct Click)
+            'Transações', 'Primeiras Compras', 'CPA', 'Receita', 'ROAS', 'CPV'
+        ]
+    else:  # First Lead
+        df_ads_agg['ROAS'] = (df_ads_agg['Receita Primeiro Lead'] / df_ads_agg['Investimento'])
+        df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações Primeiro Lead'].replace(0, float('nan'))).round(2)
+        df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras Primeiro Lead'].replace(0, float('nan'))).round(2)
+        df_ads_agg['CPL'] = (df_ads_agg['Investimento'] / df_ads_agg['Leads'].replace(0, float('nan'))).round(2)
+        
+        # Reorganizar colunas em grupos lógicos para First Lead
+        columns_order = [
+            # Identificação
+            'Plataforma', 'Campanha',
+            # Investimento
+            'Investimento',
+            # Métricas de Alcance
+            'Impressões', 'Cliques',
+            # Métricas de Aquisição
+            'Leads', 'CPL',
+            # Métricas First Lead
+            'Transações Primeiro Lead', 'Primeiras Compras Primeiro Lead', 'CPA', 'Receita Primeiro Lead', 'ROAS', 'CPV'
+        ]
+    
+    df_ads_agg = df_ads_agg.sort_values(by='Receita' if modelo_atribuicao == "Last Non Direct Click" else 'Receita Primeiro Lead', ascending=False)
     
     # Format the columns to have at most 2 decimal places
     df_ads_agg['Investimento'] = df_ads_agg['Investimento'].round(2)
     df_ads_agg['Receita'] = df_ads_agg['Receita'].round(2)
+    df_ads_agg['Receita Primeiro Lead'] = df_ads_agg['Receita Primeiro Lead'].round(2)
     df_ads_agg['ROAS'] = df_ads_agg['ROAS'].round(2)
     df_ads_agg['CPV'] = df_ads_agg['CPV'].round(2)
     df_ads_agg['CPA'] = df_ads_agg['CPA'].round(2)
     df_ads_agg['CPL'] = df_ads_agg['CPL'].round(2)
     
     st.data_editor(
-        df_ads_agg.style.format({
-            'Investimento': 'R$ {:,.2f}',
-            'Impressões': '{:,.0f}',
-            'Cliques': '{:,.0f}',
-            'Transações': '{:,.0f}',
-            'Primeiras Compras': '{:,.0f}',
-            'Leads': '{:,.0f}',
-            'Receita': 'R$ {:,.2f}',
-            'ROAS': '{:,.2f}',
-            'CPV': 'R$ {:,.2f}',
-            'CPA': 'R$ {:,.2f}',
-            'CPL': 'R$ {:,.2f}'
+        df_ads_agg[columns_order].style.format({
+            'Investimento': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            'Impressões': lambda x: f"{int(x):,}".replace(",", "."),
+            'Cliques': lambda x: f"{int(x):,}".replace(",", "."),
+            'Transações': lambda x: f"{int(x):,}".replace(",", "."),
+            'Primeiras Compras': lambda x: f"{int(x):,}".replace(",", "."),
+            'Primeiras Compras Primeiro Lead': lambda x: f"{int(x):,}".replace(",", "."),
+            'Leads': lambda x: f"{int(x):,}".replace(",", "."),
+            'Receita': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            'ROAS': lambda x: f"{x:.2f}".replace(".", ","),
+            'CPV': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            'CPA': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            'CPL': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            'Transações Primeiro Lead': lambda x: f"{int(x):,}".replace(",", "."),
+            'Receita Primeiro Lead': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", ".")
         }),
         hide_index=True,
         use_container_width=True
