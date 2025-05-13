@@ -6,19 +6,18 @@ from modules.components import big_number_box
 from datetime import datetime
 import pandas as pd
 from partials.performance import analyze_meta_insights
-import locale
-
-# Configurar locale para português do Brasil
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def format_currency(value):
-    return locale.currency(value, grouping=True, symbol='R$ ')
+    """Formata valor monetário no padrão brasileiro"""
+    return f"R$ {value:,.2f}".replace(",", "*").replace(".", ",").replace("*", ".")
 
 def format_number(value):
-    return locale.format_string('%.0f', value, grouping=True)
+    """Formata número inteiro com separador de milhar no padrão brasileiro"""
+    return f"{int(value):,}".replace(",", ".")
 
 def format_decimal(value):
-    return locale.format_string('%.2f', value, grouping=True)
+    """Formata número decimal com separador de milhar no padrão brasileiro"""
+    return f"{value:.2f}".replace(".", ",")
 
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
@@ -39,7 +38,7 @@ def display_meta_ads_analysis():
     with col1:
         investimento = df_meta['spend'].sum()
         big_number_box(
-            f"R$ {investimento:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(investimento),
             "Investimento (Pixel)",
             hint="Total investido em anúncios no Meta Ads"
         )
@@ -47,7 +46,7 @@ def display_meta_ads_analysis():
     with col2:
         impressions = df_meta['impressions'].sum()
         big_number_box(
-            f"{impressions:,.0f}".replace(",", "."),
+            format_number(impressions),
             "Impressões (Pixel)",
             hint="Número total de vezes que seus anúncios foram exibidos"
         )
@@ -55,7 +54,7 @@ def display_meta_ads_analysis():
     with col3:
         clicks = df_meta['clicks'].sum()
         big_number_box(
-            f"{clicks:,.0f}".replace(",", "."),
+            format_number(clicks),
             "Cliques (Pixel)",
             hint="Número total de cliques nos seus anúncios"
         )
@@ -74,7 +73,7 @@ def display_meta_ads_analysis():
     with col1:
         purchases = df_meta['purchases'].sum()
         big_number_box(
-            f"{purchases:,.0f}".replace(",", "."),
+            format_number(purchases),
             "Vendas (Pixel)",
             hint="Número total de vendas atribuídas aos anúncios"
         )
@@ -82,7 +81,7 @@ def display_meta_ads_analysis():
     with col2:
         receita = df_meta['purchase_value'].sum()
         big_number_box(
-            f"R$ {receita:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(receita),
             "Receita (Pixel)",
             hint="Receita total gerada pelos anúncios do Meta Ads"
         )
@@ -98,7 +97,7 @@ def display_meta_ads_analysis():
     with col4:
         lucro = receita - investimento
         big_number_box(
-            f"R$ {lucro:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(lucro),
             "Lucro (Pixel)",
             hint="Receita menos investimento (Lucro bruto)"
         )
@@ -109,7 +108,7 @@ def display_meta_ads_analysis():
     with col1:
         last_session_transactions = df_meta['last_session_transactions'].sum()
         big_number_box(
-            f"{last_session_transactions:,.0f}".replace(",", "."),
+            format_number(last_session_transactions),
             "Vendas (Última Sessão)",
             hint="Número total de vendas atribuídas aos anúncios na última sessão"
         )
@@ -117,7 +116,7 @@ def display_meta_ads_analysis():
     with col2:
         last_session_revenue = df_meta['last_session_revenue'].sum()
         big_number_box(
-            f"R$ {last_session_revenue:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(last_session_revenue),
             "Receita (Última Sessão)",
             hint="Receita total gerada pelos anúncios na última sessão"
         )
@@ -133,7 +132,7 @@ def display_meta_ads_analysis():
     with col4:
         last_session_lucro = last_session_revenue - investimento
         big_number_box(
-            f"R$ {last_session_lucro:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(last_session_lucro),
             "Lucro (Última Sessão)",
             hint="Receita menos investimento na última sessão (Lucro bruto)"
         )
@@ -144,7 +143,7 @@ def display_meta_ads_analysis():
     with col1:
         cpc = investimento / clicks if clicks > 0 else 0
         big_number_box(
-            f"R$ {cpc:.2f}".replace(".", ","),
+            format_currency(cpc),
             "CPC (Pixel)",
             hint="Custo Por Clique médio no Meta Ads"
         )
@@ -152,7 +151,7 @@ def display_meta_ads_analysis():
     with col2:
         cpv = investimento / purchases if purchases > 0 else 0
         big_number_box(
-            f"R$ {cpv:.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(cpv),
             "CPV (Pixel)",
             hint="Custo Por Venda - Valor médio gasto em anúncios para conseguir uma venda"
         )
@@ -160,7 +159,7 @@ def display_meta_ads_analysis():
     with col3:
         cpm = (investimento / impressions * 1000) if impressions > 0 else 0
         big_number_box(
-            f"R$ {cpm:.2f}".replace(".", ","),
+            format_currency(cpm),
             "CPM (Pixel)",
             hint="Custo Por Mil Impressões no Meta Ads"
         )
@@ -180,7 +179,7 @@ def display_meta_ads_analysis():
     with col1:
         leads = df_meta['leads'].sum()
         big_number_box(
-            f"{leads:,.0f}".replace(",", "."),
+            format_number(leads),
             "Leads",
             hint="Número total de leads gerados através dos anúncios"
         )
@@ -188,7 +187,7 @@ def display_meta_ads_analysis():
     with col2:
         cpl = investimento / leads if leads > 0 else 0
         big_number_box(
-            f"R$ {cpl:.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(cpl),
             "CPL (Pixel)",
             hint="Custo Por Lead - Valor médio gasto em anúncios para conseguir um lead"
         )
@@ -659,14 +658,14 @@ def display_general_view(df_ads):
     
     with col1:
         big_number_box(
-            f"R$ {df_ads['Investimento'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            format_currency(df_ads['Investimento'].sum()), 
             "Investimento",
             hint="Total investido em mídia paga no período selecionado (Google Ads + Meta Ads)"
         )
     
     with col2:
         big_number_box(
-            f"R$ {df_ads['Receita'].sum():,.2f}".replace(",", "*").replace(".", ",").replace("*", "."), 
+            format_currency(df_ads['Receita'].sum()), 
             "Receita",
             hint="Receita total gerada por mídia paga no período selecionado"
         )
@@ -720,7 +719,7 @@ def display_general_view(df_ads):
     with col3:
         cpv = df_ads['Investimento'].sum() / df_ads['Transações'].sum() if df_ads['Transações'].sum() > 0 else 0
         big_number_box(
-            f"R$ {cpv:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(cpv),
             "CPV Médio",
             hint="Custo Por Venda - Média do valor gasto em anúncios para conseguir uma venda"
         )
@@ -738,7 +737,7 @@ def display_general_view(df_ads):
     with col2:
         cpa = df_ads['Investimento'].sum() / primeiras_compras if primeiras_compras > 0 else 0
         big_number_box(
-            f"R$ {cpa:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(cpa),
             "CPA Médio",
             hint="Custo Por Aquisição - Média do valor gasto em anúncios para conseguir um novo cliente"
         )
@@ -765,7 +764,7 @@ def display_general_view(df_ads):
     with col2:
         receita = df_ads['Receita'].sum()
         big_number_box(
-            f"R$ {receita:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(receita),
             "Receita",
             hint="Receita total gerada pela mídia paga (modelo de último clique)"
         )
@@ -792,7 +791,7 @@ def display_general_view(df_ads):
     with col2:
         fsm_revenue = df_ads['Receita Primeiro Lead'].sum()
         big_number_box(
-            f"R$ {fsm_revenue:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            format_currency(fsm_revenue),
             "Receita (First Lead)",
             hint="Receita total atribuída ao primeiro lead"
         )
@@ -1076,20 +1075,20 @@ def display_general_view(df_ads):
     
     st.data_editor(
         df_ads_agg[columns_order].style.format({
-            'Investimento': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            'Impressões': lambda x: f"{int(x):,}".replace(",", "."),
-            'Cliques': lambda x: f"{int(x):,}".replace(",", "."),
-            'Transações': lambda x: f"{int(x):,}".replace(",", "."),
-            'Primeiras Compras': lambda x: f"{int(x):,}".replace(",", "."),
-            'Primeiras Compras Primeiro Lead': lambda x: f"{int(x):,}".replace(",", "."),
-            'Leads': lambda x: f"{int(x):,}".replace(",", "."),
-            'Receita': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
+            'Investimento': lambda x: format_currency(x),
+            'Impressões': lambda x: format_number(x),
+            'Cliques': lambda x: format_number(x),
+            'Transações': lambda x: format_number(x),
+            'Primeiras Compras': lambda x: format_number(x),
+            'Primeiras Compras Primeiro Lead': lambda x: format_number(x),
+            'Leads': lambda x: format_number(x),
+            'Receita': lambda x: format_currency(x),
             'ROAS': lambda x: f"{x:.2f}".replace(".", ","),
-            'CPV': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            'CPA': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            'CPL': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
-            'Transações Primeiro Lead': lambda x: f"{int(x):,}".replace(",", "."),
-            'Receita Primeiro Lead': lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", ".")
+            'CPV': lambda x: format_currency(x),
+            'CPA': lambda x: format_currency(x),
+            'CPL': lambda x: format_currency(x),
+            'Transações Primeiro Lead': lambda x: format_number(x),
+            'Receita Primeiro Lead': lambda x: format_currency(x)
         }),
         hide_index=True,
         use_container_width=True
