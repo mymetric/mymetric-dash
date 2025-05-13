@@ -496,6 +496,7 @@ def load_meta_ads():
             spend,
             impressions,
             clicks,
+            leads,
             purchases purchases,
             purchase_revenue purchase_value,
             last_session_transactions,
