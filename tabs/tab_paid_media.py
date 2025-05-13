@@ -295,7 +295,8 @@ def display_meta_ads_analysis():
         'purchase_value': 'sum',
         'purchases': 'sum',
         'last_session_transactions': 'sum',
-        'last_session_revenue': 'sum'
+        'last_session_revenue': 'sum',
+        'leads': 'sum'
     }).reset_index()
     
     # Calcular todas as métricas
@@ -305,6 +306,7 @@ def display_meta_ads_analysis():
     df_campaign['Taxa Conv.'] = (df_campaign['purchases'] / df_campaign['clicks'] * 100).round(2)
     df_campaign['CPM'] = (df_campaign['spend'] / df_campaign['impressions'] * 1000).round(2)
     df_campaign['CPV'] = (df_campaign['spend'] / df_campaign['purchases']).round(2)
+    df_campaign['CPL'] = (df_campaign['spend'] / df_campaign['leads']).round(2)
     df_campaign['Lucro'] = (df_campaign['purchase_value'] - df_campaign['spend']).round(2)
     df_campaign['ROAS Última Sessão'] = (df_campaign['last_session_revenue'] / df_campaign['spend']).round(2)
     df_campaign['Taxa Conv. Última Sessão'] = (df_campaign['last_session_transactions'] / df_campaign['clicks'] * 100).round(2)
@@ -317,10 +319,10 @@ def display_meta_ads_analysis():
         df_campaign[[
             'campaign_name',  # Nome da campanha
             'impressions', 'clicks',  # Métricas de alcance
-            'purchases', 'last_session_transactions',  # Vendas
+            'purchases', 'last_session_transactions', 'leads',  # Vendas e Leads
             'spend', 'purchase_value', 'last_session_revenue',  # Receita
             'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
-            'CPC', 'CPM', 'CPV',  # Custos
+            'CPC', 'CPM', 'CPV', 'CPL',  # Custos
             'ROAS', 'ROAS Última Sessão',  # ROAS
             'Lucro', 'Lucro Última Sessão',  # Lucro
             'Taxa de Correspondência'  # Taxa de correspondência
@@ -330,6 +332,7 @@ def display_meta_ads_analysis():
             'clicks': 'Cliques (Pixel)',
             'purchases': 'Vendas (Pixel)',
             'last_session_transactions': 'Vendas (Última Sessão)',
+            'leads': 'Leads',
             'spend': 'Investimento (Pixel)',
             'purchase_value': 'Receita (Pixel)',
             'last_session_revenue': 'Receita (Última Sessão)',
@@ -339,6 +342,7 @@ def display_meta_ads_analysis():
             'CPC': 'CPC (Pixel)',
             'CPM': 'CPM (Pixel)',
             'CPV': 'CPV (Pixel)',
+            'CPL': 'CPL (Pixel)',
             'ROAS': 'ROAS (Pixel)',
             'ROAS Última Sessão': 'ROAS (Última Sessão)',
             'Lucro': 'Lucro (Pixel)',
@@ -349,10 +353,12 @@ def display_meta_ads_analysis():
             'Cliques (Pixel)': '{:,.0f}',
             'Vendas (Pixel)': '{:,.0f}',
             'Vendas (Última Sessão)': '{:,.0f}',
+            'Leads': '{:,.0f}',
             'CTR (Pixel)': '{:.2f}%',
             'CPC (Pixel)': 'R$ {:.2f}',
             'CPM (Pixel)': 'R$ {:.2f}',
             'CPV (Pixel)': 'R$ {:.2f}',
+            'CPL (Pixel)': 'R$ {:.2f}',
             'Investimento (Pixel)': 'R$ {:.2f}',
             'Receita (Pixel)': 'R$ {:.2f}',
             'Receita (Última Sessão)': 'R$ {:.2f}',
@@ -640,7 +646,7 @@ def display_general_view(df_ads):
         big_number_box(
             f"R$ {cpv:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
             "CPV Médio",
-            hint="Custo Por Venda Médio - Média do valor gasto em anúncios para conseguir uma venda"
+            hint="Custo Por Venda - Média do valor gasto em anúncios para conseguir uma venda"
         )
 
     col1, col2, col3 = st.columns(3)
@@ -661,6 +667,14 @@ def display_general_view(df_ads):
             hint="Custo Por Aquisição - Média do valor gasto em anúncios para conseguir um novo cliente"
         )
 
+    with col3:
+        leads = df_ads['Leads'].sum()
+        big_number_box(
+            f"{leads:,.0f}".replace(",", "."),
+            "Leads",
+            hint="Número total de leads gerados através de mídia paga"
+        )
+
     st.markdown("---")
 
     # Gráficos de distribuição por plataforma
@@ -670,19 +684,21 @@ def display_general_view(df_ads):
     df_platform = df_ads.groupby('Plataforma').agg({
         'Investimento': 'sum',
         'Cliques': 'sum',
-        'Receita': 'sum'
+        'Receita': 'sum',
+        'Leads': 'sum'
     }).reset_index()
     
     # Garantir que os valores sejam numéricos
     df_platform['Investimento'] = pd.to_numeric(df_platform['Investimento'], errors='coerce')
     df_platform['Cliques'] = pd.to_numeric(df_platform['Cliques'], errors='coerce')
     df_platform['Receita'] = pd.to_numeric(df_platform['Receita'], errors='coerce')
+    df_platform['Leads'] = pd.to_numeric(df_platform['Leads'], errors='coerce')
     
     # Remover linhas com valores nulos
     df_platform = df_platform.dropna()
     
-    # Criar três colunas para os gráficos
-    col1, col2, col3 = st.columns(3)
+    # Criar quatro colunas para os gráficos
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown("**Investimento**")
@@ -765,6 +781,33 @@ def display_general_view(df_ads):
         
         st.plotly_chart(fig, use_container_width=True)
 
+    with col4:
+        st.markdown("**Leads**")
+        # Calcular percentuais
+        total_leads = df_platform['Leads'].sum()
+        df_platform['Leads_pct'] = (df_platform['Leads'] / total_leads * 100).round(1)
+        
+        # Gráfico de pizza para Leads
+        fig = px.pie(df_platform, 
+                    values='Leads', 
+                    names='Plataforma',
+                    title='')
+        
+        fig.update_traces(textposition='inside', 
+                         textinfo='percent',
+                         textfont_size=14)
+        
+        fig.update_layout(showlegend=True,
+                         legend=dict(
+                             orientation="v",
+                             yanchor="middle",
+                             y=0.5,
+                             xanchor="right",
+                             x=1.2
+                         ))
+        
+        st.plotly_chart(fig, use_container_width=True)
+
     st.markdown("---")
 
     # Filtros para a tabela
@@ -795,12 +838,14 @@ def display_general_view(df_ads):
         'Cliques': 'sum',
         'Transações': 'sum',
         'Primeiras Compras': 'sum',
+        'Leads': 'sum',
         'Receita': 'sum'
     }).reset_index()
 
     df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
     df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
     df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras'].replace(0, float('nan'))).round(2)
+    df_ads_agg['CPL'] = (df_ads_agg['Investimento'] / df_ads_agg['Leads'].replace(0, float('nan'))).round(2)
     df_ads_agg = df_ads_agg.sort_values(by='Receita', ascending=False)
     
     # Format the columns to have at most 2 decimal places
@@ -809,6 +854,7 @@ def display_general_view(df_ads):
     df_ads_agg['ROAS'] = df_ads_agg['ROAS'].round(2)
     df_ads_agg['CPV'] = df_ads_agg['CPV'].round(2)
     df_ads_agg['CPA'] = df_ads_agg['CPA'].round(2)
+    df_ads_agg['CPL'] = df_ads_agg['CPL'].round(2)
     
     st.data_editor(
         df_ads_agg.style.format({
@@ -817,10 +863,12 @@ def display_general_view(df_ads):
             'Cliques': '{:,.0f}',
             'Transações': '{:,.0f}',
             'Primeiras Compras': '{:,.0f}',
+            'Leads': '{:,.0f}',
             'Receita': 'R$ {:,.2f}',
             'ROAS': '{:,.2f}',
             'CPV': 'R$ {:,.2f}',
-            'CPA': 'R$ {:,.2f}'
+            'CPA': 'R$ {:,.2f}',
+            'CPL': 'R$ {:,.2f}'
         }),
         hide_index=True,
         use_container_width=True
