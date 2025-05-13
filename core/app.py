@@ -75,9 +75,12 @@ def load_app():
             # Load paid media data
             start_time = time.time()
             paid_media = load_basic_data()
-            paid_media = paid_media['Investimento'].sum()
-            if paid_media > 0:
-                paid_media = pd.DataFrame([{'value': paid_media}])
+            if not paid_media.empty and 'Investimento' in paid_media.columns:
+                paid_media_sum = paid_media['Investimento'].sum()
+                if paid_media_sum > 0:
+                    paid_media = pd.DataFrame([{'value': paid_media_sum}])
+                else:
+                    paid_media = pd.DataFrame()
             else:
                 paid_media = pd.DataFrame()
         
