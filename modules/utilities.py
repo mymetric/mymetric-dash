@@ -42,5 +42,7 @@ def send_discord_message(message, username="Alert Bot"):
         print(f"Failed to send message. Status code: {response.status_code}") 
 
 def send_message(message):
-    send_zapi_message(message)
-    send_discord_message(message)
+    tablename = st.session_state.get('tablename', 'N/A')
+    message_with_client = f"[{tablename}] {message}"
+    send_zapi_message(message_with_client)
+    send_discord_message(message_with_client)
