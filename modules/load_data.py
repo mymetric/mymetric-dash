@@ -11,6 +11,19 @@ import base64
 import threading
 from functools import wraps
 from datetime import datetime, timedelta
+
+def get_project_name(tablename):
+    """
+    Returns the appropriate project name based on the tablename.
+    
+    Args:
+        tablename (str): The name of the table
+        
+    Returns:
+        str: The project name to use ('bq-mktbr' for havaianas, 'mymetric-hub-shopify' for others)
+    """
+    return 'bq-mktbr' if tablename == 'havaianas' else 'mymetric-hub-shopify'
+
 # Function to check and update session state expiration
 def toast_alerts():
         return False
@@ -283,6 +296,9 @@ def load_basic_data():
     elif attribution_model == 'Primeiro Clique':
         attribution_model = 'fs_purchase'
     
+    # Use get_project_name only for non-dbt_config datasets
+    project_name = get_project_name(tablename)
+    
     query = f"""
         SELECT
             event_date AS Data,
@@ -293,12 +309,12 @@ def load_basic_data():
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = '{attribution_model}' then value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) end) `Receita`,
-            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Paga`,
-            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' and transaction_no = 1 THEN transaction_id END) `Novos Clientes`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Paga`,
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN transaction_id END) `Novos Clientes`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`
 
-        FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+        FROM `{project_name}.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
         GROUP BY ALL
         ORDER BY Pedidos DESC
@@ -346,8 +362,8 @@ def load_detailed_data():
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = '{attribution_model}' then value - total_discounts + shipping_value end) `Receita`,
-            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`
+            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
+            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`
 
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
@@ -573,7 +589,7 @@ def load_current_month_revenue():
     ultimo_dia = hoje.strftime('%Y-%m-%d')
     
     query = f"""
-    SELECT SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value ELSE 0 END) as total_mes
+    SELECT SUM(CASE WHEN event_name = 'purchase' and status in ('paid', 'authorized') THEN value ELSE 0 END) as total_mes
     FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
     WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
     """
@@ -604,8 +620,8 @@ def load_today_data():
             COUNTIF(event_name = 'session') `Sessões`,
             COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
-            COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status = 'paid' THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = 'purchase' and status = 'paid' THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
+            COUNT(DISTINCT CASE WHEN event_name = 'purchase' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
+            SUM(CASE WHEN event_name = 'purchase' and status in ('paid', 'authorized') THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`,
             COUNT(DISTINCT CASE WHEN event_name = 'fs_purchase' then transaction_id end) `Pedidos Primeiro Clique`
         FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
         WHERE event_date = '{today_str}'
