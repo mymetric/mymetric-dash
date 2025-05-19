@@ -221,6 +221,7 @@ if check_password():
             selected_user = st.selectbox("Escolha", options=user_names, index=None)
             # st.write(f"Selecionado: {selected_user}")
             st.session_state.tablename = selected_user
+            st.session_state.admin = True  # Garantir que admin permanece True para usuário mymetric
             # Exibe o dashboard como se o usuário selecionado estivesse autenticado
         if selected_user:
             load_app()
@@ -239,6 +240,7 @@ if check_password():
             selected_client = st.selectbox("Escolha o cliente", options=client_options)
             st.write(f"Cliente selecionado: {selected_client}")
             st.session_state.tablename = selected_client
+            st.session_state.admin = True  # Garantir que admin permanece True para usuário alvisi
         load_app()
     else:
         # Exibe o dashboard para o usuário autenticado
