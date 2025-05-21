@@ -1024,7 +1024,7 @@ def display_general_view(df_ads):
 
     # Calcular métricas baseado no modelo de atribuição selecionado
     if modelo_atribuicao == "Last Non Direct Click":
-        df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'])
+        df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPL'] = (df_ads_agg['Investimento'] / df_ads_agg['Leads'].replace(0, float('nan'))).round(2)
