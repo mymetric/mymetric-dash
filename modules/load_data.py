@@ -348,7 +348,7 @@ def load_detailed_data():
     attribution_model = 'purchase' if attribution_model == 'Último Clique Não Direto' else 'fs_purchase'
     
     project_name = get_project_name(tablename)
-    
+
     query = f"""
         SELECT
             event_date AS Data,
@@ -900,6 +900,8 @@ def load_funnel_data():
     # Otimização para quando as datas são iguais
     date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date BETWEEN '{start_date_str}' AND '{end_date_str}'"
     
+    project_name = get_project_name(tablename)
+
     query = f"""
     SELECT 
         event_date `Data`,
@@ -909,7 +911,7 @@ def load_funnel_data():
         add_shipping_info `Adicionar Informação de Frete`,
         add_payment_info `Adicionar Informação de Pagamento`,
         purchase `Pedido`
-    FROM `mymetric-hub-shopify.dbt_aggregated.{tablename}_daily_metrics`
+    FROM `{project_name}.dbt_aggregated.{tablename}_daily_metrics`
     WHERE {date_condition}
     ORDER BY event_date
     """
@@ -943,6 +945,8 @@ def load_enhanced_ecommerce_funnel():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
+    project_name = get_project_name(tablename)
+
     query = f"""
         select
             event_date `Data`,
@@ -961,7 +965,7 @@ def load_enhanced_ecommerce_funnel():
             add_payment_info_to_purchase_rate `Taxa de Adição de Informação de Pagamento para Pedido`,
             view_item_to_purchase_rate `Taxa de Visualização de Item para Pedido`	
 
-        from `mymetric-hub-shopify.dbt_aggregated.{tablename}_enhanced_ecommerce_funnel`
+        from `{project_name}.dbt_aggregated.{tablename}_enhanced_ecommerce_funnel`
 
         where event_date between '{start_date_str}' and '{end_date_str}'
     """
@@ -981,7 +985,7 @@ def load_paid_media():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
-    
+    project_name = get_project_name(tablename)
 
     query = f"""
         SELECT
@@ -999,7 +1003,7 @@ def load_paid_media():
             sum(fsm_revenue) `Receita Primeiro Lead`,
             sum(leads) `Leads`
         FROM
-            `mymetric-hub-shopify.dbt_join.{tablename}_ads_campaigns_results`
+            `{project_name}.dbt_join.{tablename}_ads_campaigns_results`
         WHERE
             date BETWEEN '{start_date_str}' AND '{end_date_str}'
         GROUP BY ALL
@@ -1076,6 +1080,7 @@ def load_last_orders():
     start_date_str = st.session_state.start_date
     end_date_str = st.session_state.end_date
 
+    project_name = get_project_name(tablename)
     query = f"""
         SELECT
             created_at `Horário`,
@@ -1093,7 +1098,7 @@ def load_last_orders():
             fs_campaign `Campanha Primeiro Clique`,
             page_location `Página de Entrada`,
             page_params `Parâmetros de URL`
-        FROM `mymetric-hub-shopify.dbt_join.{tablename}_orders_sessions`
+        FROM `{project_name}.dbt_join.{tablename}_orders_sessions`
         WHERE date(created_at) BETWEEN '{start_date_str}' AND '{end_date_str}'
         ORDER BY created_at DESC
     """
@@ -1834,6 +1839,8 @@ def load_purchase_items():
     if not tablename:
         raise ValueError("tablename não está definido na sessão")
 
+    project_name = get_project_name(tablename)
+
     query = f"""
         SELECT
             event_timestamp,
@@ -1850,7 +1857,7 @@ def load_purchase_items():
             term,
             page_location
         FROM
-            `mymetric-hub-shopify.dbt_join.{tablename}_purchases_items_sessions_realtime`
+            `{project_name}.dbt_join.{tablename}_purchases_items_sessions_realtime`
     """
 
     df = run_queries([query])[0]
@@ -1871,6 +1878,7 @@ def load_purchase_items_sessions():
     # Otimização para quando as datas são iguais
     date_condition = f"event_date = '{start_date_str}'" if start_date_str == end_date_str else f"event_date BETWEEN '{start_date_str}' AND '{end_date_str}'"
 
+    project_name = get_project_name(tablename)
     query = f"""
         SELECT
             event_date `Data`,
@@ -1885,7 +1893,7 @@ def load_purchase_items_sessions():
             content `Conteúdo`,
             term `Termo`,
             landing_page `Página de Entrada`
-        FROM `mymetric-hub-shopify.dbt_join.{tablename}_enhanced_ecommerce_sessions`, 
+        FROM `{project_name}.dbt_join.{tablename}_enhanced_ecommerce_sessions`, 
         UNNEST(items) as item
         WHERE event_name = "purchase"
         AND {date_condition}
