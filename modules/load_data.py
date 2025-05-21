@@ -1021,6 +1021,8 @@ def load_performance_alerts():
     if not tablename:
         raise ValueError("tablename não está definido na sessão")
 
+    project_name = get_project_name(tablename)
+    
     query = f"""
     WITH daily_rates AS (
         SELECT 
@@ -1036,7 +1038,7 @@ def load_performance_alerts():
             SAFE_DIVIDE(add_shipping_info, NULLIF(begin_checkout, 0)) * 100 as taxa_shipping,
             SAFE_DIVIDE(add_payment_info, NULLIF(add_shipping_info, 0)) * 100 as taxa_payment,
             SAFE_DIVIDE(purchase, NULLIF(add_payment_info, 0)) * 100 as taxa_purchase
-        FROM `mymetric-hub-shopify.dbt_aggregated.{tablename}_daily_metrics`
+        FROM `{project_name}.dbt_aggregated.{tablename}_daily_metrics`
         WHERE event_date >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 30 DAY)
     ),
     stats AS (
