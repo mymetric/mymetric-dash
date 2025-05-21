@@ -347,6 +347,8 @@ def load_detailed_data():
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
     attribution_model = 'purchase' if attribution_model == 'Último Clique Não Direto' else 'fs_purchase'
     
+    project_name = get_project_name(tablename)
+    
     query = f"""
         SELECT
             event_date AS Data,
@@ -357,6 +359,7 @@ def load_detailed_data():
             page_location `Página de Entrada`,
             content `Conteúdo`,
             coalesce(discount_code, 'Sem Cupom') `Cupom`,
+            traffic_category `Cluster`,
 
             COUNTIF(event_name = 'session') `Sessões`,
             COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
@@ -365,7 +368,7 @@ def load_detailed_data():
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
             SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value - total_discounts + shipping_value ELSE 0 END) `Receita Paga`
 
-        FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+        FROM `{project_name}.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
         GROUP BY ALL
         ORDER BY Pedidos DESC
@@ -378,8 +381,13 @@ def load_detailed_data():
     if df.empty:
         return pd.DataFrame()
     
-    # Inicializar a coluna Cluster com valores padrão
-    df['Cluster'] = df.apply(traffic_cluster, axis=1)
+    # Ensure required columns exist
+    required_columns = ['Origem', 'Mídia', 'Cluster']
+    if not all(col in df.columns for col in required_columns):
+        print(f"Missing columns: {[col for col in required_columns if col not in df.columns]}")
+        # If Cluster is missing, create it
+        if 'Cluster' not in df.columns:
+            df['Cluster'] = df.apply(lambda row: traffic_cluster(row), axis=1)
     
     # Carregar categorias de tráfego
     categories_df = load_traffic_categories()
