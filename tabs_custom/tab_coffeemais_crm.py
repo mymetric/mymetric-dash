@@ -79,35 +79,42 @@ def display_tab_coffeemais_crm():
         - Se mais de uma mensagem for enviada nesse prazo e o cliente comprar, apenas a última mensagem será considerada como responsável pela venda
         """)
     
-    # Create tabs for different views
-    tab_geral, tab_email, tab_whatsapp, tab_erros = st.tabs(["Geral", "E-mail", "WhatsApp", "Erros WhatsApp"])
+    # Create tabs for main view and errors
+    tab_principal, tab_erros = st.tabs(["Métricas", "Erros WhatsApp"])
     
-    # Calculate metrics for all channels
-    total_sent = df['sent'].sum()
-    total_orders = df['orders'].sum()
-    total_revenue = df['revenue'].sum()
-    conversion_rate = (total_orders / total_sent * 100) if total_sent > 0 else 0
-    avg_revenue_per_order = (total_revenue / total_orders) if total_orders > 0 else 0
-    
-    # Calculate email metrics
-    df_email = df[df['channel'] == 'email']
-    email_sent = df_email['sent'].sum()
-    email_orders = df_email['orders'].sum()
-    email_revenue = df_email['revenue'].sum()
-    email_conversion = (email_orders / email_sent * 100) if email_sent > 0 else 0
-    email_avg_order = (email_revenue / email_orders) if email_orders > 0 else 0
-    
-    # Calculate WhatsApp metrics
-    df_whatsapp = df[df['channel'] == 'whatsapp']
-    whatsapp_sent = df_whatsapp['sent'].sum()
-    whatsapp_orders = df_whatsapp['orders'].sum()
-    whatsapp_revenue = df_whatsapp['revenue'].sum()
-    whatsapp_conversion = (whatsapp_orders / whatsapp_sent * 100) if whatsapp_sent > 0 else 0
-    whatsapp_avg_order = (whatsapp_revenue / whatsapp_orders) if whatsapp_orders > 0 else 0
-    
-    # Display metrics in General tab
-    with tab_geral:
-        col1, col2, col3, col4, col5 = st.columns(5)
+    with tab_principal:
+        # Calculate metrics for all channels
+        total_sent = df['sent'].sum()
+        total_orders = df['orders'].sum()
+        total_revenue = df['revenue'].sum()
+        conversion_rate = (total_orders / total_sent * 100) if total_sent > 0 else 0
+        avg_revenue_per_order = (total_revenue / total_orders) if total_orders > 0 else 0
+        
+        # Calculate email metrics
+        df_email = df[df['channel'] == 'email']
+        email_sent = df_email['sent'].sum()
+        email_orders = df_email['orders'].sum()
+        email_revenue = df_email['revenue'].sum()
+        email_conversion = (email_orders / email_sent * 100) if email_sent > 0 else 0
+        email_avg_order = (email_revenue / email_orders) if email_orders > 0 else 0
+        
+        # Calculate WhatsApp metrics
+        df_whatsapp = df[df['channel'] == 'whatsapp']
+        whatsapp_sent = df_whatsapp['sent'].sum()
+        whatsapp_orders = df_whatsapp['orders'].sum()
+        whatsapp_revenue = df_whatsapp['revenue'].sum()
+        whatsapp_conversion = (whatsapp_orders / whatsapp_sent * 100) if whatsapp_sent > 0 else 0
+        whatsapp_avg_order = (whatsapp_revenue / whatsapp_orders) if whatsapp_orders > 0 else 0
+        
+        # Load detailed data for hours calculation
+        df_detailed = load_coffeemais_crm_detailed()
+        total_avg_hours = df_detailed['hours_between'].mean()
+        email_avg_hours = df_detailed[df_detailed['channel'] == 'email']['hours_between'].mean()
+        whatsapp_avg_hours = df_detailed[df_detailed['channel'] == 'whatsapp']['hours_between'].mean()
+        
+        # Display total metrics
+        st.subheader("📊 Métricas Totais")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             big_number_box(
@@ -143,10 +150,17 @@ def display_tab_coffeemais_crm():
                 label="Ticket Médio",
                 hint="Valor médio por pedido"
             )
-    
-    # Display metrics in Email tab
-    with tab_email:
-        col1, col2, col3, col4, col5 = st.columns(5)
+
+        with col6:
+            big_number_box(
+                data=f"{total_avg_hours:.1f}".replace(".", ","),
+                label="Média de Horas até a Compra",
+                hint="Tempo médio em horas entre o envio da mensagem e a realização da compra"
+            )
+        
+        # Display email metrics
+        st.subheader("📧 Métricas de E-mail")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             big_number_box(
@@ -182,10 +196,17 @@ def display_tab_coffeemais_crm():
                 label="Ticket Médio",
                 hint="Valor médio por pedido via e-mail"
             )
-    
-    # Display metrics in WhatsApp tab
-    with tab_whatsapp:
-        col1, col2, col3, col4, col5 = st.columns(5)
+
+        with col6:
+            big_number_box(
+                data=f"{email_avg_hours:.1f}".replace(".", ","),
+                label="Média de Horas até a Compra",
+                hint="Tempo médio em horas entre o envio do e-mail e a realização da compra"
+            )
+        
+        # Display WhatsApp metrics
+        st.subheader("💬 Métricas de WhatsApp")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             big_number_box(
@@ -221,207 +242,261 @@ def display_tab_coffeemais_crm():
                 label="Ticket Médio",
                 hint="Valor médio por pedido via WhatsApp"
             )
-    
-    # Add spacing
-    st.markdown("---")
-    
-    # Add filters
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        # Filter by channel
-        channel_names = ['Todos'] + sorted(df['channel'].unique().tolist())
-        channel_labels = {
-            'Todos': 'Todos os Canais',
-            'email': '📧 E-mail',
-            'whatsapp': '💬 WhatsApp'
-        }
-        selected_channel = st.selectbox(
-            'Filtrar por Canal:',
-            channel_names,
-            format_func=lambda x: channel_labels.get(x, x)
-        )
-    
-    with col2:
-        # Filter by segment
-        segment_names = ['Todos'] + sorted(df['segment'].unique().tolist())
-        selected_segment = st.selectbox('Filtrar por Segmento:', segment_names)
-    
-    with col3:
-        # Filter by segment type
-        segment_types = ['Todos'] + sorted(df['segment_type'].unique().tolist())
-        selected_segment_type = st.selectbox('Filtrar por Tipo de Segmento:', segment_types)
-    
-    with col4:
-        # Filter by disparo type
-        disparo_types = ['Todos'] + sorted(df['disparo_type'].unique().tolist())
-        selected_disparo_type = st.selectbox('Filtrar por Tipo de Disparo:', disparo_types)
-    
-    # Add notification filter in a new line with full width
-    # Filter by notification name
-    notification_names = ['Todos'] + sorted(df['name'].unique().tolist())
-    selected_notification = st.selectbox('Filtrar por Nome da Notificação:', notification_names)
-    
-    # Filter the dataframe
-    filtered_df = df.copy()
-    
-    # Apply channel filter
-    if selected_channel != 'Todos':
-        filtered_df = filtered_df[filtered_df['channel'] == selected_channel]
-    
-    # Apply segment filter
-    if selected_segment != 'Todos':
-        filtered_df = filtered_df[filtered_df['segment'] == selected_segment]
-    
-    # Apply segment type filter
-    if selected_segment_type != 'Todos':
-        filtered_df = filtered_df[filtered_df['segment_type'] == selected_segment_type]
-    
-    # Apply disparo type filter
-    if selected_disparo_type != 'Todos':
-        filtered_df = filtered_df[filtered_df['disparo_type'] == selected_disparo_type]
-    
-    # Apply notification filter
-    if selected_notification != 'Todos':
-        filtered_df = filtered_df[filtered_df['name'] == selected_notification]
-    
-    # Calculate conversion rate for each row
-    filtered_df['conversion_rate'] = (filtered_df['orders'] / filtered_df['sent'] * 100).round(2)
-    
-    # Calculate open rate and failure rate
-    filtered_df['open_rate'] = (filtered_df['read'] / filtered_df['sent'] * 100).round(2)
-    filtered_df['failure_rate'] = (filtered_df['failed'] / filtered_df['sent'] * 100).round(2)
-    
-    # Format the dates
-    filtered_df['date_first_sent'] = pd.to_datetime(filtered_df['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
-    filtered_df['date_last_sent'] = pd.to_datetime(filtered_df['date_last_sent']).dt.strftime('%d/%m/%Y %H:%M')
-    
-    # Rename columns for better presentation
-    filtered_df = filtered_df.rename(columns={
-        'channel': 'Canal',
-        'date_first_sent': 'Primeiro Envio',
-        'date_last_sent': 'Último Envio',
-        'days_between': 'Dias Entre Envios',
-        'name': 'Nome da Notificação',
-        'segment': 'Nome do Segmento',
-        'segment_type': 'Tipo de Segmento',
-        'disparo_type': 'Tipo de Disparo',
-        'sent': 'Mensagens Enviadas',
-        'orders': 'Pedidos',
-        'revenue': 'Receita',
-        'conversion_rate': 'Taxa de Conversão (%)',
-        'open_rate': 'Taxa de Abertura (%)',
-        'failure_rate': 'Taxa de Falha (%)'
-    })
-    
-    # Reorder columns
-    columns_order = [
-        'Canal',
-        'Tipo de Disparo',
-        'Nome do Segmento',
-        'Tipo de Segmento',
-        'Nome da Notificação',
-        'Primeiro Envio',
-        'Último Envio',
-        'Mensagens Enviadas',
-        'Pedidos',
-        'Taxa de Conversão (%)',
-        'Taxa de Abertura (%)',
-        'Taxa de Falha (%)',
-        'Receita'
-    ]
-    filtered_df = filtered_df[columns_order]
-    
-    # Display the dataframe with sorting enabled
-    st.dataframe(
-        filtered_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            'Receita': st.column_config.NumberColumn(
-                'Receita',
-                format="R$ %.2f"
-            ),
-            'Taxa de Conversão (%)': st.column_config.NumberColumn(
-                'Taxa de Conversão (%)',
-                format="%.2f%%"
-            ),
-            'Taxa de Abertura (%)': st.column_config.NumberColumn(
-                'Taxa de Abertura (%)',
-                format="%.2f%%"
-            ),
-            'Taxa de Falha (%)': st.column_config.NumberColumn(
-                'Taxa de Falha (%)',
-                format="%.2f%%"
-            )
-        }
-    )
 
-    with st.spinner("Carregando dados detalhados de envio..."):
-        df_detailed = load_coffeemais_crm_detailed()
+        with col6:
+            big_number_box(
+                data=f"{whatsapp_avg_hours:.1f}".replace(".", ","),
+                label="Média de Horas até a Compra",
+                hint="Tempo médio em horas entre o envio da mensagem de WhatsApp e a realização da compra"
+            )
         
-        # Format dates
-        df_detailed['date_first_sent'] = pd.to_datetime(df_detailed['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
-        df_detailed['date_last_sent'] = pd.to_datetime(df_detailed['date_last_sent']).dt.strftime('%d/%m/%Y %H:%M')
+        # Add spacing
+        st.markdown("---")
         
-        # Add title
-        st.subheader("Detalhamento de Mensagens")
+        # Add filters
+        col1, col2, col3, col4 = st.columns(4)
         
-        # Add email search filter
-        email_search = st.text_input('Buscar por E-mail:', '')
-        if email_search:
-            df_detailed = df_detailed[df_detailed['email'].str.contains(email_search, case=False, na=False)]
+        with col1:
+            # Filter by channel
+            channel_names = ['Todos'] + sorted(df['channel'].unique().tolist())
+            channel_labels = {
+                'Todos': 'Todos os Canais',
+                'email': '📧 E-mail',
+                'whatsapp': '💬 WhatsApp'
+            }
+            selected_channel = st.selectbox(
+                'Filtrar por Canal:',
+                channel_names,
+                format_func=lambda x: channel_labels.get(x, x)
+            )
         
-        # Sort by date_first_sent in descending order
-        df_detailed = df_detailed.sort_values('date_first_sent', ascending=False)
+        with col2:
+            # Filter by segment
+            segment_names = ['Todos'] + sorted(df['segment'].unique().tolist())
+            selected_segment = st.selectbox('Filtrar por Segmento:', segment_names)
         
-        # Rename columns
-        df_detailed = df_detailed.rename(columns={
+        with col3:
+            # Filter by segment type
+            segment_types = ['Todos'] + sorted(df['segment_type'].unique().tolist())
+            selected_segment_type = st.selectbox('Filtrar por Tipo de Segmento:', segment_types)
+        
+        with col4:
+            # Filter by disparo type
+            disparo_types = ['Todos'] + sorted(df['disparo_type'].unique().tolist())
+            selected_disparo_type = st.selectbox('Filtrar por Tipo de Disparo:', disparo_types)
+        
+        # Add notification filter in a new line with full width
+        # Filter by notification name
+        notification_names = ['Todos'] + sorted(df['name'].unique().tolist())
+        selected_notification = st.selectbox('Filtrar por Nome da Notificação:', notification_names)
+        
+        # Filter the dataframe
+        filtered_df = df.copy()
+        
+        # Apply channel filter
+        if selected_channel != 'Todos':
+            filtered_df = filtered_df[filtered_df['channel'] == selected_channel]
+        
+        # Apply segment filter
+        if selected_segment != 'Todos':
+            filtered_df = filtered_df[filtered_df['segment'] == selected_segment]
+        
+        # Apply segment type filter
+        if selected_segment_type != 'Todos':
+            filtered_df = filtered_df[filtered_df['segment_type'] == selected_segment_type]
+        
+        # Apply disparo type filter
+        if selected_disparo_type != 'Todos':
+            filtered_df = filtered_df[filtered_df['disparo_type'] == selected_disparo_type]
+        
+        # Apply notification filter
+        if selected_notification != 'Todos':
+            filtered_df = filtered_df[filtered_df['name'] == selected_notification]
+        
+        # Calculate conversion rate for each row
+        filtered_df['conversion_rate'] = (filtered_df['orders'] / filtered_df['sent'] * 100).round(2)
+        
+        # Calculate open rate and failure rate
+        filtered_df['open_rate'] = (filtered_df['read'] / filtered_df['sent'] * 100).round(2)
+        filtered_df['failure_rate'] = (filtered_df['failed'] / filtered_df['sent'] * 100).round(2)
+        
+        # Format the dates
+        filtered_df['date_first_sent'] = pd.to_datetime(filtered_df['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
+        filtered_df['date_last_sent'] = pd.to_datetime(filtered_df['date_last_sent']).dt.strftime('%d/%m/%Y %H:%M')
+        
+        # Rename columns for better presentation
+        filtered_df = filtered_df.rename(columns={
             'channel': 'Canal',
-            'id_notificacao': 'ID da Notificação',
-            'id_disparo': 'ID do Disparo',
-            'email': 'E-mail',
-            'date_first_sent': 'Data do Envio',
+            'date_first_sent': 'Primeiro Envio',
+            'date_last_sent': 'Último Envio',
+            'days_between': 'Dias Entre Envios',
             'name': 'Nome da Notificação',
+            'segment': 'Nome do Segmento',
+            'segment_type': 'Tipo de Segmento',
+            'disparo_type': 'Tipo de Disparo',
             'sent': 'Mensagens Enviadas',
-            'delivered': 'Mensagens Entregues',
-            'failed': 'Mensagens com Falha',
-            'read': 'Mensagens Lidas',
-            'order_id': 'ID Pedido',
             'orders': 'Pedidos',
-            'revenue': 'Receita'
+            'revenue': 'Receita',
+            'conversion_rate': 'Taxa de Conversão (%)',
+            'open_rate': 'Taxa de Abertura (%)',
+            'failure_rate': 'Taxa de Falha (%)'
         })
         
         # Reorder columns
         columns_order = [
             'Canal',
-            'ID da Notificação',
-            'ID do Disparo',
-            'E-mail',
+            'Tipo de Disparo',
+            'Nome do Segmento',
+            'Tipo de Segmento',
             'Nome da Notificação',
-            'Data do Envio',
+            'Primeiro Envio',
+            'Último Envio',
             'Mensagens Enviadas',
-            'Mensagens Entregues',
-            'Mensagens com Falha',
-            'Mensagens Lidas',
-            'ID Pedido',
             'Pedidos',
+            'Taxa de Conversão (%)',
+            'Taxa de Abertura (%)',
+            'Taxa de Falha (%)',
             'Receita'
         ]
-        df_detailed = df_detailed[columns_order]
+        filtered_df = filtered_df[columns_order]
         
         # Display the dataframe with sorting enabled
-        st.dataframe(
-            df_detailed,
+        st.data_editor(
+            filtered_df,
             use_container_width=True,
             hide_index=True,
             column_config={
                 'Receita': st.column_config.NumberColumn(
                     'Receita',
-                    format="R$ %.2f"
+                    format="R$ %.2f",
+                    help="Valor total da receita"
+                ),
+                'Taxa de Conversão (%)': st.column_config.NumberColumn(
+                    'Taxa de Conversão (%)',
+                    format="%.2f%%",
+                    help="Percentual de mensagens que geraram pedidos"
+                ),
+                'Taxa de Abertura (%)': st.column_config.NumberColumn(
+                    'Taxa de Abertura (%)',
+                    format="%.2f%%",
+                    help="Percentual de mensagens que foram abertas"
+                ),
+                'Taxa de Falha (%)': st.column_config.NumberColumn(
+                    'Taxa de Falha (%)',
+                    format="%.2f%%",
+                    help="Percentual de mensagens que falharam no envio"
+                ),
+                'Mensagens Enviadas': st.column_config.NumberColumn(
+                    'Mensagens Enviadas',
+                    format="%.0f",
+                    help="Número total de mensagens enviadas"
+                ),
+                'Pedidos': st.column_config.NumberColumn(
+                    'Pedidos',
+                    format="%.0f",
+                    help="Número total de pedidos"
                 )
             }
         )
+
+        with st.spinner("Carregando dados detalhados de envio..."):
+            df_detailed = load_coffeemais_crm_detailed()
+            
+            # Format dates
+            df_detailed['date_first_sent'] = pd.to_datetime(df_detailed['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
+            df_detailed['date_last_sent'] = pd.to_datetime(df_detailed['date_last_sent']).dt.strftime('%d/%m/%Y %H:%M')
+            
+            # Add title
+            st.subheader("Detalhamento de Mensagens")
+            
+            # Add email search filter
+            email_search = st.text_input('Buscar por E-mail:', '')
+            if email_search:
+                df_detailed = df_detailed[df_detailed['email'].str.contains(email_search, case=False, na=False)]
+            
+            # Sort by date_first_sent in descending order
+            df_detailed = df_detailed.sort_values('date_first_sent', ascending=False)
+            
+            # Rename columns
+            df_detailed = df_detailed.rename(columns={
+                'channel': 'Canal',
+                'id_notificacao': 'ID da Notificação',
+                'id_disparo': 'ID do Disparo',
+                'email': 'E-mail',
+                'date_first_sent': 'Data do Envio',
+                'name': 'Nome da Notificação',
+                'sent': 'Mensagens Enviadas',
+                'delivered': 'Mensagens Entregues',
+                'failed': 'Mensagens com Falha',
+                'read': 'Mensagens Lidas',
+                'order_id': 'ID Pedido',
+                'orders': 'Pedidos',
+                'revenue': 'Receita',
+                'hours_between': 'Horas até a Compra'
+            })
+            
+            # Reorder columns
+            columns_order = [
+                'Canal',
+                'ID da Notificação',
+                'ID do Disparo',
+                'E-mail',
+                'Nome da Notificação',
+                'Data do Envio',
+                'Horas até a Compra',
+                'Mensagens Enviadas',
+                'Mensagens Entregues',
+                'Mensagens com Falha',
+                'Mensagens Lidas',
+                'ID Pedido',
+                'Pedidos',
+                'Receita'
+            ]
+            df_detailed = df_detailed[columns_order]
+            
+            # Display the dataframe with sorting enabled
+            st.data_editor(
+                df_detailed,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    'Receita': st.column_config.NumberColumn(
+                        'Receita',
+                        format="R$ %.2f",
+                        help="Valor total da receita"
+                    ),
+                    'Horas até a Compra': st.column_config.NumberColumn(
+                        'Horas até a Compra',
+                        format="%.0f",
+                        help="Tempo em horas entre o envio e a compra"
+                    ),
+                    'Mensagens Enviadas': st.column_config.NumberColumn(
+                        'Mensagens Enviadas',
+                        format="%.0f",
+                        help="Número total de mensagens enviadas"
+                    ),
+                    'Mensagens Entregues': st.column_config.NumberColumn(
+                        'Mensagens Entregues',
+                        format="%.0f",
+                        help="Número de mensagens entregues com sucesso"
+                    ),
+                    'Mensagens com Falha': st.column_config.NumberColumn(
+                        'Mensagens com Falha',
+                        format="%.0f",
+                        help="Número de mensagens que falharam no envio"
+                    ),
+                    'Mensagens Lidas': st.column_config.NumberColumn(
+                        'Mensagens Lidas',
+                        format="%.0f",
+                        help="Número de mensagens que foram lidas"
+                    ),
+                    'Pedidos': st.column_config.NumberColumn(
+                        'Pedidos',
+                        format="%.0f",
+                        help="Número total de pedidos"
+                    )
+                }
+            )
 
     # Display WhatsApp errors analysis
     with tab_erros:

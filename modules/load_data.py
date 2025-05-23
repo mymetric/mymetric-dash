@@ -1022,7 +1022,7 @@ def load_performance_alerts():
         raise ValueError("tablename não está definido na sessão")
 
     project_name = get_project_name(tablename)
-    
+
     query = f"""
     WITH daily_rates AS (
         SELECT 
@@ -1239,6 +1239,7 @@ def load_coffeemais_crm_detailed():
         sum(case when type in("failed") then 1 else 0 end) failed,
         sum(case when type in("read") then 1 else 0 end) read,
         order_id,
+        hours_between,
         count(distinct order_id) orders,
         sum(revenue) revenue
 
