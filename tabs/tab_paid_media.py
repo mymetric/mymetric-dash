@@ -651,33 +651,51 @@ def display_general_view(df_ads):
         ℹ️ Os resultados apresentados nesta aba são baseados na atribuição de último clique não direto, cruzando dados de Google e Meta Ads, Google Analytics e Plataforma de E-commerce.
     """)
 
+    # Filtros no topo da página
+    col1, col2 = st.columns(2)
+    platform_options = ["Todas"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
+    campaign_options = ["Todas"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
+
+    with col1:
+        selected_platform = st.selectbox("Plataforma:", platform_options)
+
+    with col2:
+        selected_campaign = st.selectbox("Campanha:", campaign_options)
+
+    # Aplicar filtros
+    df_filtered = df_ads.copy()
+    if selected_platform != "Todas":
+        df_filtered = df_filtered[df_filtered['Plataforma'] == selected_platform]
+    if selected_campaign != "Todas":
+        df_filtered = df_filtered[df_filtered['Campanha'] == selected_campaign]
+
     # Métricas gerais
-    total_impressoes = df_ads['Impressões'].sum()
-    total_cliques = df_ads['Cliques'].sum()
-    total_transacoes = df_ads['Transações'].sum()
+    total_impressoes = df_filtered['Impressões'].sum()
+    total_cliques = df_filtered['Cliques'].sum()
+    total_transacoes = df_filtered['Transações'].sum()
     ctr = (total_cliques / total_impressoes * 100) if total_impressoes > 0 else 0
     taxa_conversao = (total_transacoes / total_cliques * 100) if total_cliques > 0 else 0
-    cpc = df_ads['Investimento'].sum() / total_cliques if total_cliques > 0 else 0
+    cpc = df_filtered['Investimento'].sum() / total_cliques if total_cliques > 0 else 0
 
     col1, col2, col3 = st.columns(3)
     
     with col1:
         big_number_box(
-            format_currency(df_ads['Investimento'].sum()), 
+            format_currency(df_filtered['Investimento'].sum()), 
             "Investimento",
             hint="Total investido em mídia paga no período selecionado (Google Ads + Meta Ads)"
         )
     
     with col2:
         big_number_box(
-            format_currency(df_ads['Receita'].sum()), 
+            format_currency(df_filtered['Receita'].sum()), 
             "Receita",
             hint="Receita total gerada por mídia paga no período selecionado"
         )
     
     with col3:
         big_number_box(
-            f"{df_ads['Receita'].sum()/df_ads['Investimento'].sum():,.2f}".replace(".", ","), 
+            f"{df_filtered['Receita'].sum()/df_filtered['Investimento'].sum():,.2f}".replace(".", ","), 
             "ROAS",
             hint="Return On Ad Spend - Retorno sobre o investimento em anúncios (Receita/Investimento). Exemplo: ROAS 3 significa que para cada R$1 investido, retornou R$3 em vendas"
         )
@@ -722,7 +740,7 @@ def display_general_view(df_ads):
         )
 
     with col3:
-        cpv = df_ads['Investimento'].sum() / df_ads['Transações'].sum() if df_ads['Transações'].sum() > 0 else 0
+        cpv = df_filtered['Investimento'].sum() / df_filtered['Transações'].sum() if df_filtered['Transações'].sum() > 0 else 0
         big_number_box(
             format_currency(cpv),
             "CPV Médio",
@@ -732,7 +750,7 @@ def display_general_view(df_ads):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        primeiras_compras = df_ads['Primeiras Compras'].sum()
+        primeiras_compras = df_filtered['Primeiras Compras'].sum()
         big_number_box(
             f"{primeiras_compras:,.0f}".replace(",", "."),
             "Primeiras Compras",
@@ -740,7 +758,7 @@ def display_general_view(df_ads):
         )
 
     with col2:
-        cpa = df_ads['Investimento'].sum() / primeiras_compras if primeiras_compras > 0 else 0
+        cpa = df_filtered['Investimento'].sum() / primeiras_compras if primeiras_compras > 0 else 0
         big_number_box(
             format_currency(cpa),
             "CPA Médio",
@@ -748,7 +766,7 @@ def display_general_view(df_ads):
         )
 
     with col3:
-        leads = df_ads['Leads'].sum()
+        leads = df_filtered['Leads'].sum()
         big_number_box(
             f"{leads:,.0f}".replace(",", "."),
             "Leads",
@@ -759,7 +777,7 @@ def display_general_view(df_ads):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        vendas = df_ads['Transações'].sum()
+        vendas = df_filtered['Transações'].sum()
         big_number_box(
             f"{vendas:,.0f}".replace(",", "."),
             "Vendas",
@@ -767,7 +785,7 @@ def display_general_view(df_ads):
         )
 
     with col2:
-        receita = df_ads['Receita'].sum()
+        receita = df_filtered['Receita'].sum()
         big_number_box(
             format_currency(receita),
             "Receita",
@@ -775,7 +793,7 @@ def display_general_view(df_ads):
         )
 
     with col3:
-        roas = receita / df_ads['Investimento'].sum() if df_ads['Investimento'].sum() > 0 else 0
+        roas = receita / df_filtered['Investimento'].sum() if df_filtered['Investimento'].sum() > 0 else 0
         big_number_box(
             f"{roas:.2f}".replace(".", ","),
             "ROAS",
@@ -786,7 +804,7 @@ def display_general_view(df_ads):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        fsm_transactions = df_ads['Transações Primeiro Lead'].sum()
+        fsm_transactions = df_filtered['Transações Primeiro Lead'].sum()
         big_number_box(
             f"{fsm_transactions:,.0f}".replace(",", "."),
             "Vendas (First Lead)",
@@ -794,7 +812,7 @@ def display_general_view(df_ads):
         )
 
     with col2:
-        fsm_revenue = df_ads['Receita Primeiro Lead'].sum()
+        fsm_revenue = df_filtered['Receita Primeiro Lead'].sum()
         big_number_box(
             format_currency(fsm_revenue),
             "Receita (First Lead)",
@@ -802,7 +820,7 @@ def display_general_view(df_ads):
         )
 
     with col3:
-        fsm_roas = fsm_revenue / df_ads['Investimento'].sum() if df_ads['Investimento'].sum() > 0 else 0
+        fsm_roas = fsm_revenue / df_filtered['Investimento'].sum() if df_filtered['Investimento'].sum() > 0 else 0
         big_number_box(
             f"{fsm_roas:.2f}".replace(".", ","),
             "ROAS (First Lead)",
@@ -858,7 +876,7 @@ def display_general_view(df_ads):
     )
     
     # Agrupar dados por plataforma
-    df_platform = df_ads.groupby('Plataforma').agg({
+    df_platform = df_filtered.groupby('Plataforma').agg({
         'Investimento': 'sum',
         'Cliques': 'sum',
         'Receita': 'sum',
@@ -997,7 +1015,7 @@ def display_general_view(df_ads):
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
 
     # Agrupar dados por data
-    df_timeline = df_ads.groupby('Data').agg({
+    df_timeline = df_filtered.groupby('Data').agg({
         'Investimento': 'sum',
         'Impressões': 'sum',
         'Cliques': 'sum',
@@ -1102,29 +1120,11 @@ def display_general_view(df_ads):
 
     st.markdown("---")
 
-    # Filtros para a tabela
+    # Dados Detalhados
     st.subheader("Dados Detalhados")
     
-    # Unique options for dropdown filters
-    platform_options = ["All"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
-    campaign_options = ["All"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        selected_platform = st.selectbox("Plataforma:", platform_options)
-
-    with col2:
-        campaign_filter = st.text_input("Campanha:", "")
-
-    if selected_platform != "All":
-        df_ads = df_ads[df_ads['Plataforma'] == selected_platform]
-
-    if campaign_filter:
-        df_ads = df_ads[df_ads['Campanha'].str.contains(campaign_filter, case=False, na=False)]
-
-    # Display the aggregated data in Streamlit data editor
-    df_ads_agg = df_ads.groupby(['Plataforma', 'Campanha']).agg({
+    # Agregar dados
+    df_ads_agg = df_filtered.groupby(['Plataforma', 'Campanha']).agg({
         'Investimento': 'sum',
         'Impressões': 'sum',
         'Cliques': 'sum',
