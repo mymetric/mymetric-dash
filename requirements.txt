@@ -11,3 +11,4 @@ altair
 plotly
 google-api-python-client
 streamlit-cookies-controller
+babel==2.17.0
