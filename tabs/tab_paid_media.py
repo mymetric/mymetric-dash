@@ -6,6 +6,9 @@ from modules.components import big_number_box
 from datetime import datetime
 import pandas as pd
 from partials.performance import analyze_meta_insights
+import locale
+
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def format_currency(value):
     """Formata valor monetário no padrão brasileiro"""
@@ -18,6 +21,15 @@ def format_number(value):
 def format_decimal(value):
     """Formata número decimal com separador de milhar no padrão brasileiro"""
     return f"{value:.2f}".replace(".", ",")
+
+def format_currency_with_separators(x):
+    return locale.currency(x, grouping=True, symbol='R$ ')
+
+def format_number_with_separators(x):
+    return locale.format_string('%.0f', x, grouping=True)
+
+def format_decimal_with_separators(x):
+    return locale.format_string('%.2f', x, grouping=True)
 
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
@@ -301,14 +313,7 @@ def display_meta_ads_analysis():
         
         # Combinar linha e pontos
         chart = (line + points).properties(
-            height=400,
-            title=alt.TitleParams(
-                text='Evolução de Métricas',
-                fontSize=16,
-                font='DM Sans',
-                anchor='start',
-                dy=-10
-            )
+            height=400
         ).configure_axis(
             grid=True,
             gridOpacity=0.1,
@@ -987,6 +992,116 @@ def display_general_view(df_ads):
 
     st.markdown("---")
 
+    # Timeline de Métricas
+    st.subheader("📈 Timeline de Métricas")
+    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+
+    # Agrupar dados por data
+    df_timeline = df_ads.groupby('Data').agg({
+        'Investimento': 'sum',
+        'Impressões': 'sum',
+        'Cliques': 'sum',
+        'Transações': 'sum',
+        'Receita': 'sum',
+        'Leads': 'sum',
+        'Transações Primeiro Lead': 'sum',
+        'Receita Primeiro Lead': 'sum'
+    }).reset_index()
+
+    # Calcular métricas derivadas
+    df_timeline['CTR'] = (df_timeline['Cliques'] / df_timeline['Impressões'] * 100).round(2)
+    df_timeline['Taxa Conv.'] = (df_timeline['Transações'] / df_timeline['Cliques'] * 100).round(2)
+    df_timeline['ROAS'] = (df_timeline['Receita'] / df_timeline['Investimento']).round(2)
+    df_timeline['CPC'] = (df_timeline['Investimento'] / df_timeline['Cliques']).round(2)
+    df_timeline['CPV'] = (df_timeline['Investimento'] / df_timeline['Transações']).round(2)
+    df_timeline['CPL'] = (df_timeline['Investimento'] / df_timeline['Leads']).round(2)
+    df_timeline['ROAS First Lead'] = (df_timeline['Receita Primeiro Lead'] / df_timeline['Investimento']).round(2)
+
+    # Lista de métricas disponíveis para visualização
+    available_metrics = {
+        'Investimento': 'Investimento (R$)',
+        'Impressões': 'Impressões',
+        'Cliques': 'Cliques',
+        'Transações': 'Vendas',
+        'Receita': 'Receita (R$)',
+        'Leads': 'Leads',
+        'CTR': 'CTR (%)',
+        'Taxa Conv.': 'Taxa de Conversão (%)',
+        'ROAS': 'ROAS',
+        'CPC': 'CPC (R$)',
+        'CPV': 'CPV (R$)',
+        'CPL': 'CPL (R$)',
+        'ROAS First Lead': 'ROAS First Lead'
+    }
+
+    # Seletor de métricas
+    selected_metrics = st.multiselect(
+        "Selecione as métricas para visualizar:",
+        list(available_metrics.keys()),
+        default=['ROAS', 'Taxa Conv.', 'CTR'],
+        format_func=lambda x: available_metrics[x]
+    )
+
+    if selected_metrics:
+        # Preparar dados para o gráfico
+        chart_data = pd.melt(
+            df_timeline,
+            id_vars=['Data'],
+            value_vars=selected_metrics,
+            var_name='Métrica',
+            value_name='Valor'
+        )
+
+        # Criar gráfico base
+        base = alt.Chart(chart_data).encode(
+            x=alt.X('Data:T',
+                   title='Data',
+                   axis=alt.Axis(format='%d/%m', labelAngle=0)),
+            color=alt.Color('Métrica:N',
+                          legend=alt.Legend(
+                              orient='top',
+                              title=None,
+                              labelFont='DM Sans',
+                              labelFontSize=12
+                          ))
+        )
+
+        # Linha principal
+        line = base.mark_line(strokeWidth=2).encode(
+            y=alt.Y('Valor:Q',
+                   title='Valor',
+                   axis=alt.Axis(format=',.2f',
+                                titlePadding=10))
+        )
+
+        # Pontos
+        points = base.mark_circle(size=60).encode(
+            y=alt.Y('Valor:Q'),
+            tooltip=[
+                alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                alt.Tooltip('Métrica:N', title='Métrica'),
+                alt.Tooltip('Valor:Q', title='Valor', format=',.2f')
+            ]
+        )
+
+        # Combinar linha e pontos
+        chart = (line + points).properties(
+            height=400
+        ).configure_axis(
+            grid=True,
+            gridOpacity=0.1,
+            labelFontSize=12,
+            titleFontSize=13,
+            labelFont='DM Sans',
+            titleFont='DM Sans'
+        ).configure_view(
+            strokeWidth=0
+        )
+
+        st.altair_chart(chart, use_container_width=True)
+
+    st.markdown("---")
+
     # Filtros para a tabela
     st.subheader("Dados Detalhados")
     
@@ -1073,26 +1188,29 @@ def display_general_view(df_ads):
     df_ads_agg['CPA'] = df_ads_agg['CPA'].round(2)
     df_ads_agg['CPL'] = df_ads_agg['CPL'].round(2)
     
-    st.data_editor(
-        df_ads_agg[columns_order].style.format({
-            'Investimento': lambda x: format_currency(x),
-            'Impressões': lambda x: format_number(x),
-            'Cliques': lambda x: format_number(x),
-            'Transações': lambda x: format_number(x),
-            'Primeiras Compras': lambda x: format_number(x),
-            'Primeiras Compras Primeiro Lead': lambda x: format_number(x),
-            'Leads': lambda x: format_number(x),
-            'Receita': lambda x: format_currency(x),
-            'ROAS': lambda x: f"{x:.2f}".replace(".", ","),
-            'CPV': lambda x: format_currency(x),
-            'CPA': lambda x: format_currency(x),
-            'CPL': lambda x: format_currency(x),
-            'Transações Primeiro Lead': lambda x: format_number(x),
-            'Receita Primeiro Lead': lambda x: format_currency(x)
-        }),
-        hide_index=True,
-        use_container_width=True
-    )
+    # Configurar o estilo do pandas
+    pd.options.display.float_format = '{:,.2f}'.format
+    
+    # Criar o estilo
+    styled_df = df_ads_agg[columns_order].style.format({
+        'Investimento': lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Impressões': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Cliques': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Transações': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Primeiras Compras': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Primeiras Compras Primeiro Lead': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Leads': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Receita': lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'ROAS': lambda x: f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'CPV': lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'CPA': lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'CPL': lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Transações Primeiro Lead': lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        'Receita Primeiro Lead': lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    })
+    
+    # Aplicar o estilo
+    st.dataframe(styled_df, use_container_width=True)
 
 def display_tab_paid_media():
     st.title("Mídia Paga")
