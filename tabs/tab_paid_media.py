@@ -29,114 +29,162 @@ def format_number_with_separators(x):
 def format_decimal_with_separators(x):
     return locale.format_string('%.2f', x, grouping=True)
 
+def create_trend_chart(df):
+    """Cria gráfico de tendência com as métricas selecionadas"""
+    
+    # Lista de métricas disponíveis para visualização
+    available_metrics = {
+        'impressions': 'Impressões',
+        'clicks': 'Cliques',
+        'spend': 'Investimento',
+        'purchase_value': 'Receita',
+        'purchases': 'Vendas',
+        'CTR': 'CTR (%)',
+        'Taxa Conv.': 'Taxa de Conversão (%)',
+        'ROAS': 'ROAS',
+        'CPC': 'CPC (R$)',
+        'CPV': 'CPV (R$)',
+        'CPM': 'CPM (R$)'
+    }
+
+    # Seletor de métricas
+    selected_metrics = st.multiselect(
+        "Selecione as métricas para visualizar:",
+        list(available_metrics.keys()),
+        default=['ROAS', 'Taxa Conv.', 'CTR'],
+        format_func=lambda x: available_metrics[x]
+    )
+
+    if selected_metrics:
+        # Preparar dados para o gráfico
+        chart_data = pd.melt(
+            df,
+            id_vars=['date'],
+            value_vars=selected_metrics,
+            var_name='Métrica',
+            value_name='Valor'
+        )
+
+        # Criar gráfico base
+        base = alt.Chart(chart_data).encode(
+            x=alt.X('date:T',
+                   title='Data',
+                   axis=alt.Axis(format='%d/%m', labelAngle=0)),
+            color=alt.Color('Métrica:N',
+                          legend=alt.Legend(
+                              orient='top',
+                              title=None,
+                              labelFont='DM Sans',
+                              labelFontSize=12
+                          ))
+        )
+
+        # Linha principal
+        line = base.mark_line(strokeWidth=2).encode(
+            y=alt.Y('Valor:Q',
+                   title='Valor',
+                   axis=alt.Axis(format=',.2f',
+                                titlePadding=10))
+        )
+
+        # Pontos
+        points = base.mark_circle(size=60).encode(
+            y=alt.Y('Valor:Q'),
+            tooltip=[
+                alt.Tooltip('date:T', title='Data', format='%d/%m/%Y'),
+                alt.Tooltip('Métrica:N', title='Métrica'),
+                alt.Tooltip('Valor:Q', title='Valor', format=',.2f')
+            ]
+        )
+
+        # Combinar linha e pontos
+        chart = (line + points).properties(
+            height=400
+        ).configure_axis(
+            grid=True,
+            gridOpacity=0.1,
+            labelFontSize=12,
+            titleFontSize=13,
+            labelFont='DM Sans',
+            titleFont='DM Sans'
+        ).configure_view(
+            strokeWidth=0
+        )
+
+        st.altair_chart(chart, use_container_width=True)
+
 def display_meta_ads_analysis():
     """Exibe análise detalhada do Meta Ads"""
-    st.subheader("Análise Meta Ads")
     
-    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
-    
-    # Carregar dados específicos do Meta Ads
+    # Carregar dados
     df_meta = load_meta_ads()
-
+    
     if df_meta.empty:
-        st.info("Não há dados do Meta Ads para o período selecionado.")
+        st.error("Não há dados do Meta Ads para exibir.")
         return
     
-    # Métricas principais em cards - Primeira linha
+    # Calcular métricas totais
+    investimento = df_meta['spend'].sum()
+    impressions = df_meta['impressions'].sum()
+    clicks = df_meta['clicks'].sum()
+    purchases = df_meta['purchases'].sum()
+    last_session_transactions = df_meta['last_session_transactions'].sum()
+    last_session_revenue = df_meta['last_session_revenue'].sum()
+    
+    # Primeira linha - Métricas principais
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        investimento = df_meta['spend'].sum()
         big_number_box(
             format_currency_br(investimento),
-            "Investimento (Pixel)",
-            hint="Total investido em anúncios no Meta Ads"
+            "Investimento",
+            hint="Valor total investido em anúncios"
         )
     
     with col2:
-        impressions = df_meta['impressions'].sum()
         big_number_box(
             format_number_br(impressions),
-            "Impressões (Pixel)",
-            hint="Número total de vezes que seus anúncios foram exibidos"
+            "Impressões",
+            hint="Número total de vezes que os anúncios foram exibidos"
         )
     
     with col3:
-        clicks = df_meta['clicks'].sum()
         big_number_box(
             format_number_br(clicks),
-            "Cliques (Pixel)",
-            hint="Número total de cliques nos seus anúncios"
+            "Cliques",
+            hint="Número total de cliques nos anúncios"
         )
     
     with col4:
-        ctr = (clicks / impressions * 100) if impressions > 0 else 0
-        big_number_box(
-            f"{ctr:.2f}%".replace(".", ","),
-            "CTR (Pixel)",
-            hint="Click-Through Rate - Taxa de cliques por impressão"
-        )
-
-    # Segunda linha - Métricas totais
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        purchases = df_meta['purchases'].sum()
         big_number_box(
             format_number_br(purchases),
             "Vendas (Pixel)",
-            hint="Número total de vendas atribuídas aos anúncios"
-        )
-    
-    with col2:
-        receita = df_meta['purchase_value'].sum()
-        big_number_box(
-            format_currency_br(receita),
-            "Receita (Pixel)",
-            hint="Receita total gerada pelos anúncios do Meta Ads"
-        )
-    
-    with col3:
-        roas = receita / investimento if investimento > 0 else 0
-        big_number_box(
-            f"{roas:.2f}".replace(".", ","),
-            "ROAS (Pixel)",
-            hint="Return On Ad Spend - Retorno sobre investimento"
-        )
-    
-    with col4:
-        lucro = receita - investimento
-        big_number_box(
-            format_currency_br(lucro),
-            "Lucro (Pixel)",
-            hint="Receita menos investimento (Lucro bruto)"
+            hint="Número total de vendas atribuídas ao Meta Ads pelo Pixel"
         )
 
-    # Terceira linha - Métricas última sessão
+    # Segunda linha - Métricas de receita
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        last_session_transactions = df_meta['last_session_transactions'].sum()
-        big_number_box(
-            format_number_br(last_session_transactions),
-            "Vendas (Última Sessão)",
-            hint="Número total de vendas atribuídas aos anúncios na última sessão"
-        )
-    
-    with col2:
-        last_session_revenue = df_meta['last_session_revenue'].sum()
         big_number_box(
             format_currency_br(last_session_revenue),
             "Receita (Última Sessão)",
-            hint="Receita total gerada pelos anúncios na última sessão"
+            hint="Receita atribuída à última sessão antes da compra"
+        )
+    
+    with col2:
+        big_number_box(
+            format_number_br(last_session_transactions),
+            "Vendas (Última Sessão)",
+            hint="Número de vendas atribuídas à última sessão antes da compra"
         )
     
     with col3:
-        last_session_roas = last_session_revenue / investimento if investimento > 0 else 0
+        roas = (last_session_revenue / investimento) if investimento > 0 else 0
         big_number_box(
-            f"{last_session_roas:.2f}".replace(".", ","),
+            f"{roas:.2f}".replace(".", ","),
             "ROAS (Última Sessão)",
-            hint="Return On Ad Spend na última sessão"
+            hint="Retorno sobre o investimento em anúncios (Receita/Investimento)"
         )
     
     with col4:
@@ -151,7 +199,7 @@ def display_meta_ads_analysis():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        cpc = investimento / clicks if clicks > 0 else 0
+        cpc = (investimento / clicks) if clicks > 0 else 0
         big_number_box(
             format_currency_br(cpc),
             "CPC (Pixel)",
@@ -159,7 +207,7 @@ def display_meta_ads_analysis():
         )
     
     with col2:
-        cpv = investimento / purchases if purchases > 0 else 0
+        cpv = (investimento / purchases) if purchases > 0 else 0
         big_number_box(
             format_currency_br(cpv),
             "CPV (Pixel)",
@@ -195,7 +243,7 @@ def display_meta_ads_analysis():
         )
     
     with col2:
-        cpl = investimento / leads if leads > 0 else 0
+        cpl = (investimento / leads) if leads > 0 else 0
         big_number_box(
             format_currency_br(cpl),
             "CPL (Pixel)",
@@ -235,101 +283,23 @@ def display_meta_ads_analysis():
         'purchases': 'sum'
     }).reset_index()
     
-    # Calcular todas as métricas
-    df_daily['CTR'] = (df_daily['clicks'] / df_daily['impressions'] * 100).round(2)
-    df_daily['CPC'] = (df_daily['spend'] / df_daily['clicks']).round(2)
-    df_daily['ROAS'] = (df_daily['purchase_value'] / df_daily['spend']).round(2)
-    df_daily['Taxa Conv.'] = (df_daily['purchases'] / df_daily['clicks'] * 100).round(2)
-    df_daily['CPM'] = (df_daily['spend'] / df_daily['impressions'] * 1000).round(2)
-    df_daily['CPV'] = (df_daily['spend'] / df_daily['purchases']).round(2)
-    df_daily['Lucro'] = (df_daily['purchase_value'] - df_daily['spend']).round(2)
+    # Calcular todas as métricas com tratamento para divisão por zero
+    df_daily['CTR'] = (df_daily['clicks'] / df_daily['impressions'].replace(0, float('nan')) * 100).round(2)
+    df_daily['CPC'] = (df_daily['spend'] / df_daily['clicks'].replace(0, float('nan'))).round(2)
+    df_daily['ROAS'] = (df_daily['purchase_value'] / df_daily['spend'].replace(0, float('nan'))).round(2)
+    df_daily['Taxa Conv.'] = (df_daily['purchases'] / df_daily['clicks'].replace(0, float('nan')) * 100).round(2)
+    df_daily['CPM'] = (df_daily['spend'] / df_daily['impressions'].replace(0, float('nan')) * 1000).round(2)
+    df_daily['CPV'] = (df_daily['spend'] / df_daily['purchases'].replace(0, float('nan'))).round(2)
     
-    # Renomear colunas para exibição
-    df_daily = df_daily.rename(columns={
-        'impressions': 'Impressões',
-        'clicks': 'Cliques',
-        'spend': 'Investimento',
-        'purchase_value': 'Receita',
-        'purchases': 'Vendas'
-    })
+    # Preencher valores NaN com 0
+    df_daily = df_daily.fillna(0)
     
-    # Lista de todas as métricas disponíveis
-    available_metrics = [
-        'Impressões', 'Cliques', 'Vendas',  # Volume
-        'CTR', 'Taxa Conv.',                # Taxas
-        'Investimento', 'Receita', 'Lucro', # Financeiro
-        'ROAS', 'CPC', 'CPM', 'CPV'        # Performance
-    ]
-    
-    # Permitir escolher métricas para visualizar
-    metrics = st.multiselect(
-        "Escolha as métricas para visualizar:",
-        available_metrics,
-        default=['ROAS', 'Taxa Conv.']
-    )
-    
-    if metrics:
-        chart_data = pd.melt(
-            df_daily, 
-            id_vars=['date'], 
-            value_vars=metrics,
-            var_name='Métrica',
-            value_name='Valor'
-        )
-        
-        # Criar gráfico base
-        base = alt.Chart(chart_data).encode(
-            x=alt.X('date:T', 
-                   title='Data',
-                   axis=alt.Axis(format='%d/%m', labelAngle=0)),
-            color=alt.Color('Métrica:N', 
-                          legend=alt.Legend(
-                              orient='top',
-                              title=None,
-                              labelFont='DM Sans',
-                              labelFontSize=12
-                          ))
-        )
-        
-        # Linha principal
-        line = base.mark_line(strokeWidth=2).encode(
-            y=alt.Y('Valor:Q', 
-                   title='Valor',
-                   axis=alt.Axis(format=',.2f',
-                                titlePadding=10))
-        )
-        
-        # Pontos
-        points = base.mark_circle(size=60).encode(
-            y=alt.Y('Valor:Q'),
-            tooltip=[
-                alt.Tooltip('date:T', title='Data', format='%d/%m/%Y'),
-                alt.Tooltip('Métrica:N', title='Métrica'),
-                alt.Tooltip('Valor:Q', title='Valor', format=',.2f')
-            ]
-        )
-        
-        # Combinar linha e pontos
-        chart = (line + points).properties(
-            height=400
-        ).configure_axis(
-            grid=True,
-            gridOpacity=0.1,
-            labelFontSize=12,
-            titleFontSize=13,
-            labelFont='DM Sans',
-            titleFont='DM Sans'
-        ).configure_view(
-            strokeWidth=0
-        )
-        
-        st.altair_chart(chart, use_container_width=True)
+    # Criar gráfico de tendência
+    create_trend_chart(df_daily)
 
+    # Tabela de Campanhas
     st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
-
-    # Análise por Campanha
-    st.subheader("Desempenho por Campanha")
-    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+    st.subheader("Campanhas")
     
     campaign_options = ["Todas"] + sorted(df_meta['campaign_name'].unique().tolist())
     selected_campaign = st.selectbox("Filtrar Campanha:", campaign_options, key='campaign_filter')
@@ -349,7 +319,7 @@ def display_meta_ads_analysis():
         'leads': 'sum'
     }).reset_index()
     
-    # Calcular todas as métricas
+    # Calcular todas as métricas com tratamento para divisão por zero
     df_campaign['CTR'] = (df_campaign['clicks'] / df_campaign['impressions'].replace(0, float('nan')) * 100).round(2)
     df_campaign['CPC'] = (df_campaign['spend'] / df_campaign['clicks'].replace(0, float('nan'))).round(2)
     df_campaign['ROAS'] = (df_campaign['purchase_value'] / df_campaign['spend'].replace(0, float('nan'))).round(2)
@@ -360,85 +330,19 @@ def display_meta_ads_analysis():
     df_campaign['Lucro'] = (df_campaign['purchase_value'] - df_campaign['spend']).round(2)
     df_campaign['ROAS Última Sessão'] = (df_campaign['last_session_revenue'] / df_campaign['spend'].replace(0, float('nan'))).round(2)
     df_campaign['Taxa Conv. Última Sessão'] = (df_campaign['last_session_transactions'] / df_campaign['clicks'].replace(0, float('nan')) * 100).round(2)
-    df_campaign['Lucro Última Sessão'] = (df_campaign['last_session_revenue'] - df_campaign['spend']).round(2)
-    df_campaign['Taxa de Correspondência'] = (df_campaign['last_session_transactions'] / df_campaign['purchases'].replace(0, float('nan')) * 100).round(2)
-    df_campaign['Taxa Conv. Leads'] = (df_campaign['leads'] / df_campaign['clicks'].replace(0, float('nan')) * 100).round(2)
-    df_campaign['Taxa Conv. Leads/Vendas'] = (df_campaign['purchases'] / df_campaign['leads'].replace(0, float('nan')) * 100).round(2)
     
-    df_campaign = df_campaign.sort_values('purchase_value', ascending=False)
+    # Preencher valores NaN com 0
+    df_campaign = df_campaign.fillna(0)
     
-    st.data_editor(
-        df_campaign[[
-            'campaign_name',  # Nome da campanha
-            'impressions', 'clicks',  # Métricas de alcance
-            'purchases', 'last_session_transactions', 'leads',  # Vendas e Leads
-            'spend', 'purchase_value', 'last_session_revenue',  # Receita
-            'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
-            'CPC', 'CPM', 'CPV', 'CPL',  # Custos
-            'ROAS', 'ROAS Última Sessão',  # ROAS
-            'Lucro', 'Lucro Última Sessão',  # Lucro
-            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas',  # Taxas e Leads
-        ]].rename(columns={
-            'campaign_name': 'Campanha',
-            'impressions': 'Impressões (Pixel)',
-            'clicks': 'Cliques (Pixel)',
-            'purchases': 'Vendas (Pixel)',
-            'last_session_transactions': 'Vendas (Última Sessão)',
-            'leads': 'Leads',
-            'spend': 'Investimento (Pixel)',
-            'purchase_value': 'Receita (Pixel)',
-            'last_session_revenue': 'Receita (Última Sessão)',
-            'CTR': 'CTR (Pixel)',
-            'Taxa Conv.': 'Taxa Conv. (Pixel)',
-            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
-            'CPC': 'CPC (Pixel)',
-            'CPM': 'CPM (Pixel)',
-            'CPV': 'CPV (Pixel)',
-            'CPL': 'CPL (Pixel)',
-            'ROAS': 'ROAS (Pixel)',
-            'ROAS Última Sessão': 'ROAS (Última Sessão)',
-            'Lucro': 'Lucro (Pixel)',
-            'Lucro Última Sessão': 'Lucro (Última Sessão)',
-            'Taxa de Correspondência': 'Taxa de Correspondência',
-            'Taxa Conv. Leads': 'Taxa Conv. Leads',
-            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas',
-        }).style.format({
-            'Impressões (Pixel)': '{:,.0f}',
-            'Cliques (Pixel)': '{:,.0f}',
-            'Vendas (Pixel)': '{:,.0f}',
-            'Vendas (Última Sessão)': '{:,.0f}',
-            'Leads': '{:,.0f}',
-            'CTR (Pixel)': '{:.2f}%',
-            'CPC (Pixel)': 'R$ {:.2f}',
-            'CPM (Pixel)': 'R$ {:.2f}',
-            'CPV (Pixel)': 'R$ {:.2f}',
-            'CPL (Pixel)': 'R$ {:.2f}',
-            'Investimento (Pixel)': 'R$ {:.2f}',
-            'Receita (Pixel)': 'R$ {:.2f}',
-            'Receita (Última Sessão)': 'R$ {:.2f}',
-            'Lucro (Pixel)': 'R$ {:.2f}',
-            'Lucro (Última Sessão)': 'R$ {:.2f}',
-            'ROAS (Pixel)': '{:.2f}',
-            'ROAS (Última Sessão)': '{:.2f}',
-            'Taxa Conv. (Pixel)': '{:.2f}%',
-            'Taxa Conv. (Última Sessão)': '{:.2f}%',
-            'Taxa de Correspondência': '{:.2f}%',
-            'Taxa Conv. Leads': '{:.2f}%',
-            'Taxa Conv. Leads/Vendas': '{:.2f}%',
-        }),
-        hide_index=True,
-        use_container_width=True
-    )
-    
-    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    # Exibir tabela de campanhas
+    display_campaign_table(df_campaign)
 
-    # Análise por Grupo de Anúncios
-    st.subheader("Desempenho por Grupo de Anúncios")
-    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+    # Tabela de Conjuntos de Anúncios
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.subheader("Conjuntos de Anúncios")
     
-    # Apenas um filtro para Grupos de Anúncios
     adset_options = ["Todos"] + sorted(df_meta['adset_name'].unique().tolist())
-    selected_adset = st.selectbox("Filtrar Grupo de Anúncios:", adset_options, key='adset_filter')
+    selected_adset = st.selectbox("Filtrar Conjunto de Anúncios:", adset_options, key='adset_filter')
     
     df_adset = df_meta.copy()
     if selected_adset != "Todos":
@@ -455,7 +359,7 @@ def display_meta_ads_analysis():
         'leads': 'sum'
     }).reset_index()
     
-    # Calcular todas as métricas
+    # Calcular todas as métricas com tratamento para divisão por zero
     df_adset['CTR'] = (df_adset['clicks'] / df_adset['impressions'].replace(0, float('nan')) * 100).round(2)
     df_adset['CPC'] = (df_adset['spend'] / df_adset['clicks'].replace(0, float('nan'))).round(2)
     df_adset['ROAS'] = (df_adset['purchase_value'] / df_adset['spend'].replace(0, float('nan'))).round(2)
@@ -471,78 +375,16 @@ def display_meta_ads_analysis():
     df_adset['Taxa Conv. Leads'] = (df_adset['leads'] / df_adset['clicks'].replace(0, float('nan')) * 100).round(2)
     df_adset['Taxa Conv. Leads/Vendas'] = (df_adset['purchases'] / df_adset['leads'].replace(0, float('nan')) * 100).round(2)
     
-    df_adset = df_adset.sort_values('purchase_value', ascending=False)
+    # Preencher valores NaN com 0
+    df_adset = df_adset.fillna(0)
     
-    st.data_editor(
-        df_adset[[
-            'adset_name',  # Nome do grupo de anúncios
-            'impressions', 'clicks',  # Métricas de alcance
-            'purchases', 'last_session_transactions', 'leads',  # Vendas
-            'spend', 'purchase_value', 'last_session_revenue',  # Receita
-            'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
-            'CPC', 'CPM', 'CPV', 'CPL',  # Custos
-            'ROAS', 'ROAS Última Sessão',  # ROAS
-            'Lucro', 'Lucro Última Sessão',  # Lucro
-            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas',  # Taxas e Leads
-        ]].rename(columns={
-            'adset_name': 'Grupo de Anúncios',
-            'impressions': 'Impressões (Pixel)',
-            'clicks': 'Cliques (Pixel)',
-            'purchases': 'Vendas (Pixel)',
-            'last_session_transactions': 'Vendas (Última Sessão)',
-            'spend': 'Investimento (Pixel)',
-            'purchase_value': 'Receita (Pixel)',
-            'last_session_revenue': 'Receita (Última Sessão)',
-            'CTR': 'CTR (Pixel)',
-            'Taxa Conv.': 'Taxa Conv. (Pixel)',
-            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
-            'CPC': 'CPC (Pixel)',
-            'CPM': 'CPM (Pixel)',
-            'CPV': 'CPV (Pixel)',
-            'CPL': 'CPL (Pixel)',
-            'ROAS': 'ROAS (Pixel)',
-            'ROAS Última Sessão': 'ROAS (Última Sessão)',
-            'Lucro': 'Lucro (Pixel)',
-            'Lucro Última Sessão': 'Lucro (Última Sessão)',
-            'Taxa de Correspondência': 'Taxa de Correspondência',
-            'Taxa Conv. Leads': 'Taxa Conv. Leads',
-            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas',
-        }).style.format({
-            'Impressões (Pixel)': '{:,.0f}',
-            'Cliques (Pixel)': '{:,.0f}',
-            'Vendas (Pixel)': '{:,.0f}',
-            'Vendas (Última Sessão)': '{:,.0f}',
-            'Leads': '{:,.0f}',
-            'CTR (Pixel)': '{:.2f}%',
-            'CPC (Pixel)': 'R$ {:.2f}',
-            'CPM (Pixel)': 'R$ {:.2f}',
-            'CPV (Pixel)': 'R$ {:.2f}',
-            'CPL (Pixel)': 'R$ {:.2f}',
-            'Investimento (Pixel)': 'R$ {:.2f}',
-            'Receita (Pixel)': 'R$ {:.2f}',
-            'Receita (Última Sessão)': 'R$ {:.2f}',
-            'Lucro (Pixel)': 'R$ {:.2f}',
-            'Lucro (Última Sessão)': 'R$ {:.2f}',
-            'ROAS (Pixel)': '{:.2f}',
-            'ROAS (Última Sessão)': '{:.2f}',
-            'Taxa Conv. (Pixel)': '{:.2f}%',
-            'Taxa Conv. (Última Sessão)': '{:.2f}%',
-            'Taxa de Correspondência': '{:.2f}%',
-            'Taxa Conv. Leads': '{:.2f}%',
-            'Taxa Conv. Leads/Vendas': '{:.2f}%',
-        }),
-        hide_index=True,
-        use_container_width=True
-    )
-    
-    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    # Exibir tabela de conjuntos de anúncios
+    display_adset_table(df_adset)
 
-    # Análise por Anúncio
-    st.subheader("Desempenho por Anúncio")
-    st.subheader("📑 Desempenho por Anúncio")
-    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+    # Tabela de Anúncios
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.subheader("Anúncios")
     
-    # Apenas um filtro para Anúncios
     ad_options = ["Todos"] + sorted(df_meta['ad_name'].unique().tolist())
     selected_ad = st.selectbox("Filtrar Anúncio:", ad_options, key='ad_filter')
     
@@ -561,7 +403,7 @@ def display_meta_ads_analysis():
         'leads': 'sum'
     }).reset_index()
     
-    # Calcular todas as métricas
+    # Calcular todas as métricas com tratamento para divisão por zero
     df_ad['CTR'] = (df_ad['clicks'] / df_ad['impressions'].replace(0, float('nan')) * 100).round(2)
     df_ad['CPC'] = (df_ad['spend'] / df_ad['clicks'].replace(0, float('nan'))).round(2)
     df_ad['ROAS'] = (df_ad['purchase_value'] / df_ad['spend'].replace(0, float('nan'))).round(2)
@@ -577,69 +419,11 @@ def display_meta_ads_analysis():
     df_ad['Taxa Conv. Leads'] = (df_ad['leads'] / df_ad['clicks'].replace(0, float('nan')) * 100).round(2)
     df_ad['Taxa Conv. Leads/Vendas'] = (df_ad['purchases'] / df_ad['leads'].replace(0, float('nan')) * 100).round(2)
     
-    df_ad = df_ad.sort_values('purchase_value', ascending=False)
+    # Preencher valores NaN com 0
+    df_ad = df_ad.fillna(0)
     
-    st.data_editor(
-        df_ad[[
-            'ad_name',  # Nome do anúncio
-            'impressions', 'clicks',  # Métricas de alcance
-            'purchases', 'last_session_transactions', 'leads',  # Vendas
-            'spend', 'purchase_value', 'last_session_revenue',  # Receita
-            'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
-            'CPC', 'CPM', 'CPV', 'CPL',  # Custos
-            'ROAS', 'ROAS Última Sessão',  # ROAS
-            'Lucro', 'Lucro Última Sessão',  # Lucro
-            'Taxa de Correspondência', 'Taxa Conv. Leads', 'Taxa Conv. Leads/Vendas',  # Taxas e Leads
-        ]].rename(columns={
-            'ad_name': 'Anúncio',
-            'impressions': 'Impressões (Pixel)',
-            'clicks': 'Cliques (Pixel)',
-            'purchases': 'Vendas (Pixel)',
-            'last_session_transactions': 'Vendas (Última Sessão)',
-            'spend': 'Investimento (Pixel)',
-            'purchase_value': 'Receita (Pixel)',
-            'last_session_revenue': 'Receita (Última Sessão)',
-            'CTR': 'CTR (Pixel)',
-            'Taxa Conv.': 'Taxa Conv. (Pixel)',
-            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
-            'CPC': 'CPC (Pixel)',
-            'CPM': 'CPM (Pixel)',
-            'CPV': 'CPV (Pixel)',
-            'CPL': 'CPL (Pixel)',
-            'ROAS': 'ROAS (Pixel)',
-            'ROAS Última Sessão': 'ROAS (Última Sessão)',
-            'Lucro': 'Lucro (Pixel)',
-            'Lucro Última Sessão': 'Lucro (Última Sessão)',
-            'Taxa de Correspondência': 'Taxa de Correspondência',
-            'Taxa Conv. Leads': 'Taxa Conv. Leads',
-            'Taxa Conv. Leads/Vendas': 'Taxa Conv. Leads/Vendas',
-        }).style.format({
-            'Impressões (Pixel)': '{:,.0f}',
-            'Cliques (Pixel)': '{:,.0f}',
-            'Vendas (Pixel)': '{:,.0f}',
-            'Vendas (Última Sessão)': '{:,.0f}',
-            'Leads': '{:,.0f}',
-            'CTR (Pixel)': '{:.2f}%',
-            'CPC (Pixel)': 'R$ {:.2f}',
-            'CPM (Pixel)': 'R$ {:.2f}',
-            'CPV (Pixel)': 'R$ {:.2f}',
-            'CPL (Pixel)': 'R$ {:.2f}',
-            'Investimento (Pixel)': 'R$ {:.2f}',
-            'Receita (Pixel)': 'R$ {:.2f}',
-            'Receita (Última Sessão)': 'R$ {:.2f}',
-            'Lucro (Pixel)': 'R$ {:.2f}',
-            'Lucro (Última Sessão)': 'R$ {:.2f}',
-            'ROAS (Pixel)': '{:.2f}',
-            'ROAS (Última Sessão)': '{:.2f}',
-            'Taxa Conv. (Pixel)': '{:.2f}%',
-            'Taxa Conv. (Última Sessão)': '{:.2f}%',
-            'Taxa de Correspondência': '{:.2f}%',
-            'Taxa Conv. Leads': '{:.2f}%',
-            'Taxa Conv. Leads/Vendas': '{:.2f}%',
-        }),
-        hide_index=True,
-        use_container_width=True
-    )
+    # Exibir tabela de anúncios
+    display_ad_table(df_ad)
 
 def display_general_view(df_ads):
     """Exibe visão geral da mídia paga"""
@@ -1025,13 +809,16 @@ def display_general_view(df_ads):
     }).reset_index()
 
     # Calcular métricas derivadas
-    df_timeline['CTR'] = (df_timeline['Cliques'] / df_timeline['Impressões'] * 100).round(2)
-    df_timeline['Taxa Conv.'] = (df_timeline['Transações'] / df_timeline['Cliques'] * 100).round(2)
-    df_timeline['ROAS'] = (df_timeline['Receita'] / df_timeline['Investimento']).round(2)
-    df_timeline['CPC'] = (df_timeline['Investimento'] / df_timeline['Cliques']).round(2)
-    df_timeline['CPV'] = (df_timeline['Investimento'] / df_timeline['Transações']).round(2)
-    df_timeline['CPL'] = (df_timeline['Investimento'] / df_timeline['Leads']).round(2)
-    df_timeline['ROAS First Lead'] = (df_timeline['Receita Primeiro Lead'] / df_timeline['Investimento']).round(2)
+    df_timeline['CTR'] = (df_timeline['Cliques'] / df_timeline['Impressões'].replace(0, float('nan')) * 100).round(2)
+    df_timeline['Taxa Conv.'] = (df_timeline['Transações'] / df_timeline['Cliques'].replace(0, float('nan')) * 100).round(2)
+    df_timeline['ROAS'] = (df_timeline['Receita'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['CPC'] = (df_timeline['Investimento'] / df_timeline['Cliques'].replace(0, float('nan'))).round(2)
+    df_timeline['CPV'] = (df_timeline['Investimento'] / df_timeline['Transações'].replace(0, float('nan'))).round(2)
+    df_timeline['CPL'] = (df_timeline['Investimento'] / df_timeline['Leads'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS First Lead'] = (df_timeline['Receita Primeiro Lead'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+
+    # Preencher valores NaN com 0
+    df_timeline = df_timeline.fillna(0)
 
     # Lista de métricas disponíveis para visualização
     available_metrics = {
@@ -1222,5 +1009,186 @@ def display_tab_paid_media():
         
     with tab2:
         display_meta_ads_analysis()
+
+def display_campaign_table(df):
+    """Exibe tabela de campanhas com formatação adequada"""
+    df = df.sort_values('purchase_value', ascending=False)
+    
+    # Lista de colunas disponíveis
+    available_columns = [
+        'campaign_name',  # Nome da campanha
+        'impressions', 'clicks',  # Métricas de alcance
+        'purchases', 'last_session_transactions', 'leads',  # Vendas e Leads
+        'spend', 'purchase_value', 'last_session_revenue',  # Receita
+        'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
+        'CPC', 'CPM', 'CPV', 'CPL',  # Custos
+        'ROAS', 'ROAS Última Sessão',  # ROAS
+    ]
+    
+    # Filtrar apenas as colunas que existem no DataFrame
+    columns_to_display = [col for col in available_columns if col in df.columns]
+    
+    st.data_editor(
+        df[columns_to_display].rename(columns={
+            'campaign_name': 'Campanha',
+            'impressions': 'Impressões (Pixel)',
+            'clicks': 'Cliques (Pixel)',
+            'purchases': 'Vendas (Pixel)',
+            'last_session_transactions': 'Vendas (Última Sessão)',
+            'leads': 'Leads',
+            'spend': 'Investimento (Pixel)',
+            'purchase_value': 'Receita (Pixel)',
+            'last_session_revenue': 'Receita (Última Sessão)',
+            'CTR': 'CTR (Pixel)',
+            'Taxa Conv.': 'Taxa Conv. (Pixel)',
+            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
+            'CPC': 'CPC (Pixel)',
+            'CPM': 'CPM (Pixel)',
+            'CPV': 'CPV (Pixel)',
+            'CPL': 'CPL (Pixel)',
+            'ROAS': 'ROAS (Pixel)',
+            'ROAS Última Sessão': 'ROAS (Última Sessão)',
+        }).style.format({
+            'Impressões (Pixel)': '{:,.0f}',
+            'Cliques (Pixel)': '{:,.0f}',
+            'Vendas (Pixel)': '{:,.0f}',
+            'Vendas (Última Sessão)': '{:,.0f}',
+            'Leads': '{:,.0f}',
+            'CTR (Pixel)': '{:.2f}%',
+            'CPC (Pixel)': 'R$ {:.2f}',
+            'CPM (Pixel)': 'R$ {:.2f}',
+            'CPV (Pixel)': 'R$ {:.2f}',
+            'CPL (Pixel)': 'R$ {:.2f}',
+            'Investimento (Pixel)': 'R$ {:.2f}',
+            'Receita (Pixel)': 'R$ {:.2f}',
+            'Receita (Última Sessão)': 'R$ {:.2f}',
+            'ROAS (Pixel)': '{:.2f}',
+            'ROAS (Última Sessão)': '{:.2f}',
+            'Taxa Conv. (Pixel)': '{:.2f}%',
+            'Taxa Conv. (Última Sessão)': '{:.2f}%',
+        }),
+        hide_index=True,
+        use_container_width=True
+    )
+
+def display_adset_table(df):
+    """Exibe tabela de conjuntos de anúncios com formatação adequada"""
+    df = df.sort_values('purchase_value', ascending=False)
+    
+    # Lista de colunas disponíveis
+    available_columns = [
+        'adset_name',  # Nome do conjunto de anúncios
+        'impressions', 'clicks',  # Métricas de alcance
+        'purchases', 'last_session_transactions', 'leads',  # Vendas
+        'spend', 'purchase_value', 'last_session_revenue',  # Receita
+        'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
+        'CPC', 'CPM', 'CPV', 'CPL',  # Custos
+        'ROAS', 'ROAS Última Sessão',  # ROAS
+    ]
+    
+    # Filtrar apenas as colunas que existem no DataFrame
+    columns_to_display = [col for col in available_columns if col in df.columns]
+    
+    st.data_editor(
+        df[columns_to_display].rename(columns={
+            'adset_name': 'Conjunto de Anúncios',
+            'impressions': 'Impressões (Pixel)',
+            'clicks': 'Cliques (Pixel)',
+            'purchases': 'Vendas (Pixel)',
+            'last_session_transactions': 'Vendas (Última Sessão)',
+            'spend': 'Investimento (Pixel)',
+            'purchase_value': 'Receita (Pixel)',
+            'last_session_revenue': 'Receita (Última Sessão)',
+            'CTR': 'CTR (Pixel)',
+            'Taxa Conv.': 'Taxa Conv. (Pixel)',
+            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
+            'CPC': 'CPC (Pixel)',
+            'CPM': 'CPM (Pixel)',
+            'CPV': 'CPV (Pixel)',
+            'CPL': 'CPL (Pixel)',
+            'ROAS': 'ROAS (Pixel)',
+            'ROAS Última Sessão': 'ROAS (Última Sessão)',
+        }).style.format({
+            'Impressões (Pixel)': '{:,.0f}',
+            'Cliques (Pixel)': '{:,.0f}',
+            'Vendas (Pixel)': '{:,.0f}',
+            'Vendas (Última Sessão)': '{:,.0f}',
+            'Leads': '{:,.0f}',
+            'CTR (Pixel)': '{:.2f}%',
+            'CPC (Pixel)': 'R$ {:.2f}',
+            'CPM (Pixel)': 'R$ {:.2f}',
+            'CPV (Pixel)': 'R$ {:.2f}',
+            'CPL (Pixel)': 'R$ {:.2f}',
+            'Investimento (Pixel)': 'R$ {:.2f}',
+            'Receita (Pixel)': 'R$ {:.2f}',
+            'Receita (Última Sessão)': 'R$ {:.2f}',
+            'ROAS (Pixel)': '{:.2f}',
+            'ROAS (Última Sessão)': '{:.2f}',
+            'Taxa Conv. (Pixel)': '{:.2f}%',
+            'Taxa Conv. (Última Sessão)': '{:.2f}%',
+        }),
+        hide_index=True,
+        use_container_width=True
+    )
+
+def display_ad_table(df):
+    """Exibe tabela de anúncios com formatação adequada"""
+    df = df.sort_values('purchase_value', ascending=False)
+    
+    # Lista de colunas disponíveis
+    available_columns = [
+        'ad_name',  # Nome do anúncio
+        'impressions', 'clicks',  # Métricas de alcance
+        'purchases', 'last_session_transactions', 'leads',  # Vendas
+        'spend', 'purchase_value', 'last_session_revenue',  # Receita
+        'CTR', 'Taxa Conv.', 'Taxa Conv. Última Sessão',  # Taxas
+        'CPC', 'CPM', 'CPV', 'CPL',  # Custos
+        'ROAS', 'ROAS Última Sessão',  # ROAS
+    ]
+    
+    # Filtrar apenas as colunas que existem no DataFrame
+    columns_to_display = [col for col in available_columns if col in df.columns]
+    
+    st.data_editor(
+        df[columns_to_display].rename(columns={
+            'ad_name': 'Anúncio',
+            'impressions': 'Impressões (Pixel)',
+            'clicks': 'Cliques (Pixel)',
+            'purchases': 'Vendas (Pixel)',
+            'last_session_transactions': 'Vendas (Última Sessão)',
+            'spend': 'Investimento (Pixel)',
+            'purchase_value': 'Receita (Pixel)',
+            'last_session_revenue': 'Receita (Última Sessão)',
+            'CTR': 'CTR (Pixel)',
+            'Taxa Conv.': 'Taxa Conv. (Pixel)',
+            'Taxa Conv. Última Sessão': 'Taxa Conv. (Última Sessão)',
+            'CPC': 'CPC (Pixel)',
+            'CPM': 'CPM (Pixel)',
+            'CPV': 'CPV (Pixel)',
+            'CPL': 'CPL (Pixel)',
+            'ROAS': 'ROAS (Pixel)',
+            'ROAS Última Sessão': 'ROAS (Última Sessão)',
+        }).style.format({
+            'Impressões (Pixel)': '{:,.0f}',
+            'Cliques (Pixel)': '{:,.0f}',
+            'Vendas (Pixel)': '{:,.0f}',
+            'Vendas (Última Sessão)': '{:,.0f}',
+            'Leads': '{:,.0f}',
+            'CTR (Pixel)': '{:.2f}%',
+            'CPC (Pixel)': 'R$ {:.2f}',
+            'CPM (Pixel)': 'R$ {:.2f}',
+            'CPV (Pixel)': 'R$ {:.2f}',
+            'CPL (Pixel)': 'R$ {:.2f}',
+            'Investimento (Pixel)': 'R$ {:.2f}',
+            'Receita (Pixel)': 'R$ {:.2f}',
+            'Receita (Última Sessão)': 'R$ {:.2f}',
+            'ROAS (Pixel)': '{:.2f}',
+            'ROAS (Última Sessão)': '{:.2f}',
+            'Taxa Conv. (Pixel)': '{:.2f}%',
+            'Taxa Conv. (Última Sessão)': '{:.2f}%',
+        }),
+        hide_index=True,
+        use_container_width=True
+    )
 
     
