@@ -998,7 +998,9 @@ def load_paid_media():
             sum(transactions) `Transações`,
             sum(fsm_transactions) `Transações Primeiro Lead`,
             sum(first_transaction) `Primeiras Compras`,
+            sum(first_revenue) `Receita Primeiras Compras`,
             sum(fsm_first_transaction) `Primeiras Compras Primeiro Lead`,
+            sum(fsm_first_revenue) `Receita Primeiras Compras Primeiro Lead`,
             sum(revenue) `Receita`,
             sum(fsm_revenue) `Receita Primeiro Lead`,
             sum(leads) `Leads`

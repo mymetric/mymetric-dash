@@ -429,20 +429,50 @@ def display_general_view(df_ads):
     """Exibe visão geral da mídia paga"""
 
     st.subheader("📊 Visão Geral da Mídia Paga")
-    st.info("""
-        ℹ️ Os resultados apresentados nesta aba são baseados na atribuição de último clique não direto, cruzando dados de Google e Meta Ads, Google Analytics e Plataforma de E-commerce.
-    """)
 
-    # Filtros no topo da página
-    col1, col2 = st.columns(2)
-    platform_options = ["Todas"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
-    campaign_options = ["Todas"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
+    # Filtros na sidebar
+    with st.sidebar:
+        st.subheader("Filtros")
+        platform_options = ["Todas"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
+        campaign_options = ["Todas"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
 
-    with col1:
         selected_platform = st.selectbox("Plataforma:", platform_options)
-
-    with col2:
         selected_campaign = st.selectbox("Campanha:", campaign_options)
+        
+        st.markdown("---")
+        
+        # Seletor de modelo de atribuição para o funil
+        modelo_funil = st.radio(
+            "Modelo de Atribuição:",
+            ["OriginStack™", "Last Non Direct Click"],
+            help="OriginStack™: modelo proprietário que atribui a conversão seguindo uma ordem de prioridade específica. Last Non Direct Click: atribui a conversão ao último clique não direto antes da compra."
+        )
+        
+        # Expander com explicação do OriginStack™
+        with st.expander("ℹ️ Sobre o OriginStack™", expanded=False):
+            st.markdown("""
+                ### OriginStack™ - Modelo de Atribuição Proprietário
+
+                O OriginStack™ é um modelo de atribuição proprietário que considera a jornada completa do usuário, atribuindo a conversão seguindo uma ordem específica de prioridade:
+
+                1. **First Lead (Prioridade Máxima)**
+                   - Atribui a conversão quando o email do usuário foi capturado em qualquer ponto do site
+                   - Prioriza especialmente capturas através de popups e formulários
+                   - Considera o histórico completo do usuário, mesmo em diferentes navegadores
+                   - Ideal para entender o impacto inicial na jornada do cliente
+
+                2. **First Session (Segunda Prioridade)**
+                   - Atribui a conversão quando o usuário teve sua primeira sessão no mesmo navegador
+                   - Considera a primeira interação do usuário com a marca
+                   - Útil para entender o comportamento inicial do usuário
+
+                3. **Last Session (Terceira Prioridade)**
+                   - Atribui a conversão quando o usuário teve sua última sessão no mesmo navegador
+                   - Considera a interação mais recente antes da conversão
+                   - Ajuda a entender o gatilho final da conversão
+
+                Este modelo permite uma visão mais completa da jornada do usuário, considerando tanto o impacto inicial quanto o gatilho final da conversão.
+            """)
 
     # Aplicar filtros
     df_filtered = df_ads.copy()
@@ -451,344 +481,191 @@ def display_general_view(df_ads):
     if selected_campaign != "Todas":
         df_filtered = df_filtered[df_filtered['Campanha'] == selected_campaign]
 
-    # Métricas gerais
-    total_impressoes = df_filtered['Impressões'].sum()
-    total_cliques = df_filtered['Cliques'].sum()
-    total_transacoes = df_filtered['Transações'].sum()
-    ctr = (total_cliques / total_impressoes * 100) if total_impressoes > 0 else 0
-    taxa_conversao = (total_transacoes / total_cliques * 100) if total_cliques > 0 else 0
-    cpc = df_filtered['Investimento'].sum() / total_cliques if total_cliques > 0 else 0
+    # Funil de Conversão
+    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
+    # Calcular totais para o funil
+    investimento = df_filtered['Investimento'].sum()
+    impressoes = df_filtered['Impressões'].sum()
+    cliques = df_filtered['Cliques'].sum()
     
-    with col1:
-        big_number_box(
-            format_currency_br(df_filtered['Investimento'].sum()), 
-            "Investimento",
-            hint="Total investido em mídia paga no período selecionado (Google Ads + Meta Ads)"
-        )
+    # Vendas e Receita - Last Non Direct Click
+    vendas_last = df_filtered['Transações'].sum()
+    receita_last = df_filtered['Receita'].sum()
     
-    with col2:
-        big_number_box(
-            format_currency_br(df_filtered['Receita'].sum()), 
-            "Receita",
-            hint="Receita total gerada por mídia paga no período selecionado"
-        )
+    # Vendas e Receita - OriginStack™
+    vendas_first = df_filtered['Transações Primeiro Lead'].sum()
+    receita_first = df_filtered['Receita Primeiro Lead'].sum()
+
+    # Primeiras Compras
+    primeiras_compras_last = df_filtered['Primeiras Compras'].sum()
+    primeiras_compras_first = df_filtered['Primeiras Compras Primeiro Lead'].sum()
+    receita_primeiras_last = df_filtered['Receita Primeiras Compras'].sum()
+    receita_primeiras_first = df_filtered['Receita Primeiras Compras Primeiro Lead'].sum()
+
+    # Calcular métricas de custo
+    cpm = (investimento / impressoes * 1000) if impressoes > 0 else 0
+    cpc = (investimento / cliques) if cliques > 0 else 0
     
-    with col3:
-        big_number_box(
-            f"{df_filtered['Receita'].sum()/df_filtered['Investimento'].sum():,.2f}".replace(".", ","), 
-            "ROAS",
-            hint="Return On Ad Spend - Retorno sobre o investimento em anúncios (Receita/Investimento). Exemplo: ROAS 3 significa que para cada R$1 investido, retornou R$3 em vendas"
-        )
+    # CPA para todos os modelos
+    cpa_last = (investimento / vendas_last) if vendas_last > 0 else 0
+    cpa_first = (investimento / vendas_first) if vendas_first > 0 else 0
+    cpa_primeiras_last = (investimento / primeiras_compras_last) if primeiras_compras_last > 0 else 0
+    cpa_primeiras_first = (investimento / primeiras_compras_first) if primeiras_compras_first > 0 else 0
 
-    col1, col2, col3 = st.columns(3)
+    # Calcular ROAS
+    roas_last = (receita_last / investimento) if investimento > 0 else 0
+    roas_first = (receita_first / investimento) if investimento > 0 else 0
+    roas_primeiras_last = (receita_primeiras_last / investimento) if investimento > 0 else 0
+    roas_primeiras_first = (receita_primeiras_first / investimento) if investimento > 0 else 0
 
-    with col1:
-        big_number_box(
-            f"{ctr:.2f}%".replace(".", ","),
-            "CTR",
-            hint="Click-Through Rate - Taxa de cliques por impressão (Cliques/Impressões). Quanto maior, melhor a relevância dos seus anúncios"
-        )
+    # Selecionar valores baseado no modelo escolhido
+    if modelo_funil == "Last Non Direct Click":
+        vendas = vendas_last
+        receita = receita_last
+        primeiras_compras = primeiras_compras_last
+        receita_primeiras = receita_primeiras_last
+        cpa = cpa_last
+        cpa_primeiras = cpa_primeiras_last
+        roas = roas_last
+        roas_primeiras = roas_primeiras_last
+        modelo_label = "Last Click"
+    else:
+        vendas = vendas_first
+        receita = receita_first
+        primeiras_compras = primeiras_compras_first
+        receita_primeiras = receita_primeiras_first
+        cpa = cpa_first
+        cpa_primeiras = cpa_primeiras_first
+        roas = roas_first
+        roas_primeiras = roas_primeiras_first
+        modelo_label = "OriginStack™"
 
-    with col2:
-        big_number_box(
-            f"{taxa_conversao:.2f}%".replace(".", ","),
-            "Taxa de Conversão",
-            hint="Porcentagem de cliques que resultaram em vendas (Transações/Cliques)"
-        )
+    # Criar o funil customizado
+    funnel_html = f"""
+    <style>
+        .funnel-container {{
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            font-family: 'DM Sans', sans-serif;
+        }}
+        .funnel-step {{
+            position: relative;
+            margin: 10px 0;
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .funnel-step:hover {{
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }}
+        .funnel-main {{
+            flex: 1;
+        }}
+        .funnel-cost {{
+            text-align: right;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }}
+        .funnel-value {{
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .funnel-label {{
+            font-size: 16px;
+            opacity: 0.9;
+        }}
+        .funnel-cost-value {{
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .funnel-cost-label {{
+            font-size: 14px;
+            opacity: 0.9;
+        }}
+        .funnel-divider {{
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 15px 0;
+        }}
+        .step-1 {{ background: linear-gradient(135deg, #1a73e8, #0d47a1); width: 100%; }}
+        .step-2 {{ background: linear-gradient(135deg, #2196f3, #1976d2); width: 90%; }}
+        .step-3 {{ background: linear-gradient(135deg, #42a5f5, #2196f3); width: 80%; }}
+        .step-4 {{ background: linear-gradient(135deg, #64b5f6, #42a5f5); width: 70%; }}
+        .step-5 {{ background: linear-gradient(135deg, #90caf9, #64b5f6); width: 60%; }}
+    </style>
+    <div class="funnel-container">
+        <div class="funnel-step step-1">
+            <div class="funnel-main">
+                <div class="funnel-value">R$ {investimento:,.2f}</div>
+                <div class="funnel-label">Investimento</div>
+            </div>
+        </div>
+        <div class="funnel-step step-2">
+            <div class="funnel-main">
+                <div class="funnel-value">{impressoes:,.0f}</div>
+                <div class="funnel-label">Impressões</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">R$ {cpm:,.2f}</div>
+                <div class="funnel-cost-label">CPM</div>
+            </div>
+        </div>
+        <div class="funnel-step step-3">
+            <div class="funnel-main">
+                <div class="funnel-value">{cliques:,.0f}</div>
+                <div class="funnel-label">Cliques</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">R$ {cpc:,.2f}</div>
+                <div class="funnel-cost-label">CPC</div>
+            </div>
+        </div>
+        <div class="funnel-step step-4">
+            <div class="funnel-main">
+                <div class="funnel-value">{vendas:,.0f}</div>
+                <div class="funnel-label">Todas as Compras ({modelo_label})</div>
+                <div class="funnel-divider"></div>
+                <div class="funnel-value">{primeiras_compras:,.0f}</div>
+                <div class="funnel-label">Primeiras Compras ({modelo_label})</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">R$ {cpa:,.2f}</div>
+                <div class="funnel-cost-label">CPV ({modelo_label})</div>
+                <div class="funnel-divider"></div>
+                <div class="funnel-cost-value">R$ {cpa_primeiras:,.2f}</div>
+                <div class="funnel-cost-label">CPA ({modelo_label})</div>
+            </div>
+        </div>
+        <div class="funnel-step step-5">
+            <div class="funnel-main">
+                <div class="funnel-value">R$ {receita:,.2f}</div>
+                <div class="funnel-label">Receita ({modelo_label})</div>
+                <div class="funnel-divider"></div>
+                <div class="funnel-value">R$ {receita_primeiras:,.2f}</div>
+                <div class="funnel-label">Receita Primeiras Compras ({modelo_label})</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">{roas:.2f}x</div>
+                <div class="funnel-cost-label">ROAS ({modelo_label})</div>
+                <div class="funnel-divider"></div>
+                <div class="funnel-cost-value">{roas_primeiras:.2f}x</div>
+                <div class="funnel-cost-label">ROAS Primeiras ({modelo_label})</div>
+            </div>
+        </div>
+    </div>
+    """
 
-    with col3:
-        big_number_box(
-            f"R$ {cpc:.2f}".replace(".", ","),
-            "CPC",
-            hint="Custo Por Clique - Valor médio pago por cada clique nos anúncios (Investimento/Cliques)"
-        )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        big_number_box(
-            f"{total_impressoes:,.0f}".replace(",", "."),
-            "Impressões",
-            hint="Número total de vezes que seus anúncios foram exibidos"
-        )
-
-    with col2:
-        big_number_box(
-            f"{total_cliques:,.0f}".replace(",", "."),
-            "Cliques",
-            hint="Número total de cliques nos seus anúncios"
-        )
-
-    with col3:
-        cpv = df_filtered['Investimento'].sum() / df_filtered['Transações'].sum() if df_filtered['Transações'].sum() > 0 else 0
-        big_number_box(
-            format_currency_br(cpv),
-            "CPV Médio",
-            hint="Custo Por Venda - Média do valor gasto em anúncios para conseguir uma venda"
-        )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        primeiras_compras = df_filtered['Primeiras Compras'].sum()
-        big_number_box(
-            f"{primeiras_compras:,.0f}".replace(",", "."),
-            "Primeiras Compras",
-            hint="Número total de novos clientes adquiridos através de mídia paga"
-        )
-
-    with col2:
-        cpa = df_filtered['Investimento'].sum() / primeiras_compras if primeiras_compras > 0 else 0
-        big_number_box(
-            format_currency_br(cpa),
-            "CPA Médio",
-            hint="Custo Por Aquisição - Média do valor gasto em anúncios para conseguir um novo cliente"
-        )
-
-    with col3:
-        leads = df_filtered['Leads'].sum()
-        big_number_box(
-            f"{leads:,.0f}".replace(",", "."),
-            "Leads",
-            hint="Número total de leads gerados através de mídia paga"
-        )
-
-    # Nova linha - Métricas de Vendas
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        vendas = df_filtered['Transações'].sum()
-        big_number_box(
-            f"{vendas:,.0f}".replace(",", "."),
-            "Vendas",
-            hint="Número total de vendas atribuídas à mídia paga (modelo de último clique)"
-        )
-
-    with col2:
-        receita = df_filtered['Receita'].sum()
-        big_number_box(
-            format_currency_br(receita),
-            "Receita",
-            hint="Receita total gerada pela mídia paga (modelo de último clique)"
-        )
-
-    with col3:
-        roas = receita / df_filtered['Investimento'].sum() if df_filtered['Investimento'].sum() > 0 else 0
-        big_number_box(
-            f"{roas:.2f}".replace(".", ","),
-            "ROAS",
-            hint="Return On Ad Spend - Retorno sobre investimento (modelo de último clique)"
-        )
-
-    # Nova linha - Métricas First Lead
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        fsm_transactions = df_filtered['Transações Primeiro Lead'].sum()
-        big_number_box(
-            f"{fsm_transactions:,.0f}".replace(",", "."),
-            "Vendas (First Lead)",
-            hint="Número total de vendas atribuídas ao primeiro lead"
-        )
-
-    with col2:
-        fsm_revenue = df_filtered['Receita Primeiro Lead'].sum()
-        big_number_box(
-            format_currency_br(fsm_revenue),
-            "Receita (First Lead)",
-            hint="Receita total atribuída ao primeiro lead"
-        )
-
-    with col3:
-        fsm_roas = fsm_revenue / df_filtered['Investimento'].sum() if df_filtered['Investimento'].sum() > 0 else 0
-        big_number_box(
-            f"{fsm_roas:.2f}".replace(".", ","),
-            "ROAS (First Lead)",
-            hint="Return On Ad Spend baseado no primeiro lead"
-        )
-
-    st.markdown("---")
-
-    # Gráficos de distribuição por plataforma
-    st.subheader("Distribuição por Plataforma")
-    
-    # Expander com explicações sobre os modelos de atribuição
-    with st.expander("ℹ️ Entenda os Modelos de Atribuição", expanded=False):
-        st.markdown("""
-            ### Modelos de Atribuição Disponíveis
-
-            #### Last Non Direct Click
-            - Atribui a conversão ao último clique não direto antes da compra
-            - Ignora cliques diretos (quando o usuário acessa o site digitando a URL)
-            - Útil para entender qual canal foi o último a influenciar a compra
-            - Métricas incluídas:
-                - Transações
-                - Receita
-                - ROAS
-                - CPV (Custo por Venda)
-                - Primeiras Compras
-                - CPA (Custo por Aquisição)
-
-            #### First Lead
-            - Atribui a conversão ao primeiro lead gerado
-            - Considera todo o caminho de conversão desde o primeiro contato
-            - Útil para entender o impacto inicial na jornada do cliente
-            - Métricas incluídas:
-                - Transações Primeiro Lead
-                - Receita Primeiro Lead
-                - ROAS First Lead
-                - CPV First Lead
-                - Primeiras Compras Primeiro Lead
-                - CPA First Lead
-
-            ### Por que usar diferentes modelos?
-            - **Last Non Direct Click**: Melhor para otimização de campanhas e análise de performance imediata
-            - **First Lead**: Melhor para entender o impacto inicial e a jornada completa do cliente
-            - A comparação entre os modelos ajuda a entender o papel de cada canal na jornada de conversão
-        """)
-    
-    # Seletor de modelo de atribuição
-    modelo_atribuicao = st.radio(
-        "Modelo de Atribuição:",
-        ["Last Non Direct Click", "First Lead"],
-        horizontal=True,
-        help="Last Non Direct Click: atribui a conversão ao último clique não direto antes da compra. First Lead: atribui a conversão ao primeiro lead gerado."
-    )
-    
-    # Agrupar dados por plataforma
-    df_platform = df_filtered.groupby('Plataforma').agg({
-        'Investimento': 'sum',
-        'Cliques': 'sum',
-        'Receita': 'sum',
-        'Leads': 'sum',
-        'Transações Primeiro Lead': 'sum',
-        'Receita Primeiro Lead': 'sum'
-    }).reset_index()
-    
-    # Garantir que os valores sejam numéricos
-    df_platform['Investimento'] = pd.to_numeric(df_platform['Investimento'], errors='coerce')
-    df_platform['Cliques'] = pd.to_numeric(df_platform['Cliques'], errors='coerce')
-    df_platform['Receita'] = pd.to_numeric(df_platform['Receita'], errors='coerce')
-    df_platform['Leads'] = pd.to_numeric(df_platform['Leads'], errors='coerce')
-    df_platform['Transações Primeiro Lead'] = pd.to_numeric(df_platform['Transações Primeiro Lead'], errors='coerce')
-    df_platform['Receita Primeiro Lead'] = pd.to_numeric(df_platform['Receita Primeiro Lead'], errors='coerce')
-    
-    # Remover linhas com valores nulos
-    df_platform = df_platform.dropna()
-    
-    # Criar quatro colunas para os gráficos
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown("**Investimento**")
-        # Calcular percentuais
-        total_investimento = df_platform['Investimento'].sum()
-        df_platform['Investimento_pct'] = (df_platform['Investimento'] / total_investimento * 100).round(1)
-        
-        # Gráfico de pizza para Investimento
-        fig = px.pie(df_platform, 
-                    values='Investimento', 
-                    names='Plataforma',
-                    title='')
-        
-        fig.update_traces(textposition='inside', 
-                         textinfo='percent',
-                         textfont_size=14)
-        
-        fig.update_layout(showlegend=True,
-                         legend=dict(
-                             orientation="v",
-                             yanchor="middle",
-                             y=0.5,
-                             xanchor="right",
-                             x=1.2
-                         ))
-        
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        st.markdown("**Cliques**")
-        # Calcular percentuais
-        total_cliques = df_platform['Cliques'].sum()
-        df_platform['Cliques_pct'] = (df_platform['Cliques'] / total_cliques * 100).round(1)
-        
-        # Gráfico de pizza para Cliques
-        fig = px.pie(df_platform, 
-                    values='Cliques', 
-                    names='Plataforma',
-                    title='')
-        
-        fig.update_traces(textposition='inside', 
-                         textinfo='percent',
-                         textfont_size=14)
-        
-        fig.update_layout(showlegend=True,
-                         legend=dict(
-                             orientation="v",
-                             yanchor="middle",
-                             y=0.5,
-                             xanchor="right",
-                             x=1.2
-                         ))
-        
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col3:
-        st.markdown("**Receita**")
-        # Calcular percentuais
-        receita_col = 'Receita Primeiro Lead' if modelo_atribuicao == "First Lead" else 'Receita'
-        total_receita = df_platform[receita_col].sum()
-        df_platform['Receita_pct'] = (df_platform[receita_col] / total_receita * 100).round(1)
-        
-        # Gráfico de pizza para Receita
-        fig = px.pie(df_platform, 
-                    values=receita_col, 
-                    names='Plataforma',
-                    title='')
-        
-        fig.update_traces(textposition='inside', 
-                         textinfo='percent',
-                         textfont_size=14)
-        
-        fig.update_layout(showlegend=True,
-                         legend=dict(
-                             orientation="v",
-                             yanchor="middle",
-                             y=0.5,
-                             xanchor="right",
-                             x=1.2
-                         ))
-        
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col4:
-        st.markdown("**Leads**")
-        # Calcular percentuais
-        total_leads = df_platform['Leads'].sum()
-        df_platform['Leads_pct'] = (df_platform['Leads'] / total_leads * 100).round(1)
-        
-        # Gráfico de pizza para Leads
-        fig = px.pie(df_platform, 
-                    values='Leads', 
-                    names='Plataforma',
-                    title='')
-        
-        fig.update_traces(textposition='inside', 
-                         textinfo='percent',
-                         textfont_size=14)
-        
-        fig.update_layout(showlegend=True,
-                         legend=dict(
-                             orientation="v",
-                             yanchor="middle",
-                             y=0.5,
-                             xanchor="right",
-                             x=1.2
-                         ))
-        
-        st.plotly_chart(fig, use_container_width=True)
+    st.markdown(funnel_html, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -805,7 +682,11 @@ def display_general_view(df_ads):
         'Receita': 'sum',
         'Leads': 'sum',
         'Transações Primeiro Lead': 'sum',
-        'Receita Primeiro Lead': 'sum'
+        'Receita Primeiro Lead': 'sum',
+        'Primeiras Compras': 'sum',
+        'Primeiras Compras Primeiro Lead': 'sum',
+        'Receita Primeiras Compras': 'sum',
+        'Receita Primeiras Compras Primeiro Lead': 'sum'
     }).reset_index()
 
     # Calcular métricas derivadas
@@ -815,7 +696,9 @@ def display_general_view(df_ads):
     df_timeline['CPC'] = (df_timeline['Investimento'] / df_timeline['Cliques'].replace(0, float('nan'))).round(2)
     df_timeline['CPV'] = (df_timeline['Investimento'] / df_timeline['Transações'].replace(0, float('nan'))).round(2)
     df_timeline['CPL'] = (df_timeline['Investimento'] / df_timeline['Leads'].replace(0, float('nan'))).round(2)
-    df_timeline['ROAS First Lead'] = (df_timeline['Receita Primeiro Lead'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS OriginStack™'] = (df_timeline['Receita Primeiro Lead'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS Primeiras'] = (df_timeline['Receita Primeiras Compras'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS Primeiras OriginStack™'] = (df_timeline['Receita Primeiras Compras Primeiro Lead'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
 
     # Preencher valores NaN com 0
     df_timeline = df_timeline.fillna(0)
@@ -825,16 +708,24 @@ def display_general_view(df_ads):
         'Investimento': 'Investimento (R$)',
         'Impressões': 'Impressões',
         'Cliques': 'Cliques',
-        'Transações': 'Vendas',
-        'Receita': 'Receita (R$)',
+        'Transações': 'Todas as Compras (Last Click)',
+        'Transações Primeiro Lead': 'Todas as Compras (OriginStack™)',
+        'Primeiras Compras': 'Primeiras Compras (Last Click)',
+        'Primeiras Compras Primeiro Lead': 'Primeiras Compras (OriginStack™)',
+        'Receita': 'Receita (Last Click)',
+        'Receita Primeiro Lead': 'Receita (OriginStack™)',
+        'Receita Primeiras Compras': 'Receita Primeiras (Last Click)',
+        'Receita Primeiras Compras Primeiro Lead': 'Receita Primeiras (OriginStack™)',
         'Leads': 'Leads',
         'CTR': 'CTR (%)',
         'Taxa Conv.': 'Taxa de Conversão (%)',
-        'ROAS': 'ROAS',
+        'ROAS': 'ROAS (Last Click)',
+        'ROAS OriginStack™': 'ROAS (OriginStack™)',
+        'ROAS Primeiras': 'ROAS Primeiras (Last Click)',
+        'ROAS Primeiras OriginStack™': 'ROAS Primeiras (OriginStack™)',
         'CPC': 'CPC (R$)',
         'CPV': 'CPV (R$)',
-        'CPL': 'CPL (R$)',
-        'ROAS First Lead': 'ROAS First Lead'
+        'CPL': 'CPL (R$)'
     }
 
     # Seletor de métricas
@@ -923,7 +814,7 @@ def display_general_view(df_ads):
     }).reset_index()
 
     # Calcular métricas baseado no modelo de atribuição selecionado
-    if modelo_atribuicao == "Last Non Direct Click":
+    if modelo_funil == "Last Non Direct Click":
         df_ads_agg['ROAS'] = (df_ads_agg['Receita'] / df_ads_agg['Investimento'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras'].replace(0, float('nan'))).round(2)
@@ -942,13 +833,13 @@ def display_general_view(df_ads):
             # Métricas de Vendas (Last Non Direct Click)
             'Transações', 'Primeiras Compras', 'CPA', 'Receita', 'ROAS', 'CPV'
         ]
-    else:  # First Lead
+    else:  # OriginStack™
         df_ads_agg['ROAS'] = (df_ads_agg['Receita Primeiro Lead'] / df_ads_agg['Investimento'])
         df_ads_agg['CPV'] = (df_ads_agg['Investimento'] / df_ads_agg['Transações Primeiro Lead'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPA'] = (df_ads_agg['Investimento'] / df_ads_agg['Primeiras Compras Primeiro Lead'].replace(0, float('nan'))).round(2)
         df_ads_agg['CPL'] = (df_ads_agg['Investimento'] / df_ads_agg['Leads'].replace(0, float('nan'))).round(2)
         
-        # Reorganizar colunas em grupos lógicos para First Lead
+        # Reorganizar colunas em grupos lógicos para OriginStack™
         columns_order = [
             # Identificação
             'Plataforma', 'Campanha',
@@ -958,11 +849,11 @@ def display_general_view(df_ads):
             'Impressões', 'Cliques',
             # Métricas de Aquisição
             'Leads', 'CPL',
-            # Métricas First Lead
+            # Métricas OriginStack™
             'Transações Primeiro Lead', 'Primeiras Compras Primeiro Lead', 'CPA', 'Receita Primeiro Lead', 'ROAS', 'CPV'
         ]
     
-    df_ads_agg = df_ads_agg.sort_values(by='Receita' if modelo_atribuicao == "Last Non Direct Click" else 'Receita Primeiro Lead', ascending=False)
+    df_ads_agg = df_ads_agg.sort_values(by='Receita' if modelo_funil == "Last Non Direct Click" else 'Receita Primeiro Lead', ascending=False)
     
     # Format the columns to have at most 2 decimal places
     df_ads_agg['Investimento'] = df_ads_agg['Investimento'].round(2)
