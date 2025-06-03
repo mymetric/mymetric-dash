@@ -31,165 +31,113 @@ def date_filters():
     
     # Filtro de datas interativo
     with st.sidebar.expander("Datas", expanded=True):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("Hoje", 
-                        type="secondary",
-                        help="Dados de hoje",
-                        use_container_width=True,
-                        key="hoje"):
-                st.session_state.active_button = "hoje"
-                st.session_state.start_date = today
-                st.session_state.end_date = today
+        with st.form(key="date_filters_form"):
+            col1, col2 = st.columns(2)
             
-            if st.button("Últimos 7 Dias",
-                        type="secondary",
-                        help="Dados dos últimos 7 dias",
-                        use_container_width=True,
-                        key="7d"):
-                st.session_state.active_button = "7d"
-                st.session_state.start_date = seven_days_ago
-                st.session_state.end_date = today
-            
-            if st.button("Mês Atual",
-                        type="secondary",
-                        help="Dados do mês atual",
-                        use_container_width=True,
-                        key="mes"):
-                st.session_state.active_button = "mes"
-                st.session_state.start_date = first_day_of_month
-                st.session_state.end_date = today
+            with col1:
+                hoje_clicked = st.form_submit_button("Hoje", 
+                            type="secondary",
+                            help="Dados de hoje",
+                            use_container_width=True)
+                if hoje_clicked:
+                    st.session_state.active_button = "hoje"
+                    st.session_state.start_date = today
+                    st.session_state.end_date = today
+                    st.rerun()
                 
-        with col2:
-            if st.button("Ontem",
-                        type="secondary",
-                        help="Dados de ontem",
-                        use_container_width=True,
-                        key="ontem"):
-                st.session_state.active_button = "ontem"
-                st.session_state.start_date = yesterday
-                st.session_state.end_date = yesterday
-            
-            if st.button("Últimos 30 Dias",
-                        type="secondary",
-                        help="Dados dos últimos 30 dias",
-                        use_container_width=True,
-                        key="30d"):
-                st.session_state.active_button = "30d"
-                st.session_state.start_date = thirty_days_ago
-                st.session_state.end_date = today
-            
-            if st.button("Mês Passado",
-                        type="secondary",
-                        help="Dados do mês passado",
-                        use_container_width=True,
-                        key="mes_passado"):
-                st.session_state.active_button = "mes_passado"
-                st.session_state.start_date = first_day_of_prev_month
-                st.session_state.end_date = last_day_of_prev_month
+                sete_dias_clicked = st.form_submit_button("Últimos 7 Dias",
+                            type="secondary",
+                            help="Dados dos últimos 7 dias",
+                            use_container_width=True)
+                if sete_dias_clicked:
+                    st.session_state.active_button = "7d"
+                    st.session_state.start_date = seven_days_ago
+                    st.session_state.end_date = today
+                    st.rerun()
+                
+                mes_atual_clicked = st.form_submit_button("Mês Atual",
+                            type="secondary",
+                            help="Dados do mês atual",
+                            use_container_width=True)
+                if mes_atual_clicked:
+                    st.session_state.active_button = "mes"
+                    st.session_state.start_date = first_day_of_month
+                    st.session_state.end_date = today
+                    st.rerun()
+                    
+            with col2:
+                ontem_clicked = st.form_submit_button("Ontem",
+                            type="secondary",
+                            help="Dados de ontem",
+                            use_container_width=True)
+                if ontem_clicked:
+                    st.session_state.active_button = "ontem"
+                    st.session_state.start_date = yesterday
+                    st.session_state.end_date = yesterday
+                    st.rerun()
+                
+                trinta_dias_clicked = st.form_submit_button("Últimos 30 Dias",
+                            type="secondary",
+                            help="Dados dos últimos 30 dias",
+                            use_container_width=True)
+                if trinta_dias_clicked:
+                    st.session_state.active_button = "30d"
+                    st.session_state.start_date = thirty_days_ago
+                    st.session_state.end_date = today
+                    st.rerun()
+                
+                mes_passado_clicked = st.form_submit_button("Mês Passado",
+                            type="secondary",
+                            help="Dados do mês passado",
+                            use_container_width=True)
+                if mes_passado_clicked:
+                    st.session_state.active_button = "mes_passado"
+                    st.session_state.start_date = first_day_of_prev_month
+                    st.session_state.end_date = last_day_of_prev_month
+                    st.rerun()
 
-        date_col1, date_col2 = st.columns(2)
-        with date_col1:
-            custom_start = st.date_input("Data Inicial", st.session_state.start_date, key="custom_start_date")
-        with date_col2:
-            custom_end = st.date_input("Data Final", st.session_state.end_date, key="custom_end_date")
-        
-        # Botão para aplicar período personalizado
-        if st.button("Aplicar Período", 
-                    type="primary",
-                    help="Aplicar o período selecionado",
-                    use_container_width=True):
-            st.session_state.active_button = "custom"
-            st.session_state.start_date = custom_start
-            st.session_state.end_date = custom_end
+            date_col1, date_col2 = st.columns(2)
+            with date_col1:
+                custom_start = st.date_input("Data Inicial", st.session_state.start_date, key="custom_start_date")
+            with date_col2:
+                custom_end = st.date_input("Data Final", st.session_state.end_date, key="custom_end_date")
+            
+            # Botão para aplicar período personalizado
+            custom_submitted = st.form_submit_button("Aplicar Período", type="primary", use_container_width=True)
+            
+            if custom_submitted:
+                st.session_state.active_button = "custom"
+                st.session_state.start_date = custom_start
+                st.session_state.end_date = custom_end
+                st.rerun()
 
     # Atualizar as variáveis locais com os valores da sessão
     start_date = st.session_state.start_date
     end_date = st.session_state.end_date
 
 def traffic_filters(df):
-    if "cluster_selected" not in st.session_state:
-        st.session_state.cluster_selected = ["Selecionar Todos"]
-        st.session_state.origem_selected = ["Selecionar Todos"]
-        st.session_state.midia_selected = ["Selecionar Todos"]
-        st.session_state.campanha_selected = ["Selecionar Todos"]
-        st.session_state.conteudo_selected = ["Selecionar Todos"]
-        st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
-
     with st.sidebar:
         # Filtros Básicos
         with st.expander("Filtros Básicos", expanded=True):
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
             all_clusters = sort_by_sessions('Cluster', df)
             
-            # Criar os elementos de filtro
-            cluster_selected = st.multiselect(
-                "Cluster",
-                options=all_clusters,
-                default=["Selecionar Todos"]
-            )
-            
-            st.session_state.cluster_selected = cluster_selected
-
-        # Filtro de atribuição (sempre por último)
-        with st.expander("Modelos de Atribuição", expanded=True):
-            # Adiciona opções de atribuição
-            all_attribution = ["Último Clique Não Direto", "Primeiro Clique"]
-            
-            # Create a unique key using timestamp
-            timestamp = int(time.time() * 1000)
-            unique_key = f"attribution_model_radio_{timestamp}"
-            unique_button_key = f"attribution_info_button_{timestamp}"
-            
-            attribution_model = st.radio(
-                "Modelo de Atribuição",
-                options=all_attribution,
-                index=0,
-                help="Escolha o modelo de atribuição para análise dos dados",
-                key=unique_key
-            )
-            
-            # Força recarregamento dos dados quando o modelo muda
-            if 'last_attribution_model' not in st.session_state:
-                st.session_state.last_attribution_model = attribution_model
-            
-            if st.session_state.last_attribution_model != attribution_model:
-                st.session_state.last_attribution_model = attribution_model
-                st.session_state.attribution_model = attribution_model
-                # Limpa o cache antes de recarregar
-                if 'cache_data' in st.session_state:
-                    st.session_state.cache_data = {}
-                if 'cache_timestamps' in st.session_state:
-                    st.session_state.cache_timestamps = {}
-                if 'background_tasks' in st.session_state:
-                    st.session_state.background_tasks = {}
-
-            # Inicializa o estado se não existir
-            if 'show_attribution_info' not in st.session_state:
-                st.session_state.show_attribution_info = False
-
-            # Botão para mostrar/ocultar
-            if st.button('Sobre Modelos de Atribuição', key=unique_button_key):
-                st.session_state.show_attribution_info = not st.session_state.show_attribution_info
-
-            # Conteúdo que será mostrado/ocultado
-            if st.session_state.show_attribution_info:
-                st.markdown("""
-                    ### ℹ️ Modelos de Atribuição
-                    
-                    Os modelos de atribuição determinam como o crédito por uma conversão é distribuído entre os diferentes pontos de contato:
-                    
-                    🎯 **Último Clique Não Direto**
-                    - Atribui 100% do crédito ao último canal não direto que o usuário interagiu antes da conversão
-                    - Ignora acessos diretos posteriores
-                    - Mais comum para análise de campanhas de curto prazo
-                    
-                    1️⃣ **Primeiro Clique**
-                    - Atribui 100% do crédito ao primeiro canal que trouxe o usuário ao site
-                    - Valoriza a descoberta inicial
-                    - Útil para entender quais canais são mais eficientes em trazer novos usuários
-                """)
+            # Criar o formulário
+            with st.form(key="basic_filters_form"):
+                # Criar os elementos de filtro
+                cluster_selected = st.multiselect(
+                    "Cluster",
+                    options=all_clusters,
+                    default=st.session_state.cluster_selected,
+                    key="cluster_select"
+                )
+                
+                # Botão para aplicar filtros básicos
+                submitted = st.form_submit_button("Aplicar Filtros Básicos", type="primary", use_container_width=True)
+                
+                if submitted:
+                    st.session_state.cluster_selected = cluster_selected
+                    st.rerun()
 
 def traffic_filters_detailed(df):
     with st.sidebar:
@@ -201,43 +149,64 @@ def traffic_filters_detailed(df):
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
+            all_cupons = sort_by_sessions('Cupom', df)
             
-            # Criar os elementos de filtro
-            origem_selected = st.multiselect(
-                "Origem",
-                options=all_origins,
-                default=["Selecionar Todos"]
-            )
-            
-            midia_selected = st.multiselect(
-                "Mídia",
-                options=all_media,
-                default=["Selecionar Todos"]
-            )
-            
-            campanha_selected = st.multiselect(
-                "Campanha",
-                options=all_campaigns,
-                default=["Selecionar Todos"]
-            )
-            
-            conteudo_selected = st.multiselect(
-                "Conteúdo",
-                options=all_content,
-                default=["Selecionar Todos"]
-            )
-            
-            pagina_de_entrada_selected = st.multiselect(
-                "Página de Entrada",
-                options=all_pages,
-                default=["Selecionar Todos"]
-            )
-            
-            st.session_state.origem_selected = origem_selected
-            st.session_state.midia_selected = midia_selected
-            st.session_state.campanha_selected = campanha_selected
-            st.session_state.conteudo_selected = conteudo_selected
-            st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
+            # Criar o formulário
+            with st.form(key="advanced_filters_form"):
+                # Criar os elementos de filtro
+                origem_selected = st.multiselect(
+                    "Origem",
+                    options=all_origins,
+                    default=st.session_state.origem_selected,
+                    key="origem_select"
+                )
+                
+                midia_selected = st.multiselect(
+                    "Mídia",
+                    options=all_media,
+                    default=st.session_state.midia_selected,
+                    key="midia_select"
+                )
+                
+                campanha_selected = st.multiselect(
+                    "Campanha",
+                    options=all_campaigns,
+                    default=st.session_state.campanha_selected,
+                    key="campanha_select"
+                )
+                
+                conteudo_selected = st.multiselect(
+                    "Conteúdo",
+                    options=all_content,
+                    default=st.session_state.conteudo_selected,
+                    key="conteudo_select"
+                )
+                
+                pagina_de_entrada_selected = st.multiselect(
+                    "Página de Entrada",
+                    options=all_pages,
+                    default=st.session_state.pagina_de_entrada_selected,
+                    key="pagina_select"
+                )
+                
+                cupom_selected = st.multiselect(
+                    "Cupom",
+                    options=all_cupons,
+                    default=st.session_state.cupom_selected,
+                    key="cupom_select"
+                )
+                
+                # Botão para aplicar filtros
+                submitted = st.form_submit_button("Aplicar Filtros", type="primary", use_container_width=True)
+                
+                if submitted:
+                    st.session_state.origem_selected = origem_selected
+                    st.session_state.midia_selected = midia_selected
+                    st.session_state.campanha_selected = campanha_selected
+                    st.session_state.conteudo_selected = conteudo_selected
+                    st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
+                    st.session_state.cupom_selected = cupom_selected
+                    st.rerun()
 
 def apply_filters(df):
     """
@@ -248,30 +217,29 @@ def apply_filters(df):
     if df.empty:
         return df
         
-    # Criar uma cópia do DataFrame para não modificar o original
-    df_filtered = df.copy()
-
-    # Lista de filtros para aplicar
-    filters = [
-        ('cluster_selected', 'Cluster'),
-        ('origem_selected', 'Origem'),
-        ('midia_selected', 'Mídia'),
-        ('campanha_selected', 'Campanha'),
-        ('conteudo_selected', 'Conteúdo'),
-        ('pagina_de_entrada_selected', 'Página de Entrada')
-    ]
-
-    # Aplicar cada filtro
-    for state_key, column in filters:
-        selected_values = st.session_state.get(state_key, [])
-        if selected_values and "Selecionar Todos" not in selected_values:
-            # Garantir que a coluna existe antes de filtrar
-            if column in df_filtered.columns:
-                # Converter valores para string para evitar problemas de tipo
-                df_filtered[column] = df_filtered[column].astype(str)
-                selected_values = [str(val) for val in selected_values]
-                df_filtered = df_filtered[df_filtered[column].isin(selected_values)]
-    
-    return df_filtered
+    # Aplicar filtros básicos
+    if "Selecionar Todos" not in st.session_state.cluster_selected:
+        df = df[df['Cluster'].isin(st.session_state.cluster_selected)]
+        
+    if "Selecionar Todos" not in st.session_state.cupom_selected:
+        df = df[df['Cupom'].isin(st.session_state.cupom_selected)]
+        
+    # Aplicar filtros avançados
+    if "Selecionar Todos" not in st.session_state.origem_selected:
+        df = df[df['Origem'].isin(st.session_state.origem_selected)]
+        
+    if "Selecionar Todos" not in st.session_state.midia_selected:
+        df = df[df['Mídia'].isin(st.session_state.midia_selected)]
+        
+    if "Selecionar Todos" not in st.session_state.campanha_selected:
+        df = df[df['Campanha'].isin(st.session_state.campanha_selected)]
+        
+    if "Selecionar Todos" not in st.session_state.conteudo_selected:
+        df = df[df['Conteúdo'].isin(st.session_state.conteudo_selected)]
+        
+    if "Selecionar Todos" not in st.session_state.pagina_de_entrada_selected:
+        df = df[df['Página de Entrada'].isin(st.session_state.pagina_de_entrada_selected)]
+        
+    return df
 
     
