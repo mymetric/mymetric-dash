@@ -145,6 +145,20 @@ def traffic_filters(df):
 
 def traffic_filters_detailed(df):
     with st.sidebar:
+        # Initialize all session state variables if they don't exist
+        if 'origem_selected' not in st.session_state:
+            st.session_state.origem_selected = ["Selecionar Todos"]
+        if 'midia_selected' not in st.session_state:
+            st.session_state.midia_selected = ["Selecionar Todos"]
+        if 'campanha_selected' not in st.session_state:
+            st.session_state.campanha_selected = ["Selecionar Todos"]
+        if 'conteudo_selected' not in st.session_state:
+            st.session_state.conteudo_selected = ["Selecionar Todos"]
+        if 'pagina_de_entrada_selected' not in st.session_state:
+            st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+        if 'cupom_selected' not in st.session_state:
+            st.session_state.cupom_selected = ["Selecionar Todos"]
+            
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
