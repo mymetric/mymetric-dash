@@ -117,6 +117,10 @@ def date_filters():
 
 def traffic_filters(df):
     with st.sidebar:
+        # Initialize session state variables if they don't exist
+        if 'cluster_selected' not in st.session_state:
+            st.session_state.cluster_selected = ["Selecionar Todos"]
+            
         # Filtros Básicos
         with st.expander("Filtros Básicos", expanded=True):
             # Adiciona "Selecionar Todos" como primeira opção em cada filtro
