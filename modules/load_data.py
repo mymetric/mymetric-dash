@@ -1913,3 +1913,35 @@ def load_purchase_items_sessions():
     except Exception as e:
         print(f"Erro ao carregar itens de compra: {str(e)}")
         return pd.DataFrame()
+
+@background_cache(ttl_hours=1)
+def load_intraday_ecommerce_funnel():
+    """
+    Carrega dados de funil de ecommerce para o dia atual e o anterior.
+    Retorna um DataFrame com eventos agrupados por hora.
+    """
+    if toast_alerts():
+        st.toast("Carregando funil intraday...")
+
+    tablename = st.session_state.tablename
+    if not tablename:
+        raise ValueError("tablename não está definido na sessão")
+
+    project_name = get_project_name(tablename)
+
+    query = f"""
+        select
+            event_date,
+            extract(hour from datetime(timestamp_micros(event_timestamp), "America/Sao_Paulo")) hour,
+            event_name,
+            count(*) events
+        from `{project_name}.dbt_granular.{tablename}_enhanced_ecommerce_only_intraday`
+        where
+            event_name in("add_payment_info","add_shipping_info","add_to_cart","begin_checkout","purchase","view_item")
+            and event_date >= date_sub(current_date("America/Sao_Paulo"), interval 1 day)
+        group by all
+        order by hour desc
+    """
+
+    df = run_queries([query])[0]
+    return df
