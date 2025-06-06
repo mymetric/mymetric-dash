@@ -27,6 +27,16 @@ def display_tab_coffeemais_users():
     # Converter número da recorrência para numérico, tratando valores inválidos
     df['pagbrasil_recurrence_number'] = pd.to_numeric(df['pagbrasil_recurrence_number'], errors='coerce')
 
+    # Adicionar campos de compra
+    df['last_purchase_date'] = pd.to_datetime(df['last_purchase_date'], errors='coerce')
+    df['first_purchase_date'] = pd.to_datetime(df['first_purchase_date'], errors='coerce')
+    df['last_purchase_revenue'] = pd.to_numeric(df['last_purchase_revenue'], errors='coerce')
+    df['first_purchase_revenue'] = pd.to_numeric(df['first_purchase_revenue'], errors='coerce')
+    df['last_purchase_cluster'] = df['last_purchase_cluster'].fillna('Não Definido')
+    df['first_purchase_cluster'] = df['first_purchase_cluster'].fillna('Não Definido')
+    df['total_revenue'] = pd.to_numeric(df['total_revenue'], errors='coerce').fillna(0)
+    df['purchase_quantity'] = pd.to_numeric(df['purchase_quantity'], errors='coerce').fillna(0)
+
     # Adicionar seção colapsável com os big numbers existentes
     with st.expander("Assinantes PagBrasil - Big Numbers", expanded=False):
         st.subheader("Assinantes PagBrasil")
@@ -171,6 +181,106 @@ def display_tab_coffeemais_users():
             else:
                 st.info("Sem dados de pagamento disponíveis")
 
+        # Sexta linha de filtros - Campos de compra
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Filtro de data da última compra
+            min_last_purchase = df['last_purchase_date'].min().date() if not df['last_purchase_date'].empty else None
+            max_last_purchase = df['last_purchase_date'].max().date() if not df['last_purchase_date'].empty else None
+            
+            if min_last_purchase and max_last_purchase:
+                selected_last_purchase_date = st.date_input(
+                    'Data da Última Compra:',
+                    value=(min_last_purchase, max_last_purchase),
+                    min_value=min_last_purchase,
+                    max_value=max_last_purchase
+                )
+            else:
+                st.info("Sem dados de última compra disponíveis")
+        
+        with col2:
+            # Filtro de data da primeira compra
+            min_first_purchase = df['first_purchase_date'].min().date() if not df['first_purchase_date'].empty else None
+            max_first_purchase = df['first_purchase_date'].max().date() if not df['first_purchase_date'].empty else None
+            
+            if min_first_purchase and max_first_purchase:
+                selected_first_purchase_date = st.date_input(
+                    'Data da Primeira Compra:',
+                    value=(min_first_purchase, max_first_purchase),
+                    min_value=min_first_purchase,
+                    max_value=max_first_purchase
+                )
+            else:
+                st.info("Sem dados de primeira compra disponíveis")
+        
+        with col3:
+            # Dropdown para filtrar por cluster da última compra
+            cluster_options = ['Todos'] + sorted(df['last_purchase_cluster'].dropna().unique().tolist())
+            selected_last_cluster = st.selectbox('Cluster da Última Compra:', cluster_options)
+
+        # Sétima linha de filtros - Mais campos de compra
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Dropdown para filtrar por cluster da primeira compra
+            cluster_options = ['Todos'] + sorted(df['first_purchase_cluster'].dropna().unique().tolist())
+            selected_first_cluster = st.selectbox('Cluster da Primeira Compra:', cluster_options)
+        
+        with col2:
+            # Input para receita total
+            min_revenue = df['total_revenue'].min()
+            max_revenue = df['total_revenue'].max()
+            
+            if pd.notna(min_revenue) and pd.notna(max_revenue):
+                col_revenue_min, col_revenue_max = st.columns(2)
+                with col_revenue_min:
+                    min_revenue_input = st.number_input(
+                        'Receita Total Mínima:',
+                        min_value=float(min_revenue),
+                        max_value=float(max_revenue),
+                        value=float(min_revenue),
+                        step=1.0
+                    )
+                with col_revenue_max:
+                    max_revenue_input = st.number_input(
+                        'Receita Total Máxima:',
+                        min_value=float(min_revenue),
+                        max_value=float(max_revenue),
+                        value=float(max_revenue),
+                        step=1.0
+                    )
+                selected_revenue_range = (min_revenue_input, max_revenue_input)
+            else:
+                st.info("Sem dados de receita disponíveis")
+        
+        with col3:
+            # Input para quantidade de compras
+            min_quantity = df['purchase_quantity'].min()
+            max_quantity = df['purchase_quantity'].max()
+            
+            if pd.notna(min_quantity) and pd.notna(max_quantity):
+                col_quantity_min, col_quantity_max = st.columns(2)
+                with col_quantity_min:
+                    min_quantity_input = st.number_input(
+                        'Quantidade Mínima:',
+                        min_value=float(min_quantity),
+                        max_value=float(max_quantity),
+                        value=float(min_quantity),
+                        step=1.0
+                    )
+                with col_quantity_max:
+                    max_quantity_input = st.number_input(
+                        'Quantidade Máxima:',
+                        min_value=float(min_quantity),
+                        max_value=float(max_quantity),
+                        value=float(max_quantity),
+                        step=1.0
+                    )
+                selected_quantity_range = (min_quantity_input, max_quantity_input)
+            else:
+                st.info("Sem dados de quantidade disponíveis")
+
     # Aplicar filtros
     filtered_df = df.copy()
 
@@ -238,25 +348,75 @@ def display_tab_coffeemais_users():
             (filtered_df['pagbrasil_payment_date'] <= pd.Timestamp(end_date))
         ]
 
+    # Aplicar filtros de compra
+    if 'selected_last_purchase_date' in locals() and len(selected_last_purchase_date) == 2:
+        start_date, end_date = selected_last_purchase_date
+        end_date = datetime.combine(end_date, datetime.max.time())
+        filtered_df = filtered_df[
+            (filtered_df['last_purchase_date'] >= pd.Timestamp(start_date)) & 
+            (filtered_df['last_purchase_date'] <= pd.Timestamp(end_date))
+        ]
+
+    if 'selected_first_purchase_date' in locals() and len(selected_first_purchase_date) == 2:
+        start_date, end_date = selected_first_purchase_date
+        end_date = datetime.combine(end_date, datetime.max.time())
+        filtered_df = filtered_df[
+            (filtered_df['first_purchase_date'] >= pd.Timestamp(start_date)) & 
+            (filtered_df['first_purchase_date'] <= pd.Timestamp(end_date))
+        ]
+
+    if selected_last_cluster != 'Todos':
+        filtered_df = filtered_df[filtered_df['last_purchase_cluster'] == selected_last_cluster]
+
+    if selected_first_cluster != 'Todos':
+        filtered_df = filtered_df[filtered_df['first_purchase_cluster'] == selected_first_cluster]
+
+    if 'selected_revenue_range' in locals():
+        min_revenue, max_revenue = selected_revenue_range
+        filtered_df = filtered_df[
+            (filtered_df['total_revenue'] >= min_revenue) & 
+            (filtered_df['total_revenue'] <= max_revenue)
+        ]
+
+    if 'selected_quantity_range' in locals():
+        min_quantity, max_quantity = selected_quantity_range
+        filtered_df = filtered_df[
+            (filtered_df['purchase_quantity'] >= min_quantity) & 
+            (filtered_df['purchase_quantity'] <= max_quantity)
+        ]
+
     # Renomear colunas para exibição
     display_df = filtered_df.copy()
-    display_df.columns = [
-        'Data de Atualização',
-        'E-mail',
-        'Nome',
-        'Telefone',
-        'Origem do Lead',
-        'Mídia do Lead',
-        'Campanha do Lead',
-        'Conteúdo do Lead',
-        'Termo do Lead',
-        'Página do Lead',
-        'ID da Recorrência',
-        'Número da Recorrência',
-        'Link da Assinatura',
-        'Data do Pagamento',
-        'Status da Assinatura',
-        'Status do Pedido'
-    ]
+    
+    # Mapeamento de colunas existentes
+    column_mapping = {
+        'updated_at': 'Data de Atualização',
+        'email': 'E-mail',
+        'name': 'Nome',
+        'phone': 'Telefone',
+        'first_lead_source': 'Origem do Lead',
+        'first_lead_medium': 'Mídia do Lead',
+        'first_lead_campaign': 'Campanha do Lead',
+        'first_lead_content': 'Conteúdo do Lead',
+        'first_lead_term': 'Termo do Lead',
+        'first_lead_page_location': 'Página do Lead',
+        'pagbrasil_recurrence_id': 'ID da Recorrência',
+        'pagbrasil_recurrence_number': 'Número da Recorrência',
+        'pagbrasil_subscription_link': 'Link da Assinatura',
+        'pagbrasil_payment_date': 'Data do Pagamento',
+        'pagbrasil_subscription_status': 'Status da Assinatura',
+        'pagbrasil_order_status': 'Status do Pedido',
+        'last_purchase_date': 'Data da Última Compra',
+        'last_purchase_revenue': 'Receita da Última Compra',
+        'last_purchase_cluster': 'Cluster da Última Compra',
+        'first_purchase_date': 'Data da Primeira Compra',
+        'first_purchase_revenue': 'Receita da Primeira Compra',
+        'first_purchase_cluster': 'Cluster da Primeira Compra',
+        'total_revenue': 'Total de Receita',
+        'purchase_quantity': 'Quantidade de Compras'
+    }
+    
+    # Renomear apenas as colunas que existem no DataFrame
+    display_df = display_df.rename(columns={k: v for k, v in column_mapping.items() if k in display_df.columns})
 
     st.data_editor(display_df, use_container_width=True, hide_index=True)

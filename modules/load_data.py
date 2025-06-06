@@ -1153,6 +1153,16 @@ def load_coffeemais_users():
             first_lead_content,
             first_lead_term,
             first_lead_page_location,
+
+            last_purchase_date,
+            last_purchase_revenue,
+            last_purchase_cluster,
+            first_purchase_date,
+            first_purchase_revenue,
+            first_purchase_cluster,
+            total_revenue,
+            purchase_quantity,
+
             pagbrasil_recurrence_id,
             pagbrasil_recurrence_number,
             pagbrasil_subscription_link,
