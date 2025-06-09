@@ -57,18 +57,31 @@ def load_current_month_revenue(tablename):
         primeiro_dia = hoje.replace(day=1).strftime('%Y-%m-%d')
         ontem = (hoje - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
         
-        query = f"""
-        SELECT 
-            SUM(CASE 
-                WHEN status = 'paid' 
-                AND created_at BETWEEN '{primeiro_dia}' AND '{ontem}'
-                THEN value 
-                    - COALESCE(total_discounts, 0) 
-                    + COALESCE(shipping_value, 0)
+        # Ajusta a query baseado na tabela
+        if tablename == 'wtennis':
+            query = f"""
+            WITH filtered_events AS (
+                SELECT 
+                    value,
+                    total_discounts
+                FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+                WHERE event_date BETWEEN '{primeiro_dia}' AND '{ontem}'
+                AND event_name = 'purchase'
+                AND status in ('paid', 'authorized')
+            )
+            SELECT SUM(value - COALESCE(total_discounts, 0)) as total_mes
+            FROM filtered_events
+            """
+        else:
+            query = f"""
+            SELECT SUM(CASE 
+                WHEN event_name = 'purchase' and status in ('paid', 'authorized') 
+                THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
                 ELSE 0 
             END) as total_mes
-        FROM `mymetric-hub-shopify.dbt_granular.{tablename}_orders_dedup`
-        """
+            FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+            WHERE event_date BETWEEN '{primeiro_dia}' AND '{ontem}'
+            """
 
         query_job = client.query(query)
         rows_raw = query_job.result()

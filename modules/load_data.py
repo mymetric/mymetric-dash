@@ -596,11 +596,31 @@ def load_current_month_revenue():
     primeiro_dia = hoje.replace(day=1).strftime('%Y-%m-%d')
     ultimo_dia = hoje.strftime('%Y-%m-%d')
     
-    query = f"""
-    SELECT SUM(CASE WHEN event_name = 'purchase' and status in ('paid', 'authorized') THEN value ELSE 0 END) as total_mes
-    FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
-    WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
-    """
+    # Ajusta a query baseado na tabela
+    if tablename == 'wtennis':
+        query = f"""
+        WITH filtered_events AS (
+            SELECT 
+                value,
+                total_discounts
+            FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+            WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
+            AND event_name = 'purchase'
+            AND status in ('paid', 'authorized')
+        )
+        SELECT SUM(value - COALESCE(total_discounts, 0)) as total_mes
+        FROM filtered_events
+        """
+    else:
+        query = f"""
+        SELECT SUM(CASE 
+            WHEN event_name = 'purchase' and status in ('paid', 'authorized') 
+            THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
+            ELSE 0 
+        END) as total_mes
+        FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+        WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
+        """
 
     df = run_queries([query])[0]
     return df
