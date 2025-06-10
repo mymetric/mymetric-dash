@@ -57,6 +57,9 @@ def load_current_month_revenue(tablename):
         primeiro_dia = hoje.replace(day=1).strftime('%Y-%m-%d')
         ontem = (hoje - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
         
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
         # Ajusta a query baseado na tabela
         if tablename == 'wtennis':
             query = f"""
@@ -64,7 +67,7 @@ def load_current_month_revenue(tablename):
                 SELECT 
                     value,
                     total_discounts
-                FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+                FROM `{project_id}.dbt_join.{tablename}_events_long`
                 WHERE event_date BETWEEN '{primeiro_dia}' AND '{ontem}'
                 AND event_name = 'purchase'
                 AND status in ('paid', 'authorized')
@@ -79,7 +82,7 @@ def load_current_month_revenue(tablename):
                 THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
                 ELSE 0 
             END) as total_mes
-            FROM `mymetric-hub-shopify.dbt_join.{tablename}_events_long`
+            FROM `{project_id}.dbt_join.{tablename}_events_long`
             WHERE event_date BETWEEN '{primeiro_dia}' AND '{ontem}'
             """
 
@@ -89,6 +92,159 @@ def load_current_month_revenue(tablename):
         return pd.DataFrame(rows)
     except Exception as e:
         print(f"Erro ao carregar receita: {str(e)}")
+        return pd.DataFrame()
+
+def load_yesterday_revenue(tablename):
+    """
+    Carrega a receita do dia anterior.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        # Ajusta a query baseado na tabela
+        if tablename == 'wtennis':
+            query = f"""
+            WITH filtered_events AS (
+                SELECT 
+                    value,
+                    total_discounts
+                FROM `{project_id}.dbt_join.{tablename}_events_long`
+                WHERE event_date = date_sub(current_date(), interval 1 day)
+                AND event_name = 'purchase'
+                AND status in ('paid', 'authorized')
+            )
+            SELECT SUM(value - COALESCE(total_discounts, 0)) as total_ontem
+            FROM filtered_events
+            """
+        else:
+            query = f"""
+            SELECT SUM(CASE 
+                WHEN event_name = 'purchase' and status in ('paid', 'authorized') 
+                THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
+                ELSE 0 
+            END) as total_ontem
+            FROM `{project_id}.dbt_join.{tablename}_events_long`
+            WHERE event_date = date_sub(current_date(), interval 1 day)
+            """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao carregar receita de ontem: {str(e)}")
+        return pd.DataFrame()
+
+def load_duplicate_sessions(tablename):
+    """
+    Carrega o percentual de sessões duplicadas.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        query = f"""
+        with prep as (
+            SELECT
+                event_date,
+                user_pseudo_id,
+                ga_session_id,
+                LAG(ga_session_id) OVER (
+                    PARTITION BY user_pseudo_id
+                    ORDER BY ga_session_id
+                ) AS previous_ga_session_id
+            FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+        )
+        select
+            round(
+                sum(
+                    case
+                        when ga_session_id - previous_ga_session_id is null then 0
+                        when ga_session_id - previous_ga_session_id < 1800 then 1
+                        else 0
+                    end
+                ) / count(*), 2) as duplicated_sessions
+        from prep
+        group by all
+        """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao carregar sessões duplicadas: {str(e)}")
+        return pd.DataFrame()
+
+def load_lost_cookies(tablename):
+    """
+    Carrega o percentual de perda de cookies.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        if tablename == "linus":
+            query = f"""
+            select
+                1-round(count(distinct concat(user_pseudo_id, ga_session_id)) / count(*),2) lost_cookies
+            from `{project_id}.dbt_granular.linus_orders_dedup`
+            where
+                date(created_at) = date_sub(current_date(), interval 1 day)
+                and source_name = "web"
+            group by all
+            """
+
+            query_job = client.query(query)
+            rows_raw = query_job.result()
+            rows = [dict(row) for row in rows_raw]
+            return pd.DataFrame(rows)
+        return pd.DataFrame()
+    except Exception as e:
+        print(f"Erro ao carregar perda de cookies: {str(e)}")
         return pd.DataFrame()
 
 def send_whatsapp_message(message, phone):
@@ -121,34 +277,58 @@ def send_whatsapp_message(message, phone):
     except Exception as e:
         print(f"❌ Erro ao enviar mensagem para {phone}: {str(e)}")
 
-def send_goal_alert(tablename, phone):
+def send_goal_alert(tablename, phone, testing_mode=False):
     """
     Envia um alerta com o status da meta do mês via WhatsApp.
     
     Args:
         tablename (str): Nome da tabela para verificar a meta
         phone (str): Número do telefone ou ID do grupo
+        testing_mode (bool): Se True, envia mensagem de teste
     """
     try:
+        if testing_mode:
+            message = f"""
+🧪 *Mensagem de Teste - {tablename}*
+
+Esta é uma mensagem de teste para verificar o funcionamento do sistema de alertas.
+"""
+            send_whatsapp_message(message, phone)
+            return
+
         print(f"\nVerificando meta para {tablename}...")
         
+        # Carregar sessões duplicadas (sempre)
+        df_duplicate = load_duplicate_sessions(tablename)
+        duplicated_sessions = float(df_duplicate['duplicated_sessions'].iloc[0]) if not df_duplicate.empty else 0
+        print(f"Sessões duplicadas: {duplicated_sessions}")
+        aviso_duplicadas = duplicated_sessions > 0.02
+
+        # Carregar perda de cookies (apenas para Linus)
+        df_lost_cookies = load_lost_cookies(tablename)
+        lost_cookies = float(df_lost_cookies['lost_cookies'].iloc[0]) if not df_lost_cookies.empty else 0
+        print(f"Perda de cookies: {lost_cookies}")
+        aviso_cookies = lost_cookies > 0.05
+
+        # Carregar vendas de ontem
+        df_yesterday = load_yesterday_revenue(tablename)
+        vendas_ontem = float(df_yesterday['total_ontem'].iloc[0]) if not df_yesterday.empty else 0
+        print(f"Vendas de ontem: {vendas_ontem}")
+
         # Carregar metas
         df_goals = load_goals(tablename)
         print(f"DataFrame de metas: {df_goals}")
         
-        if df_goals.empty:
-            print(f"❌ DataFrame de metas vazio para {tablename}")
-            send_whatsapp_message(f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas", phone)
-            return
-            
-        if 'goals' not in df_goals.columns:
-            print(f"❌ Coluna 'goals' não encontrada para {tablename}")
-            send_whatsapp_message(f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas", phone)
-            return
-            
-        if df_goals['goals'].isna().all():
-            print(f"❌ Todas as metas estão vazias para {tablename}")
-            send_whatsapp_message(f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas", phone)
+        if df_goals.empty or 'goals' not in df_goals.columns or df_goals['goals'].isna().all():
+            print(f"❌ DataFrame de metas vazio ou coluna ausente para {tablename}")
+            msg = f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            if aviso_duplicadas:
+                msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
+            if aviso_cookies:
+                msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+            if vendas_ontem > 0:
+                msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            send_whatsapp_message(msg, phone)
             return
 
         # Extrair meta do mês atual
@@ -157,7 +337,14 @@ def send_goal_alert(tablename, phone):
         
         if not goals_json:
             print(f"❌ JSON de metas vazio para {tablename}")
-            send_whatsapp_message(f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas", phone)
+            msg = f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            if aviso_duplicadas:
+                msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
+            if aviso_cookies:
+                msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+            if vendas_ontem > 0:
+                msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            send_whatsapp_message(msg, phone)
             return
 
         metas = json.loads(goals_json)
@@ -171,7 +358,14 @@ def send_goal_alert(tablename, phone):
 
         if meta_receita == 0:
             print(f"❌ Meta de receita é zero para {tablename}")
-            send_whatsapp_message(f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas", phone)
+            msg = f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            if aviso_duplicadas:
+                msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
+            if aviso_cookies:
+                msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+            if vendas_ontem > 0:
+                msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            send_whatsapp_message(msg, phone)
             return
 
         # Carregar receita atual do mês
@@ -207,51 +401,93 @@ def send_goal_alert(tablename, phone):
 🎯 Projeção final: R$ {projecao_final:,.2f}
 📊 Percentual projetado: {percentual_projetado:.1f}%
 """
+        if vendas_ontem > 0:
+            message += f"\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+
+        if aviso_duplicadas or aviso_cookies:
+            message += "\n\n🔄 *Qualidade dos Dados*"
+            if aviso_duplicadas:
+                message += f"\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
+            if aviso_cookies:
+                message += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
 
         # Enviar mensagem
         send_whatsapp_message(message, phone)
 
     except Exception as e:
         print(f"❌ Erro ao verificar meta para {tablename}: {str(e)}")
-        send_whatsapp_message(f"❌ Erro ao verificar meta: {str(e)}", phone)
+        # Mesmo em caso de erro, tenta enviar o aviso de sessões duplicadas e cookies
+        try:
+            msg = f"❌ Erro ao verificar meta: {str(e)}"
+            if vendas_ontem > 0:
+                msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            if aviso_duplicadas or aviso_cookies:
+                msg += "\n\n🔄 *Qualidade dos Dados*"
+                if aviso_duplicadas:
+                    msg += f"\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
+                if aviso_cookies:
+                    msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+            send_whatsapp_message(msg, phone)
+        except:
+            send_whatsapp_message(f"❌ Erro ao verificar meta: {str(e)}", phone)
 
-def send_alerts_to_all_groups():
+def send_alerts_to_all_groups(test_mode=False):
     """
     Envia alertas de meta para todos os grupos de WhatsApp cadastrados.
+    
+    Args:
+        test_mode (bool): Se True, envia para o grupo de teste
     """
     try:
         # Carregar usuários
         users = load_users()
         
+        # Grupo de teste para modo teste
+        test_group = "120363322379870288-group"
+        
         # Enviar alerta para cada usuário que tem grupo de WhatsApp
         for user in users:
-            if user.get('wpp_group'):
-                print(f"Enviando alerta para {user.get('slug')} - Grupo: {user.get('wpp_group')}")
-                send_goal_alert(user.get('slug'), user.get('wpp_group'))
+            if user.get('slug'):
+                print(f"\nEnviando alerta para {user.get('slug')}...")
+                if test_mode:
+                    send_goal_alert(user.get('slug'), test_group)
+                elif user.get('wpp_group'):
+                    send_goal_alert(user.get('slug'), user.get('wpp_group'))
                 
     except Exception as e:
         print(f"❌ Erro ao enviar alertas: {str(e)}")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "all":
-        send_alerts_to_all_groups()
-    elif len(sys.argv) > 1:
-        # Get the client's WhatsApp group from configuration
-        users = load_users()
-        client_slug = sys.argv[1]
-        client_group = None
-        
-        # Find the WhatsApp group for the specified client
-        for user in users:
-            if user.get('slug') == client_slug and user.get('wpp_group'):
-                client_group = user.get('wpp_group')
-                break
-        
-        if client_group:
-            send_goal_alert(client_slug, client_group)
+        if len(sys.argv) > 2 and sys.argv[2] == "test":
+            send_alerts_to_all_groups(test_mode=True)
         else:
-            print(f"❌ Grupo de WhatsApp não encontrado para o cliente {client_slug}")
+            send_alerts_to_all_groups(test_mode=False)
+    elif len(sys.argv) > 2:
+        company = sys.argv[1]
+        is_test = sys.argv[2] == "test"
+        
+        if is_test:
+            # Send test message to the specified group
+            test_group = "120363322379870288-group"
+            send_goal_alert(company, test_group)
+        else:
+            # Get the client's WhatsApp group from configuration
+            users = load_users()
+            client_group = None
+            
+            # Find the WhatsApp group for the specified client
+            for user in users:
+                if user.get('slug') == company and user.get('wpp_group'):
+                    client_group = user.get('wpp_group')
+                    break
+            
+            if client_group:
+                send_goal_alert(company, client_group)
+            else:
+                print(f"❌ Grupo de WhatsApp não encontrado para o cliente {company}")
     else:
         print("❌ Uso incorreto do script")
-        print("Para enviar para um cliente específico: python3 alerts/whatsapp.py [slug]")
-        print("Para enviar para todos os grupos: python3 alerts/whatsapp.py all") 
+        print("Para enviar para um cliente específico: python3 alerts/whatsapp.py [slug] [test]")
+        print("Para enviar para todos os grupos: python3 alerts/whatsapp.py all")
+        print("Para enviar para todos os clientes em modo teste: python3 alerts/whatsapp.py all test") 
