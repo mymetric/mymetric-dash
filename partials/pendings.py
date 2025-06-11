@@ -188,7 +188,7 @@ def check_pending_items():
 
         df_qa = load_fbclid_coverage()
         
-        if not df_qa.empty:
+        if not df_qa.empty and 'Cobertura' in df_qa.columns and df_qa['Cobertura'].iloc[0] is not None:
             cobertura = float(df_qa['Cobertura'].iloc[0] * 100)
             
             if cobertura < 50:
