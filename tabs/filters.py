@@ -159,8 +159,6 @@ def traffic_filters_detailed(df):
             st.session_state.conteudo_selected = ["Selecionar Todos"]
         if 'pagina_de_entrada_selected' not in st.session_state:
             st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
-        if 'produto_selected' not in st.session_state:
-            st.session_state.produto_selected = ["Selecionar Todos"]
             
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
@@ -170,18 +168,10 @@ def traffic_filters_detailed(df):
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
-            all_products = sort_by_sessions('Nome do Produto', df)
             
             # Criar o formulário
             with st.form(key="advanced_filters_form"):
                 # Criar os elementos de filtro
-                produto_selected = st.multiselect(
-                    "Produto",
-                    options=all_products,
-                    default=st.session_state.produto_selected,
-                    key="produto_select"
-                )
-                
                 origem_selected = st.multiselect(
                     "Origem",
                     options=all_origins,
@@ -221,7 +211,6 @@ def traffic_filters_detailed(df):
                 submitted = st.form_submit_button("Aplicar Filtros Avançados", type="primary", use_container_width=True)
                 
                 if submitted:
-                    st.session_state.produto_selected = produto_selected
                     st.session_state.origem_selected = origem_selected
                     st.session_state.midia_selected = midia_selected
                     st.session_state.campanha_selected = campanha_selected
@@ -261,10 +250,6 @@ def apply_filters(df):
     # Aplicar filtros de página de entrada
     if "Selecionar Todos" not in st.session_state.pagina_de_entrada_selected:
         df = df[df['Página de Entrada'].isin(st.session_state.pagina_de_entrada_selected)]
-    
-    # Aplicar filtros de produto
-    if "Selecionar Todos" not in st.session_state.produto_selected:
-        df = df[df['Nome do Produto'].isin(st.session_state.produto_selected)]
     
     return df
 
