@@ -3,7 +3,10 @@ import streamlit as st
 import time
 
 def sort_by_sessions(series, df):
-    session_counts = df.groupby(series).Sessões.sum().sort_values(ascending=False)
+    if 'Sessões' in df.columns:
+        session_counts = df.groupby(series).Sessões.sum().sort_values(ascending=False)
+    else:
+        session_counts = df.groupby(series).Quantidade.sum().sort_values(ascending=False)
     return ["Selecionar Todos"] + session_counts.index.tolist()
 
 def date_filters():
@@ -156,8 +159,8 @@ def traffic_filters_detailed(df):
             st.session_state.conteudo_selected = ["Selecionar Todos"]
         if 'pagina_de_entrada_selected' not in st.session_state:
             st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
-        if 'cupom_selected' not in st.session_state:
-            st.session_state.cupom_selected = ["Selecionar Todos"]
+        if 'produto_selected' not in st.session_state:
+            st.session_state.produto_selected = ["Selecionar Todos"]
             
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
@@ -167,11 +170,18 @@ def traffic_filters_detailed(df):
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
-            all_cupons = sort_by_sessions('Cupom', df)
+            all_products = sort_by_sessions('Nome do Produto', df)
             
             # Criar o formulário
             with st.form(key="advanced_filters_form"):
                 # Criar os elementos de filtro
+                produto_selected = st.multiselect(
+                    "Produto",
+                    options=all_products,
+                    default=st.session_state.produto_selected,
+                    key="produto_select"
+                )
+                
                 origem_selected = st.multiselect(
                     "Origem",
                     options=all_origins,
@@ -204,26 +214,19 @@ def traffic_filters_detailed(df):
                     "Página de Entrada",
                     options=all_pages,
                     default=st.session_state.pagina_de_entrada_selected,
-                    key="pagina_select"
+                    key="pagina_de_entrada_select"
                 )
                 
-                cupom_selected = st.multiselect(
-                    "Cupom",
-                    options=all_cupons,
-                    default=st.session_state.cupom_selected,
-                    key="cupom_select"
-                )
-                
-                # Botão para aplicar filtros
-                submitted = st.form_submit_button("Aplicar Filtros", type="primary", use_container_width=True)
+                # Botão para aplicar filtros avançados
+                submitted = st.form_submit_button("Aplicar Filtros Avançados", type="primary", use_container_width=True)
                 
                 if submitted:
+                    st.session_state.produto_selected = produto_selected
                     st.session_state.origem_selected = origem_selected
                     st.session_state.midia_selected = midia_selected
                     st.session_state.campanha_selected = campanha_selected
                     st.session_state.conteudo_selected = conteudo_selected
                     st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
-                    st.session_state.cupom_selected = cupom_selected
                     st.rerun()
 
 def apply_filters(df):
@@ -235,29 +238,34 @@ def apply_filters(df):
     if df.empty:
         return df
         
-    # Aplicar filtros básicos
+    # Aplicar filtros de cluster
     if "Selecionar Todos" not in st.session_state.cluster_selected:
         df = df[df['Cluster'].isin(st.session_state.cluster_selected)]
-        
-    if "Selecionar Todos" not in st.session_state.cupom_selected:
-        df = df[df['Cupom'].isin(st.session_state.cupom_selected)]
-        
-    # Aplicar filtros avançados
+    
+    # Aplicar filtros de origem
     if "Selecionar Todos" not in st.session_state.origem_selected:
         df = df[df['Origem'].isin(st.session_state.origem_selected)]
-        
+    
+    # Aplicar filtros de mídia
     if "Selecionar Todos" not in st.session_state.midia_selected:
         df = df[df['Mídia'].isin(st.session_state.midia_selected)]
-        
+    
+    # Aplicar filtros de campanha
     if "Selecionar Todos" not in st.session_state.campanha_selected:
         df = df[df['Campanha'].isin(st.session_state.campanha_selected)]
-        
+    
+    # Aplicar filtros de conteúdo
     if "Selecionar Todos" not in st.session_state.conteudo_selected:
         df = df[df['Conteúdo'].isin(st.session_state.conteudo_selected)]
-        
+    
+    # Aplicar filtros de página de entrada
     if "Selecionar Todos" not in st.session_state.pagina_de_entrada_selected:
         df = df[df['Página de Entrada'].isin(st.session_state.pagina_de_entrada_selected)]
-        
+    
+    # Aplicar filtros de produto
+    if "Selecionar Todos" not in st.session_state.produto_selected:
+        df = df[df['Nome do Produto'].isin(st.session_state.produto_selected)]
+    
     return df
 
     

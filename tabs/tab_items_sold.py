@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from modules.load_data import load_purchase_items_sessions
 from modules.components import big_number_box
+from tabs.filters import traffic_filters_detailed, apply_filters
 
 def display_tab_items_sold():
     st.markdown("""
@@ -24,107 +25,22 @@ def display_tab_items_sold():
         st.warning("Não há dados disponíveis para o período selecionado.")
         return
 
-    # Filtros na lateral
-    with st.sidebar:
-        st.subheader("Filtros")
-        
-        # Filtro de Período
-        st.subheader("Período")
-        min_date = pd.to_datetime(df['Data']).min()
-        max_date = pd.to_datetime(df['Data']).max()
-        date_range = st.date_input(
-            "Selecione o período",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
-        
-        if len(date_range) == 2:
-            start_date, end_date = date_range
-            df = df[(pd.to_datetime(df['Data']) >= pd.to_datetime(start_date)) & 
-                   (pd.to_datetime(df['Data']) <= pd.to_datetime(end_date))]
-        
-        st.markdown("---")
-        st.subheader("Dimensões")
-        
-        # Filtro de Cluster
-        clusters = sorted([x for x in df['Cluster'].unique() if x is not None])
-        all_clusters = st.checkbox("Todos os Clusters", value=True, key="all_clusters")
-        selected_clusters = st.multiselect(
-            "Cluster",
-            options=clusters,
-            default=clusters if all_clusters else [],
-            disabled=all_clusters
-        )
-        
-        # Filtro de Origem/Mídia
-        source_mediums = sorted([f"{x['Origem']} / {x['Mídia']}" for _, x in df[['Origem', 'Mídia']].drop_duplicates().iterrows() if x['Origem'] is not None and x['Mídia'] is not None])
-        all_source_mediums = st.checkbox("Todas as Origens/Mídias", value=True, key="all_source_mediums")
-        selected_source_mediums = st.multiselect(
-            "Origem/Mídia",
-            options=source_mediums,
-            default=source_mediums if all_source_mediums else [],
-            disabled=all_source_mediums
-        )
-        
-        # Filtro de Campanha
-        campaigns = sorted([x for x in df['Campanha'].unique() if x is not None])
-        all_campaigns = st.checkbox("Todas as Campanhas", value=True, key="all_campaigns")
-        selected_campaigns = st.multiselect(
-            "Campanha",
-            options=campaigns,
-            default=campaigns if all_campaigns else [],
-            disabled=all_campaigns
-        )
-        
-        # Filtro de Conteúdo
-        contents = sorted([x for x in df['Conteúdo'].unique() if x is not None])
-        all_contents = st.checkbox("Todos os Conteúdos", value=True, key="all_contents")
-        selected_contents = st.multiselect(
-            "Conteúdo",
-            options=contents,
-            default=contents if all_contents else [],
-            disabled=all_contents
-        )
-        
-        # Filtro de Termo
-        terms = sorted([x for x in df['Termo'].unique() if x is not None])
-        all_terms = st.checkbox("Todos os Termos", value=True, key="all_terms")
-        selected_terms = st.multiselect(
-            "Termo",
-            options=terms,
-            default=terms if all_terms else [],
-            disabled=all_terms
-        )
-        
-        # Filtro de Página de Entrada
-        landing_pages = sorted([x for x in df['Página de Entrada'].unique() if x is not None])
-        all_landing_pages = st.checkbox("Todas as Páginas de Entrada", value=True, key="all_landing_pages")
-        selected_landing_pages = st.multiselect(
-            "Página de Entrada",
-            options=landing_pages,
-            default=landing_pages if all_landing_pages else [],
-            disabled=all_landing_pages
-        )
+    # Initialize session state for filters if not already done
+    if "cluster_selected" not in st.session_state:
+        st.session_state.cluster_selected = ["Selecionar Todos"]
+        st.session_state.origem_selected = ["Selecionar Todos"]
+        st.session_state.midia_selected = ["Selecionar Todos"]
+        st.session_state.campanha_selected = ["Selecionar Todos"]
+        st.session_state.conteudo_selected = ["Selecionar Todos"]
+        st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
 
-    # Aplicar filtros
-    if not all_clusters and selected_clusters:
-        df = df[df['Cluster'].isin(selected_clusters)]
-    
-    if not all_source_mediums and selected_source_mediums:
-        df = df[df.apply(lambda x: f"{x['Origem']} / {x['Mídia']}" in selected_source_mediums, axis=1)]
-    
-    if not all_campaigns and selected_campaigns:
-        df = df[df['Campanha'].isin(selected_campaigns)]
-    
-    if not all_contents and selected_contents:
-        df = df[df['Conteúdo'].isin(selected_contents)]
-    
-    if not all_terms and selected_terms:
-        df = df[df['Termo'].isin(selected_terms)]
-    
-    if not all_landing_pages and selected_landing_pages:
-        df = df[df['Página de Entrada'].isin(selected_landing_pages)]
+    # Show filters in sidebar
+    with st.sidebar:
+        # Show advanced filters
+        traffic_filters_detailed(df)
+
+    # Apply filters to the data
+    df = apply_filters(df)
 
     # Criar colunas para os KPIs
     col1, col2, col3, col4 = st.columns(4)
