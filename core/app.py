@@ -67,7 +67,7 @@ def load_app():
 
             # Definir quais filtros devem ser carregados para cada aba
             pages_without_filters = ["Atribuição 2.0", "Master", "Configurações", "Análise do Dia", "Usuários", "ERP"]
-            pages_with_only_date = ["Mídia Paga", "Taxas de Conversão"]
+            pages_with_only_date = ["Mídia Paga", "Funil de Conversão"]
             pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
             pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
 
@@ -95,7 +95,7 @@ def load_app():
         with st.spinner("🔄 Configurando navegação..."):
             # Define navigation options based on data availability
             nav_options = ["Visão Geral"]
-            nav_options.extend(["Visão Detalhada", "Análise do Dia", "Taxas de Conversão", "Pedidos", "Itens Vendidos"])    
+            nav_options.extend(["Visão Detalhada", "Análise do Dia", "Funil de Conversão", "Pedidos", "Itens Vendidos"])    
 
             if popup_leads is not None and not popup_leads.empty:
                 nav_options.extend(["Atribuição 2.0"])
@@ -188,7 +188,7 @@ def load_app():
                 save_event_name(event_name="tab_view", event_params={"tab": "last_orders"})
                 display_tab_last_orders()
             
-            elif selected_page == "Taxas de Conversão":
+            elif selected_page == "Funil de Conversão":
                 save_event_name(event_name="tab_view", event_params={"tab": "funnel"})
                 display_tab_funnel()
             

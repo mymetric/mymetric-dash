@@ -505,6 +505,150 @@ def display_long_term_analysis():
     df['Taxa View Product -> Pedido'] = (df['Pedido'] / df['Visualização de Item'] * 100).round(2)
     df['Taxa Checkout -> Pedido'] = (df['Pedido'] / df['Iniciar Checkout'] * 100).round(2)
 
+    # Calcular totais do período
+    total_data = {
+        'Visualização de Item': df['Visualização de Item'].sum(),
+        'Adicionar ao Carrinho': df['Adicionar ao Carrinho'].sum(),
+        'Iniciar Checkout': df['Iniciar Checkout'].sum(),
+        'Adicionar Informação de Frete': df['Adicionar Informação de Frete'].sum(),
+        'Adicionar Informação de Pagamento': df['Adicionar Informação de Pagamento'].sum(),
+        'Pedido': df['Pedido'].sum()
+    }
+
+    # Calcular taxas médias do período
+    total_taxas = {
+        'Taxa View Product -> Cart': (total_data['Adicionar ao Carrinho'] / total_data['Visualização de Item'] * 100).round(2),
+        'Taxa Cart -> Checkout': (total_data['Iniciar Checkout'] / total_data['Adicionar ao Carrinho'] * 100).round(2),
+        'Taxa Checkout -> Frete': (total_data['Adicionar Informação de Frete'] / total_data['Iniciar Checkout'] * 100).round(2),
+        'Taxa Dados de Frete -> Dados de Pagamento': (total_data['Adicionar Informação de Pagamento'] / total_data['Adicionar Informação de Frete'] * 100).round(2),
+        'Taxa Dados de Pagamento -> Pedido': (total_data['Pedido'] / total_data['Adicionar Informação de Pagamento'] * 100).round(2)
+    }
+
+    # Criar o funil customizado
+    funnel_html = f"""
+    <style>
+        .funnel-container {{
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            font-family: 'DM Sans', sans-serif;
+        }}
+        .funnel-step {{
+            position: relative;
+            margin: 10px 0;
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .funnel-step:hover {{
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }}
+        .funnel-main {{
+            flex: 1;
+        }}
+        .funnel-cost {{
+            text-align: right;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }}
+        .funnel-value {{
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .funnel-label {{
+            font-size: 16px;
+            opacity: 0.9;
+        }}
+        .funnel-cost-value {{
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .funnel-cost-label {{
+            font-size: 14px;
+            opacity: 0.9;
+        }}
+        .funnel-divider {{
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 15px 0;
+        }}
+        .step-1 {{ background: linear-gradient(135deg, #1a73e8, #0d47a1); width: 100%; }}
+        .step-2 {{ background: linear-gradient(135deg, #2196f3, #1976d2); width: 90%; }}
+        .step-3 {{ background: linear-gradient(135deg, #42a5f5, #2196f3); width: 80%; }}
+        .step-4 {{ background: linear-gradient(135deg, #64b5f6, #42a5f5); width: 70%; }}
+        .step-5 {{ background: linear-gradient(135deg, #90caf9, #64b5f6); width: 60%; }}
+        .step-6 {{ background: linear-gradient(135deg, #bbdefb, #90caf9); width: 50%; }}
+    </style>
+    <div class="funnel-container">
+        <div class="funnel-step step-1">
+            <div class="funnel-main">
+                <div class="funnel-value">{total_data['Visualização de Item']:,.0f}</div>
+                <div class="funnel-label">Visualização de Item</div>
+            </div>
+        </div>
+        <div class="funnel-step step-2">
+            <div class="funnel-main">
+                <div class="funnel-value">{total_data['Adicionar ao Carrinho']:,.0f}</div>
+                <div class="funnel-label">Adicionar ao Carrinho</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">{total_taxas['Taxa View Product -> Cart']:.2f}%</div>
+                <div class="funnel-cost-label">Taxa de Conversão</div>
+            </div>
+        </div>
+        <div class="funnel-step step-3">
+            <div class="funnel-main">
+                <div class="funnel-value">{total_data['Iniciar Checkout']:,.0f}</div>
+                <div class="funnel-label">Iniciar Checkout</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">{total_taxas['Taxa Cart -> Checkout']:.2f}%</div>
+                <div class="funnel-cost-label">Taxa de Conversão</div>
+            </div>
+        </div>
+        <div class="funnel-step step-4">
+            <div class="funnel-main">
+                <div class="funnel-value">{total_data['Adicionar Informação de Frete']:,.0f}</div>
+                <div class="funnel-label">Adicionar Informação de Frete</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">{total_taxas['Taxa Checkout -> Frete']:.2f}%</div>
+                <div class="funnel-cost-label">Taxa de Conversão</div>
+            </div>
+        </div>
+        <div class="funnel-step step-5">
+            <div class="funnel-main">
+                <div class="funnel-value">{total_data['Adicionar Informação de Pagamento']:,.0f}</div>
+                <div class="funnel-label">Adicionar Informação de Pagamento</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">{total_taxas['Taxa Dados de Frete -> Dados de Pagamento']:.2f}%</div>
+                <div class="funnel-cost-label">Taxa de Conversão</div>
+            </div>
+        </div>
+        <div class="funnel-step step-6">
+            <div class="funnel-main">
+                <div class="funnel-value">{total_data['Pedido']:,.0f}</div>
+                <div class="funnel-label">Pedido</div>
+            </div>
+            <div class="funnel-cost">
+                <div class="funnel-cost-value">{total_taxas['Taxa Dados de Pagamento -> Pedido']:.2f}%</div>
+                <div class="funnel-cost-label">Taxa de Conversão</div>
+            </div>
+        </div>
+    </div>
+    """
+
+    st.markdown(funnel_html, unsafe_allow_html=True)
+
     # Calcular desvios da média dos últimos 30 dias
     st.markdown('<div class="section-header">Desvios da Média (Últimos 30 dias)</div>', unsafe_allow_html=True)
     
@@ -704,7 +848,7 @@ def display_long_term_analysis():
     )
 
 def display_tab_funnel():
-    st.title("Análise de Funil")
+    st.title("Funil de Conversão")
     
     # Criar abas para diferentes análises
     tab1, tab2 = st.tabs([
