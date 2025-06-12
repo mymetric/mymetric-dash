@@ -196,22 +196,22 @@ def display_intraday_comparison():
     
     # Calcular taxas médias para hoje
     taxas_hoje = {
-        'Visualização de Item → Carrinho': (totais_hoje.get('add_to_cart', 0) / totais_hoje.get('view_item', 1) * 100).round(2),
-        'Carrinho → Checkout': (totais_hoje.get('begin_checkout', 0) / totais_hoje.get('add_to_cart', 1) * 100).round(2),
-        'Checkout → Frete': (totais_hoje.get('add_shipping_info', 0) / totais_hoje.get('begin_checkout', 1) * 100).round(2),
-        'Frete → Pagamento': (totais_hoje.get('add_payment_info', 0) / totais_hoje.get('add_shipping_info', 1) * 100).round(2),
-        'Pagamento → Pedido': (totais_hoje.get('purchase', 0) / totais_hoje.get('add_payment_info', 1) * 100).round(2),
-        'Visualização de Item → Pedido': (totais_hoje.get('purchase', 0) / totais_hoje.get('view_item', 1) * 100).round(2)
+        'Visualização de Item → Carrinho': round(totais_hoje.get('add_to_cart', 0) / totais_hoje.get('view_item', 1) * 100, 2),
+        'Carrinho → Checkout': round(totais_hoje.get('begin_checkout', 0) / totais_hoje.get('add_to_cart', 1) * 100, 2),
+        'Checkout → Frete': round(totais_hoje.get('add_shipping_info', 0) / totais_hoje.get('begin_checkout', 1) * 100, 2),
+        'Frete → Pagamento': round(totais_hoje.get('add_payment_info', 0) / totais_hoje.get('add_shipping_info', 1) * 100, 2),
+        'Pagamento → Pedido': round(totais_hoje.get('purchase', 0) / totais_hoje.get('add_payment_info', 1) * 100, 2),
+        'Visualização de Item → Pedido': round(totais_hoje.get('purchase', 0) / totais_hoje.get('view_item', 1) * 100, 2)
     }
     
     # Calcular taxas médias para ontem
     taxas_ontem = {
-        'Visualização de Item → Carrinho': (totais_ontem.get('add_to_cart', 0) / totais_ontem.get('view_item', 1) * 100).round(2),
-        'Carrinho → Checkout': (totais_ontem.get('begin_checkout', 0) / totais_ontem.get('add_to_cart', 1) * 100).round(2),
-        'Checkout → Frete': (totais_ontem.get('add_shipping_info', 0) / totais_ontem.get('begin_checkout', 1) * 100).round(2),
-        'Frete → Pagamento': (totais_ontem.get('add_payment_info', 0) / totais_ontem.get('add_shipping_info', 1) * 100).round(2),
-        'Pagamento → Pedido': (totais_ontem.get('purchase', 0) / totais_ontem.get('add_payment_info', 1) * 100).round(2),
-        'Visualização de Item → Pedido': (totais_ontem.get('purchase', 0) / totais_ontem.get('view_item', 1) * 100).round(2)
+        'Visualização de Item → Carrinho': round(totais_ontem.get('add_to_cart', 0) / totais_ontem.get('view_item', 1) * 100, 2),
+        'Carrinho → Checkout': round(totais_ontem.get('begin_checkout', 0) / totais_ontem.get('add_to_cart', 1) * 100, 2),
+        'Checkout → Frete': round(totais_ontem.get('add_shipping_info', 0) / totais_ontem.get('begin_checkout', 1) * 100, 2),
+        'Frete → Pagamento': round(totais_ontem.get('add_payment_info', 0) / totais_ontem.get('add_shipping_info', 1) * 100, 2),
+        'Pagamento → Pedido': round(totais_ontem.get('purchase', 0) / totais_ontem.get('add_payment_info', 1) * 100, 2),
+        'Visualização de Item → Pedido': round(totais_ontem.get('purchase', 0) / totais_ontem.get('view_item', 1) * 100, 2)
     }
     
     # Criar DataFrame para taxas
