@@ -66,7 +66,7 @@ def load_app():
             is_admin = st.session_state.get('admin', False)
 
             # Definir quais filtros devem ser carregados para cada aba
-            pages_without_filters = ["Leads", "Master", "Configurações", "Análise do Dia", "Usuários", "ERP"]
+            pages_without_filters = ["Leads", "Master", "Configurações", "Tempo Real", "Usuários", "ERP"]
             pages_with_only_date = ["Mídia Paga", "Funil de Conversão"]
             pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
             pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
@@ -95,7 +95,7 @@ def load_app():
         with st.spinner("🔄 Configurando navegação..."):
             # Define navigation options based on data availability
             nav_options = ["Visão Geral"]
-            nav_options.extend(["Visão Detalhada", "Análise do Dia", "Funil de Conversão", "Pedidos", "Itens Vendidos"])    
+            nav_options.extend(["Visão Detalhada", "Tempo Real", "Funil de Conversão", "Pedidos", "Itens Vendidos"])    
 
             if popup_leads is not None and not popup_leads.empty:
                 nav_options.extend(["Leads"])
@@ -172,7 +172,7 @@ def load_app():
                 save_event_name(event_name="tab_view", event_params={"tab": "detailed"})
                 display_tab_detailed()
             
-            elif selected_page == "Análise do Dia":
+            elif selected_page == "Tempo Real":
                 save_event_name(event_name="tab_view", event_params={"tab": "today"})
                 display_tab_today()
 

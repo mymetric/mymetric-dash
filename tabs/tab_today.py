@@ -13,7 +13,7 @@ def format_number(value):
     return f"{value:,.0f}".replace(",", ".")
 
 def display_tab_today():
-    st.title("Análise do Dia")
+    st.title("Tempo Real")
     st.markdown("""---""")
 
     # Adicionar texto de atualização
