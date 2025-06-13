@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_paid_media, load_meta_ads
+from modules.load_data import load_paid_media, load_meta_ads, load_google_ads_keywords
 import altair as alt
 import plotly.express as px
 from modules.components import big_number_box
@@ -888,18 +888,184 @@ def display_general_view(df_ads):
     # Aplicar o estilo
     st.dataframe(styled_df, use_container_width=True)
 
-def display_tab_paid_media():
-    st.title("Mídia Paga")
+def display_google_ads_keywords():
+    """Exibe análise detalhada das keywords do Google Ads"""
     
-    # Adicionar tabs para análises específicas
-    tab1, tab2 = st.tabs(["Visão Geral", "Meta Ads"])
+    # Carregar dados
+    df_keywords = load_google_ads_keywords()
+    
+    if df_keywords.empty:
+        st.error("Não há dados de keywords do Google Ads para exibir.")
+        return
+    
+    # Calcular métricas totais
+    investimento = df_keywords['cost'].sum()
+    impressions = df_keywords['impressions'].sum()
+    clicks = df_keywords['clicks'].sum()
+    transactions = df_keywords['transactions'].sum()
+    revenue = df_keywords['revenue'].sum()
+    
+    # Primeira linha - Métricas principais
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        big_number_box(
+            format_currency_br(investimento),
+            "Investimento",
+            hint="Valor total investido em anúncios"
+        )
+    
+    with col2:
+        big_number_box(
+            format_number_br(impressions),
+            "Impressões",
+            hint="Número total de vezes que os anúncios foram exibidos"
+        )
+    
+    with col3:
+        big_number_box(
+            format_number_br(clicks),
+            "Cliques",
+            hint="Número total de cliques nos anúncios"
+        )
+    
+    with col4:
+        big_number_box(
+            format_number_br(transactions),
+            "Vendas",
+            hint="Número total de vendas atribuídas ao Google Ads"
+        )
+
+    # Segunda linha - Métricas de receita
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        big_number_box(
+            format_currency_br(revenue),
+            "Receita",
+            hint="Receita total atribuída ao Google Ads"
+        )
+    
+    with col2:
+        roas = (revenue / investimento) if investimento > 0 else 0
+        big_number_box(
+            f"{roas:.2f}".replace(".", ","),
+            "ROAS",
+            hint="Retorno sobre o investimento em anúncios (Receita/Investimento)"
+        )
+    
+    with col3:
+        lucro = revenue - investimento
+        big_number_box(
+            format_currency_br(lucro),
+            "Lucro",
+            hint="Receita menos investimento (Lucro bruto)"
+        )
+    
+    with col4:
+        taxa_conv = (transactions / clicks * 100) if clicks > 0 else 0
+        big_number_box(
+            f"{taxa_conv:.2f}%".replace(".", ","),
+            "Taxa de Conversão",
+            hint="Porcentagem de cliques que resultaram em vendas"
+        )
+
+    # Terceira linha - Métricas de custo
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        cpc = (investimento / clicks) if clicks > 0 else 0
+        big_number_box(
+            format_currency_br(cpc),
+            "CPC",
+            hint="Custo Por Clique médio no Google Ads"
+        )
+    
+    with col2:
+        cpv = (investimento / transactions) if transactions > 0 else 0
+        big_number_box(
+            format_currency_br(cpv),
+            "CPV",
+            hint="Custo Por Venda - Valor médio gasto em anúncios para conseguir uma venda"
+        )
+    
+    with col3:
+        cpm = (investimento / impressions * 1000) if impressions > 0 else 0
+        big_number_box(
+            format_currency_br(cpm),
+            "CPM",
+            hint="Custo Por Mil Impressões no Google Ads"
+        )
+    
+    with col4:
+        ctr = (clicks / impressions * 100) if impressions > 0 else 0
+        big_number_box(
+            f"{ctr:.2f}%".replace(".", ","),
+            "CTR",
+            hint="Click-Through Rate - Porcentagem de impressões que resultaram em cliques"
+        )
+
+    # Tabela de Keywords
+    st.subheader("📊 Análise de Keywords")
+    
+    # Agrupar dados por keyword
+    df_keywords_grouped = df_keywords.groupby(['keyword', 'match_type']).agg({
+        'cost': 'sum',
+        'impressions': 'sum',
+        'clicks': 'sum',
+        'transactions': 'sum',
+        'revenue': 'sum'
+    }).reset_index()
+    
+    # Calcular métricas derivadas
+    df_keywords_grouped['CPC'] = df_keywords_grouped['cost'] / df_keywords_grouped['clicks']
+    df_keywords_grouped['CTR'] = df_keywords_grouped['clicks'] / df_keywords_grouped['impressions'] * 100
+    df_keywords_grouped['Taxa Conv.'] = df_keywords_grouped['transactions'] / df_keywords_grouped['clicks'] * 100
+    df_keywords_grouped['ROAS'] = df_keywords_grouped['revenue'] / df_keywords_grouped['cost']
+    
+    # Ordenar por investimento
+    df_keywords_grouped = df_keywords_grouped.sort_values('cost', ascending=False)
+    
+    # Formatar valores
+    df_keywords_grouped['cost'] = df_keywords_grouped['cost'].apply(format_currency_br)
+    df_keywords_grouped['revenue'] = df_keywords_grouped['revenue'].apply(format_currency_br)
+    df_keywords_grouped['CPC'] = df_keywords_grouped['CPC'].apply(format_currency_br)
+    df_keywords_grouped['ROAS'] = df_keywords_grouped['ROAS'].apply(lambda x: f"{x:.2f}".replace(".", ","))
+    df_keywords_grouped['CTR'] = df_keywords_grouped['CTR'].apply(lambda x: f"{x:.2f}%".replace(".", ","))
+    df_keywords_grouped['Taxa Conv.'] = df_keywords_grouped['Taxa Conv.'].apply(lambda x: f"{x:.2f}%".replace(".", ","))
+    
+    # Renomear colunas
+    df_keywords_grouped = df_keywords_grouped.rename(columns={
+        'keyword': 'Keyword',
+        'match_type': 'Tipo de Correspondência',
+        'cost': 'Investimento',
+        'impressions': 'Impressões',
+        'clicks': 'Cliques',
+        'transactions': 'Vendas',
+        'revenue': 'Receita'
+    })
+    
+    # Exibir tabela
+    st.dataframe(
+        df_keywords_grouped,
+        use_container_width=True,
+        hide_index=True
+    )
+
+def display_tab_paid_media():
+    """Exibe a aba de mídia paga"""
+    
+    # Criar abas para diferentes visualizações
+    tab1, tab2, tab3 = st.tabs(["Visão Geral", "Meta Ads", "Google Ads Keywords"])
     
     with tab1:
-        df_ads = load_paid_media()
-        display_general_view(df_ads)
-        
+        display_general_view(load_paid_media())
+    
     with tab2:
         display_meta_ads_analysis()
+    
+    with tab3:
+        display_google_ads_keywords()
 
 def display_campaign_table(df):
     """Exibe tabela de campanhas com formatação adequada"""

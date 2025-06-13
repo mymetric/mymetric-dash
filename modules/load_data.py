@@ -1975,3 +1975,66 @@ def load_intraday_ecommerce_funnel():
 
     df = run_queries([query])[0]
     return df
+
+@background_cache(ttl_hours=1)
+def load_google_ads_keywords():
+    """
+    Loads Google Ads keywords data from BigQuery.
+    
+    Returns:
+        pd.DataFrame: DataFrame containing Google Ads keywords data with columns:
+            - date
+            - cost
+            - impressions
+            - clicks
+            - campaign_name
+            - ad_group_name
+            - keyword
+            - match_type
+            - transactions
+            - revenue
+    """
+    try:
+        tablename = st.session_state.tablename
+        table_ref = f"mymetric-hub-shopify.dbt_join.{tablename}_google_ads_keywords_results"
+        
+        # Verificar se a tabela existe
+        if not check_table_exists(client, table_ref):
+            st.warning(f"A tabela {table_ref} não existe para este cliente.")
+            return pd.DataFrame()
+        
+        where_date = f"date >= '{st.session_state.start_date}' and date <= '{st.session_state.end_date}'"
+
+        query = f"""
+        SELECT
+            date,
+            cost,
+            impressions,
+            clicks,
+            campaign_name,
+            ad_group_name,
+            keyword,
+            match_type,
+            transactions,
+            revenue
+        FROM `{table_ref}`
+        WHERE {where_date}
+        """
+        
+        df = execute_query(query)
+        
+        if df is not None and not df.empty:
+            # Convert date column to datetime
+            df['date'] = pd.to_datetime(df['date'])
+            
+            # Convert numeric columns to appropriate types
+            numeric_columns = ['cost', 'impressions', 'clicks', 'transactions', 'revenue']
+            for col in numeric_columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+            return df
+        return pd.DataFrame()
+        
+    except Exception as e:
+        st.error(f"Erro ao carregar dados de keywords do Google Ads: {str(e)}")
+        return pd.DataFrame()
