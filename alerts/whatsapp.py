@@ -128,16 +128,16 @@ def load_yesterday_revenue(tablename):
                 AND event_name = 'purchase'
                 AND status in ('paid', 'authorized')
             )
-            SELECT SUM(value - COALESCE(total_discounts, 0)) as total_ontem
+            SELECT COALESCE(SUM(value - COALESCE(total_discounts, 0)), 0) as total_ontem
             FROM filtered_events
             """
         else:
             query = f"""
-            SELECT SUM(CASE 
+            SELECT COALESCE(SUM(CASE 
                 WHEN event_name = 'purchase' and status in ('paid', 'authorized') 
                 THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
                 ELSE 0 
-            END) as total_ontem
+            END), 0) as total_ontem
             FROM `{project_id}.dbt_join.{tablename}_events_long`
             WHERE event_date = date_sub(current_date(), interval 1 day)
             """
@@ -299,23 +299,30 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         print(f"\nVerificando meta para {tablename}...")
         
         # Carregar sessões duplicadas (sempre)
+        print("Carregando sessões duplicadas...")
         df_duplicate = load_duplicate_sessions(tablename)
+        print(f"DataFrame de sessões duplicadas: {df_duplicate}")
         duplicated_sessions = float(df_duplicate['duplicated_sessions'].iloc[0]) if not df_duplicate.empty else 0
         print(f"Sessões duplicadas: {duplicated_sessions}")
         aviso_duplicadas = duplicated_sessions > 0.02
 
         # Carregar perda de cookies (apenas para Linus)
+        print("Carregando perda de cookies...")
         df_lost_cookies = load_lost_cookies(tablename)
+        print(f"DataFrame de perda de cookies: {df_lost_cookies}")
         lost_cookies = float(df_lost_cookies['lost_cookies'].iloc[0]) if not df_lost_cookies.empty else 0
         print(f"Perda de cookies: {lost_cookies}")
         aviso_cookies = lost_cookies > 0.05
 
         # Carregar vendas de ontem
+        print("Carregando vendas de ontem...")
         df_yesterday = load_yesterday_revenue(tablename)
+        print(f"DataFrame de vendas de ontem: {df_yesterday}")
         vendas_ontem = float(df_yesterday['total_ontem'].iloc[0]) if not df_yesterday.empty else 0
         print(f"Vendas de ontem: {vendas_ontem}")
 
         # Carregar metas
+        print("Carregando metas...")
         df_goals = load_goals(tablename)
         print(f"DataFrame de metas: {df_goals}")
         
@@ -369,8 +376,10 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
             return
 
         # Carregar receita atual do mês
+        print("Carregando receita atual do mês...")
         df_revenue = load_current_month_revenue(tablename)
-        total_receita_mes = float(df_revenue['total_mes'].iloc[0])
+        print(f"DataFrame de receita: {df_revenue}")
+        total_receita_mes = float(df_revenue['total_mes'].iloc[0]) if not df_revenue.empty else 0
         print(f"Receita atual: {total_receita_mes}")
 
         # Calcular projeção para o final do mês
