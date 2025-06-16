@@ -247,6 +247,44 @@ def load_lost_cookies(tablename):
         print(f"Erro ao carregar perda de cookies: {str(e)}")
         return pd.DataFrame()
 
+def load_utm_metrics(tablename):
+    """
+    Carrega as métricas de UTM e mm_ads para uma tabela específica.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        query = f"""
+        SELECT
+            sum(case when page_params like "%utm%" then 1 else 0 end)/count(*) as with_utm,
+            sum(case when page_params like "%mm_ads%" then 1 else 0 end)/count(*) as with_mm_ads
+        FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+        WHERE page_params like "%fbclid%"
+        """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao carregar métricas de UTM: {str(e)}")
+        return pd.DataFrame()
+
 def send_whatsapp_message(message, phone):
     """
     Envia uma mensagem via WhatsApp usando o Z-API.
@@ -297,6 +335,19 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
             return
 
         print(f"\nVerificando meta para {tablename}...")
+        
+        # Carregar métricas de UTM
+        print("Carregando métricas de UTM...")
+        df_utm = load_utm_metrics(tablename)
+        print(f"DataFrame de métricas UTM: {df_utm}")
+        with_utm = float(df_utm['with_utm'].iloc[0]) if not df_utm.empty else 0
+        with_mm_ads = float(df_utm['with_mm_ads'].iloc[0]) if not df_utm.empty else 0
+        print(f"Tráfego com UTM: {with_utm:.1%}")
+        print(f"Tráfego com mm_ads: {with_mm_ads:.1%}")
+        
+        # Verificar alertas de UTM e mm_ads
+        aviso_utm = with_utm < 0.90  # UTM menor que 90%
+        aviso_mm_ads = with_mm_ads < (with_utm * 0.95)  # mm_ads menor que 95% do UTM
         
         # Carregar sessões duplicadas (sempre)
         print("Carregando sessões duplicadas...")
@@ -419,6 +470,18 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                 message += f"\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
                 message += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+                
+        # Adicionar métricas de UTM com alertas
+        message += "\n\n🎯 *Parâmetros de Campanha*"
+        if aviso_utm:
+            message += f"\n⚠️ Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
+        else:
+            message += f"\n✅ Tráfego com UTM: {with_utm:.1%}"
+            
+        if aviso_mm_ads:
+            message += f"\n⚠️ Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)"
+        else:
+            message += f"\n✅ Tráfego com mm_ads: {with_mm_ads:.1%}"
 
         # Enviar mensagem
         send_whatsapp_message(message, phone)
