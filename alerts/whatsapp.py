@@ -471,17 +471,13 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
             if aviso_cookies:
                 message += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
                 
-        # Adicionar métricas de UTM com alertas
-        message += "\n\n🎯 *Parâmetros de Campanha*"
-        if aviso_utm:
-            message += f"\n⚠️ Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
-        else:
-            message += f"\n✅ Tráfego com UTM: {with_utm:.1%}"
-            
-        if aviso_mm_ads:
-            message += f"\n⚠️ Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)"
-        else:
-            message += f"\n✅ Tráfego com mm_ads: {with_mm_ads:.1%}"
+        # Adicionar métricas de UTM apenas se houver alertas
+        if aviso_utm or aviso_mm_ads:
+            message += "\n\n🎯 *Parâmetros de Campanha*"
+            if aviso_utm:
+                message += f"\n⚠️ Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
+            if aviso_mm_ads:
+                message += f"\n⚠️ Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)"
 
         # Enviar mensagem
         send_whatsapp_message(message, phone)
