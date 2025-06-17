@@ -473,11 +473,11 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                 
         # Adicionar métricas de UTM apenas se houver alertas
         if aviso_utm or aviso_mm_ads:
-            message += "\n\n🎯 *Parâmetros de Campanha*"
+            message += "\n\n🎯 *Parâmetros UTM de Meta*"
             if aviso_utm:
                 message += f"\n⚠️ Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
             if aviso_mm_ads:
-                message += f"\n⚠️ Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)"
+                message += f"\n⚠️ Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)\nInstruções: https://abrir.link/kAnOz"
 
         # Enviar mensagem
         send_whatsapp_message(message, phone)
