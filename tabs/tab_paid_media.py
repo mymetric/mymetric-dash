@@ -521,31 +521,17 @@ def display_general_view(df_ads):
 
     # Calcular diferenças percentuais entre os modelos
     def get_diff_text(val_os, val_lc, is_cost=False):
-        if modelo_funil == "Last Non Direct Click":
-            base = val_lc
-            compare = val_os
-            model_comp = "OriginStack™"
-        else:
-            base = val_os
-            compare = val_lc
-            model_comp = "Last Click"
-
-        if base == 0 or abs(base - compare) < 0.0001:
+        # Per user request: always calculate difference of OriginStack relative to LastClick
+        if val_lc == 0 or abs(val_os - val_lc) < 0.0001:
             return ""
 
-        diff = (compare - base) / base
+        diff = (val_os - val_lc) / val_lc
         
-        color = "green" if diff < 0 else "red"
-        if not is_cost:  # Para ROAS, Receita, etc., maior é melhor
-            color = "green" if diff > 0 else "red"
-        
+        # Simplified percentage display without model names
         return f"""
-         <span style='font-size: 12px; color: {color}; white-space: nowrap;'>
-            ({diff:+.1%})
-         </span>
-         <span style='font-size: 10px; opacity: 0.7; white-space: nowrap;'>
-            vs {model_comp}
-         </span>
+        <div class="diff-text">
+            {diff:+.1%}
+        </div>
         """
 
     vendas_diff_text = get_diff_text(vendas_first, vendas_last)
@@ -597,7 +583,7 @@ def display_general_view(df_ads):
             transition: all 0.3s ease;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
         }}
         .funnel-step:hover {{
             transform: scale(1.02);
@@ -611,104 +597,276 @@ def display_general_view(df_ads):
             margin-left: 20px;
             padding-left: 20px;
             border-left: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 120px;
         }}
         .funnel-value {{
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
+            color: white;
         }}
         .funnel-label {{
-            font-size: 16px;
+            font-size: 14px;
             opacity: 0.9;
+            margin-top: 5px;
+            color: white;
         }}
         .funnel-cost-value {{
             font-size: 18px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }}
         .funnel-cost-label {{
             font-size: 14px;
             opacity: 0.9;
+            margin-bottom: 8px;
+        }}
+        .metric-name {{
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .funnel-cost .metric-container {{
+            margin-bottom: 25px;
+        }}
+        .funnel-cost .metric-container:last-child {{
+            margin-bottom: 0;
         }}
         .funnel-divider {{
             height: 2px;
             background: rgba(255, 255, 255, 0.2);
             margin: 15px 0;
         }}
+        .funnel-section {{
+            margin-bottom: 15px;
+        }}
+        .funnel-cost .funnel-section {{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }}
+        .section-title {{
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }}
+        .model-comparison {{
+            font-size: 12px;
+            opacity: 0.8;
+            text-transform: none;
+            letter-spacing: normal;
+        }}
+        .metric-group {{
+            display: flex;
+            gap: 20px;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }}
+        .metric-with-cost {{
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }}
+        .metric-header {{
+            font-size: 11px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+            margin-bottom: 2px;
+        }}
+        .cost-metric {{
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 2px;
+            color: white;
+        }}
+        .cost-metric .metric-name {{
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+        }}
+        .cost-metric .metric-value {{
+            font-size: 15px;
+            font-weight: bold;
+            color: white;
+        }}
         .step-1 {{ background: linear-gradient(135deg, #1a73e8, #0d47a1); width: 100%; }}
         .step-2 {{ background: linear-gradient(135deg, #2196f3, #1976d2); width: 90%; }}
         .step-3 {{ background: linear-gradient(135deg, #42a5f5, #2196f3); width: 80%; }}
         .step-4 {{ background: linear-gradient(135deg, #64b5f6, #42a5f5); width: 70%; }}
-        .step-5 {{ background: linear-gradient(135deg, #90caf9, #64b5f6); width: 60%; }}
-        .funnel-main > div {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .step-5 {{ background: linear-gradient(135deg, #90caf9, #64b5f6); width: 70%; }}
+        .step-6 {{ 
+            background: linear-gradient(135deg, #bbdefb, #90caf9); 
+            width: 45%; 
+            margin-top: 10px;
+            padding: 12px 18px;
         }}
-        .funnel-cost > div {{
+        .percentage-section {{
             display: flex;
+            flex-direction: row;
             align-items: center;
-            gap: 8px;
-            justify-content: flex-end;
+            justify-content: flex-start;
+            gap: 10px;
+        }}
+        .percentage-value {{
+            font-size: 32px;
+            font-weight: 600;
+            color: white;
+            line-height: 1;
+            font-feature-settings: "tnum";
+            letter-spacing: -0.5px;
+        }}
+        .percentage-label {{
+            font-size: 11px;
+            color: white;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+            text-align: left;
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            padding-left: 10px;
+            margin: 2px 0;
         }}
     </style>
     <div class="funnel-container">
         <div class="funnel-step step-1">
             <div class="funnel-main">
-                <div class="funnel-value">R$ {investimento:,.2f}</div>
+                <div class="metric-container">
+                    <div class="funnel-value">R$ {investimento:,.2f}</div>
+                </div>
                 <div class="funnel-label">Investimento</div>
             </div>
         </div>
         <div class="funnel-step step-2">
             <div class="funnel-main">
-                <div class="funnel-value">{impressoes:,.0f}</div>
+                <div class="metric-container">
+                    <div class="funnel-value">{impressoes:,.0f}</div>
+                </div>
                 <div class="funnel-label">Impressões</div>
             </div>
             <div class="funnel-cost">
-                <div class="funnel-cost-value">R$ {cpm:,.2f}</div>
+                <div class="metric-container">
+                    <div class="funnel-cost-value">R$ {cpm:,.2f}</div>
+                </div>
                 <div class="funnel-cost-label">CPM</div>
             </div>
         </div>
         <div class="funnel-step step-3">
             <div class="funnel-main">
-                <div class="funnel-value">{cliques:,.0f}</div>
+                <div class="metric-container">
+                    <div class="funnel-value">{cliques:,.0f}</div>
+                </div>
                 <div class="funnel-label">Cliques</div>
             </div>
             <div class="funnel-cost">
-                <div class="funnel-cost-value">R$ {cpc:,.2f}</div>
+                <div class="metric-container">
+                    <div class="funnel-cost-value">R$ {cpc:,.2f}</div>
+                </div>
                 <div class="funnel-cost-label">CPC</div>
             </div>
         </div>
         <div class="funnel-step step-4">
             <div class="funnel-main">
-                <div><div class="funnel-value">{vendas:,.0f}</div>{vendas_diff_text}</div>
-                <div class="funnel-label">Todas as Compras ({modelo_label})</div>
-                <div class="funnel-divider"></div>
-                <div><div class="funnel-value">{primeiras_compras:,.0f}</div>{primeiras_compras_diff_text}</div>
-                <div class="funnel-label">Primeiras Compras ({modelo_label})</div>
-            </div>
-            <div class="funnel-cost">
-                <div><div class="funnel-cost-value">R$ {cpa:,.2f}</div>{cpa_diff_text}</div>
-                <div class="funnel-cost-label">CPV ({modelo_label})</div>
-                <div class="funnel-divider"></div>
-                <div><div class="funnel-cost-value">R$ {cpa_primeiras:,.2f}</div>{cpa_primeiras_diff_text}</div>
-                <div class="funnel-cost-label">CPA ({modelo_label})</div>
+                <div class="funnel-section">
+                    <div class="section-title">
+                        Todas as Vendas
+                        <span class="model-comparison">
+                            {f"OriginStack™ vs Last Click" if modelo_funil == "OriginStack™" else "Last Click (OriginStack™ seria:)"}
+                        </span>
+                    </div>
+                    <div class="metric-group">
+                        <div class="metric-with-cost">
+                            <div class="metric-container">
+                                <div class="metric-header">Quantidade</div>
+                                <div class="funnel-value">{vendas:,.0f}</div>
+                                <div class="diff-text">{vendas_diff_text}</div>
+                            </div>
+                            <div class="cost-metric">
+                                <div class="metric-name">CPV</div>
+                                <div class="metric-value">R$ {cpa:,.2f}</div>
+                                <div class="diff-text">{cpa_diff_text}</div>
+                            </div>
+                        </div>
+                        <div class="metric-with-cost">
+                            <div class="metric-container">
+                                <div class="metric-header">Receita</div>
+                                <div class="funnel-value">R$ {receita:,.2f}</div>
+                                <div class="diff-text">{receita_diff_text}</div>
+                            </div>
+                            <div class="cost-metric">
+                                <div class="metric-name">ROAS</div>
+                                <div class="metric-value">{roas:.2f}x</div>
+                                <div class="diff-text">{roas_diff_text}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="funnel-step step-5">
             <div class="funnel-main">
-                <div><div class="funnel-value">R$ {receita:,.2f}</div>{receita_diff_text}</div>
-                <div class="funnel-label">Receita ({modelo_label})</div>
-                <div class="funnel-divider"></div>
-                <div><div class="funnel-value">R$ {receita_primeiras:,.2f}</div>{receita_primeiras_diff_text}</div>
-                <div class="funnel-label">Receita Primeiras Compras ({modelo_label})</div>
+                <div class="funnel-section">
+                    <div class="section-title">
+                        Novos Clientes
+                        <span class="model-comparison">
+                            {f"OriginStack™ vs Last Click" if modelo_funil == "OriginStack™" else "Last Click (OriginStack™ seria:)"}
+                        </span>
+                    </div>
+                    <div class="metric-group">
+                        <div class="metric-with-cost">
+                            <div class="metric-container">
+                                <div class="metric-header">Quantidade</div>
+                                <div class="funnel-value">{primeiras_compras:,.0f}</div>
+                                <div class="diff-text">{primeiras_compras_diff_text}</div>
+                            </div>
+                            <div class="cost-metric">
+                                <div class="metric-name">CPA</div>
+                                <div class="metric-value">R$ {cpa_primeiras:,.2f}</div>
+                                <div class="diff-text">{cpa_primeiras_diff_text}</div>
+                            </div>
+                        </div>
+                        <div class="metric-with-cost">
+                            <div class="metric-container">
+                                <div class="metric-header">Receita</div>
+                                <div class="funnel-value">R$ {receita_primeiras:,.2f}</div>
+                                <div class="diff-text">{receita_primeiras_diff_text}</div>
+                            </div>
+                            <div class="cost-metric">
+                                <div class="metric-name">ROAS</div>
+                                <div class="metric-value">{roas_primeiras:.2f}x</div>
+                                <div class="diff-text">{roas_primeiras_diff_text}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="funnel-cost">
-                <div><div class="funnel-cost-value">{roas:.2f}x</div>{roas_diff_text}</div>
-                <div class="funnel-cost-label">ROAS ({modelo_label})</div>
-                <div class="funnel-divider"></div>
-                <div><div class="funnel-cost-value">{roas_primeiras:.2f}x</div>{roas_primeiras_diff_text}</div>
-                <div class="funnel-cost-label">ROAS Primeiras ({modelo_label})</div>
+        </div>
+        <div class="funnel-step step-6">
+            <div class="funnel-main">
+                <div class="percentage-section">
+                    <div class="percentage-value">
+                        {(primeiras_compras / vendas * 100 if vendas > 0 else 0):.1f}%
+                    </div>
+                    <div class="percentage-label">
+                        Taxa de<br/>Novos Clientes
+                    </div>
+                </div>
             </div>
         </div>
     </div>
