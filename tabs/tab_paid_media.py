@@ -1095,14 +1095,14 @@ def display_general_view(df_ads):
     # Aplicar o estilo
     st.dataframe(styled_df, use_container_width=True)
 
-def display_google_ads_keywords():
-    """Exibe análise detalhada das keywords do Google Ads"""
+def display_google_ads_detailed():
+    """Exibe análise detalhada do Google Ads agrupada por campanha, grupo de anúncio e palavra-chave"""
     
     # Carregar dados
     df_keywords = load_google_ads_keywords()
     
     if df_keywords.empty:
-        st.error("Não há dados de keywords do Google Ads para exibir.")
+        st.error("Não há dados do Google Ads para exibir.")
         return
     
     # Calcular métricas totais
@@ -1177,46 +1177,12 @@ def display_google_ads_keywords():
             hint="Porcentagem de cliques que resultaram em vendas"
         )
 
-    # Terceira linha - Métricas de custo
-    col1, col2, col3, col4 = st.columns(4)
+    # Análise por Campanha
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.subheader("📊 Análise por Campanha")
     
-    with col1:
-        cpc = (investimento / clicks) if clicks > 0 else 0
-        big_number_box(
-            format_currency_br(cpc),
-            "CPC",
-            hint="Custo Por Clique médio no Google Ads"
-        )
-    
-    with col2:
-        cpv = (investimento / transactions) if transactions > 0 else 0
-        big_number_box(
-            format_currency_br(cpv),
-            "CPV",
-            hint="Custo Por Venda - Valor médio gasto em anúncios para conseguir uma venda"
-        )
-    
-    with col3:
-        cpm = (investimento / impressions * 1000) if impressions > 0 else 0
-        big_number_box(
-            format_currency_br(cpm),
-            "CPM",
-            hint="Custo Por Mil Impressões no Google Ads"
-        )
-    
-    with col4:
-        ctr = (clicks / impressions * 100) if impressions > 0 else 0
-        big_number_box(
-            f"{ctr:.2f}%".replace(".", ","),
-            "CTR",
-            hint="Click-Through Rate - Porcentagem de impressões que resultaram em cliques"
-        )
-
-    # Tabela de Keywords
-    st.subheader("📊 Análise de Keywords")
-    
-    # Agrupar dados por keyword
-    df_keywords_grouped = df_keywords.groupby(['keyword', 'match_type']).agg({
+    # Agrupar dados por campanha
+    df_campaign = df_keywords.groupby('campaign_name').agg({
         'cost': 'sum',
         'impressions': 'sum',
         'clicks': 'sum',
@@ -1225,25 +1191,142 @@ def display_google_ads_keywords():
     }).reset_index()
     
     # Calcular métricas derivadas
-    df_keywords_grouped['CPC'] = df_keywords_grouped['cost'] / df_keywords_grouped['clicks']
-    df_keywords_grouped['CTR'] = df_keywords_grouped['clicks'] / df_keywords_grouped['impressions'] * 100
-    df_keywords_grouped['Taxa Conv.'] = df_keywords_grouped['transactions'] / df_keywords_grouped['clicks'] * 100
-    df_keywords_grouped['ROAS'] = df_keywords_grouped['revenue'] / df_keywords_grouped['cost']
+    df_campaign['CPC'] = df_campaign['cost'] / df_campaign['clicks'].replace(0, float('nan'))
+    df_campaign['CTR'] = df_campaign['clicks'] / df_campaign['impressions'].replace(0, float('nan')) * 100
+    df_campaign['Taxa Conv.'] = df_campaign['transactions'] / df_campaign['clicks'].replace(0, float('nan')) * 100
+    df_campaign['ROAS'] = df_campaign['revenue'] / df_campaign['cost'].replace(0, float('nan'))
+    df_campaign['CPM'] = df_campaign['cost'] / df_campaign['impressions'].replace(0, float('nan')) * 1000
+    df_campaign['CPV'] = df_campaign['cost'] / df_campaign['transactions'].replace(0, float('nan'))
     
     # Ordenar por investimento
-    df_keywords_grouped = df_keywords_grouped.sort_values('cost', ascending=False)
-    
-    # Formatar valores
-    df_keywords_grouped['cost'] = df_keywords_grouped['cost'].apply(format_currency_br)
-    df_keywords_grouped['revenue'] = df_keywords_grouped['revenue'].apply(format_currency_br)
-    df_keywords_grouped['CPC'] = df_keywords_grouped['CPC'].apply(format_currency_br)
-    df_keywords_grouped['ROAS'] = df_keywords_grouped['ROAS'].apply(lambda x: f"{x:.2f}".replace(".", ","))
-    df_keywords_grouped['CTR'] = df_keywords_grouped['CTR'].apply(lambda x: f"{x:.2f}%".replace(".", ","))
-    df_keywords_grouped['Taxa Conv.'] = df_keywords_grouped['Taxa Conv.'].apply(lambda x: f"{x:.2f}%".replace(".", ","))
+    df_campaign = df_campaign.sort_values('cost', ascending=False)
     
     # Renomear colunas
-    df_keywords_grouped = df_keywords_grouped.rename(columns={
-        'keyword': 'Keyword',
+    df_campaign = df_campaign.rename(columns={
+        'campaign_name': 'Campanha',
+        'cost': 'Investimento',
+        'impressions': 'Impressões',
+        'clicks': 'Cliques',
+        'transactions': 'Vendas',
+        'revenue': 'Receita'
+    })
+    
+    # Exibir tabela de campanhas
+    st.dataframe(
+        df_campaign.style.format({
+            'Investimento': 'R$ {:,.2f}',
+            'Impressões': '{:,.0f}',
+            'Cliques': '{:,.0f}',
+            'Vendas': '{:,.0f}',
+            'Receita': 'R$ {:,.2f}',
+            'CPC': 'R$ {:.2f}',
+            'CTR': '{:.2f}%',
+            'Taxa Conv.': '{:.2f}%',
+            'ROAS': '{:.2f}',
+            'CPM': 'R$ {:.2f}',
+            'CPV': 'R$ {:.2f}'
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # Análise por Grupo de Anúncios
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.subheader("📊 Análise por Grupo de Anúncios")
+    
+    # Filtro de campanha
+    campaign_options = ["Todas"] + sorted(df_keywords['campaign_name'].unique().tolist())
+    selected_campaign = st.selectbox("Filtrar Campanha:", campaign_options, key='adgroup_campaign_filter')
+    
+    # Filtrar dados
+    df_filtered = df_keywords.copy()
+    if selected_campaign != "Todas":
+        df_filtered = df_filtered[df_filtered['campaign_name'] == selected_campaign]
+    
+    # Agrupar dados por grupo de anúncios
+    df_adgroup = df_filtered.groupby(['ad_group_name']).agg({
+        'cost': 'sum',
+        'impressions': 'sum',
+        'clicks': 'sum',
+        'transactions': 'sum',
+        'revenue': 'sum'
+    }).reset_index()
+    
+    # Calcular métricas derivadas
+    df_adgroup['CPC'] = df_adgroup['cost'] / df_adgroup['clicks'].replace(0, float('nan'))
+    df_adgroup['CTR'] = df_adgroup['clicks'] / df_adgroup['impressions'].replace(0, float('nan')) * 100
+    df_adgroup['Taxa Conv.'] = df_adgroup['transactions'] / df_adgroup['clicks'].replace(0, float('nan')) * 100
+    df_adgroup['ROAS'] = df_adgroup['revenue'] / df_adgroup['cost'].replace(0, float('nan'))
+    df_adgroup['CPM'] = df_adgroup['cost'] / df_adgroup['impressions'].replace(0, float('nan')) * 1000
+    df_adgroup['CPV'] = df_adgroup['cost'] / df_adgroup['transactions'].replace(0, float('nan'))
+    
+    # Ordenar por investimento
+    df_adgroup = df_adgroup.sort_values('cost', ascending=False)
+    
+    # Renomear colunas
+    df_adgroup = df_adgroup.rename(columns={
+        'ad_group_name': 'Grupo de Anúncios',
+        'cost': 'Investimento',
+        'impressions': 'Impressões',
+        'clicks': 'Cliques',
+        'transactions': 'Vendas',
+        'revenue': 'Receita'
+    })
+    
+    # Exibir tabela de grupos de anúncios
+    st.dataframe(
+        df_adgroup.style.format({
+            'Investimento': 'R$ {:,.2f}',
+            'Impressões': '{:,.0f}',
+            'Cliques': '{:,.0f}',
+            'Vendas': '{:,.0f}',
+            'Receita': 'R$ {:,.2f}',
+            'CPC': 'R$ {:.2f}',
+            'CTR': '{:.2f}%',
+            'Taxa Conv.': '{:.2f}%',
+            'ROAS': '{:.2f}',
+            'CPM': 'R$ {:.2f}',
+            'CPV': 'R$ {:.2f}'
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # Análise por Palavra-chave
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.subheader("📊 Análise por Palavra-chave")
+    
+    # Filtro de grupo de anúncios
+    adgroup_options = ["Todos"] + sorted(df_filtered['ad_group_name'].unique().tolist())
+    selected_adgroup = st.selectbox("Filtrar Grupo de Anúncios:", adgroup_options, key='keyword_adgroup_filter')
+    
+    # Filtrar dados
+    if selected_adgroup != "Todos":
+        df_filtered = df_filtered[df_filtered['ad_group_name'] == selected_adgroup]
+    
+    # Agrupar dados por palavra-chave
+    df_keyword = df_filtered.groupby(['keyword', 'match_type']).agg({
+        'cost': 'sum',
+        'impressions': 'sum',
+        'clicks': 'sum',
+        'transactions': 'sum',
+        'revenue': 'sum'
+    }).reset_index()
+    
+    # Calcular métricas derivadas
+    df_keyword['CPC'] = df_keyword['cost'] / df_keyword['clicks'].replace(0, float('nan'))
+    df_keyword['CTR'] = df_keyword['clicks'] / df_keyword['impressions'].replace(0, float('nan')) * 100
+    df_keyword['Taxa Conv.'] = df_keyword['transactions'] / df_keyword['clicks'].replace(0, float('nan')) * 100
+    df_keyword['ROAS'] = df_keyword['revenue'] / df_keyword['cost'].replace(0, float('nan'))
+    df_keyword['CPM'] = df_keyword['cost'] / df_keyword['impressions'].replace(0, float('nan')) * 1000
+    df_keyword['CPV'] = df_keyword['cost'] / df_keyword['transactions'].replace(0, float('nan'))
+    
+    # Ordenar por investimento
+    df_keyword = df_keyword.sort_values('cost', ascending=False)
+    
+    # Renomear colunas
+    df_keyword = df_keyword.rename(columns={
+        'keyword': 'Palavra-chave',
         'match_type': 'Tipo de Correspondência',
         'cost': 'Investimento',
         'impressions': 'Impressões',
@@ -1252,9 +1335,21 @@ def display_google_ads_keywords():
         'revenue': 'Receita'
     })
     
-    # Exibir tabela
+    # Exibir tabela de palavras-chave
     st.dataframe(
-        df_keywords_grouped,
+        df_keyword.style.format({
+            'Investimento': 'R$ {:,.2f}',
+            'Impressões': '{:,.0f}',
+            'Cliques': '{:,.0f}',
+            'Vendas': '{:,.0f}',
+            'Receita': 'R$ {:,.2f}',
+            'CPC': 'R$ {:.2f}',
+            'CTR': '{:.2f}%',
+            'Taxa Conv.': '{:.2f}%',
+            'ROAS': '{:.2f}',
+            'CPM': 'R$ {:.2f}',
+            'CPV': 'R$ {:.2f}'
+        }),
         use_container_width=True,
         hide_index=True
     )
@@ -1263,7 +1358,7 @@ def display_tab_paid_media():
     """Exibe a aba de mídia paga"""
     
     # Criar abas para diferentes visualizações
-    tab1, tab2, tab3 = st.tabs(["Visão Geral", "Meta Ads", "Google Ads Keywords"])
+    tab1, tab2, tab3 = st.tabs(["Visão Geral", "Meta Ads", "Google Ads"])
     
     with tab1:
         display_general_view(load_paid_media())
@@ -1272,7 +1367,7 @@ def display_tab_paid_media():
         display_meta_ads_analysis()
     
     with tab3:
-        display_google_ads_keywords()
+        display_google_ads_detailed()
 
 def display_campaign_table(df):
     """Exibe tabela de campanhas com formatação adequada"""
