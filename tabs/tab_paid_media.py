@@ -541,6 +541,9 @@ def display_general_view(df_ads):
         roas_primeiras = roas_primeiras_first
         modelo_label = "OriginStack™"
 
+    # Calcular percentual de primeiras compras vs todas as compras
+    percentual_primeiras = (primeiras_compras / vendas * 100) if vendas > 0 else 0
+
     # Criar o funil customizado
     funnel_html = f"""
     <style>
@@ -597,6 +600,12 @@ def display_general_view(df_ads):
             background: rgba(255, 255, 255, 0.2);
             margin: 15px 0;
         }}
+        .funnel-percentage {{
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-top: 5px;
+        }}
         .step-1 {{ background: linear-gradient(135deg, #1a73e8, #0d47a1); width: 100%; }}
         .step-2 {{ background: linear-gradient(135deg, #2196f3, #1976d2); width: 90%; }}
         .step-3 {{ background: linear-gradient(135deg, #42a5f5, #2196f3); width: 80%; }}
@@ -637,6 +646,7 @@ def display_general_view(df_ads):
                 <div class="funnel-divider"></div>
                 <div class="funnel-value">{primeiras_compras:,.0f}</div>
                 <div class="funnel-label">Primeiras Compras ({modelo_label})</div>
+                <div class="funnel-percentage">{percentual_primeiras:.1f}% das compras são primeiras compras</div>
             </div>
             <div class="funnel-cost">
                 <div class="funnel-cost-value">R$ {cpa:,.2f}</div>
