@@ -519,6 +519,44 @@ def display_general_view(df_ads):
     roas_primeiras_last = (receita_primeiras_last / investimento) if investimento > 0 else 0
     roas_primeiras_first = (receita_primeiras_first / investimento) if investimento > 0 else 0
 
+    # Calcular diferenças percentuais entre os modelos
+    def get_diff_text(val_os, val_lc, is_cost=False):
+        if modelo_funil == "Last Non Direct Click":
+            base = val_lc
+            compare = val_os
+            model_comp = "OriginStack™"
+        else:
+            base = val_os
+            compare = val_lc
+            model_comp = "Last Click"
+
+        if base == 0 or abs(base - compare) < 0.0001:
+            return ""
+
+        diff = (compare - base) / base
+        
+        color = "green" if diff < 0 else "red"
+        if not is_cost:  # Para ROAS, Receita, etc., maior é melhor
+            color = "green" if diff > 0 else "red"
+        
+        return f"""
+         <span style='font-size: 12px; color: {color}; white-space: nowrap;'>
+            ({diff:+.1%})
+         </span>
+         <span style='font-size: 10px; opacity: 0.7; white-space: nowrap;'>
+            vs {model_comp}
+         </span>
+        """
+
+    vendas_diff_text = get_diff_text(vendas_first, vendas_last)
+    primeiras_compras_diff_text = get_diff_text(primeiras_compras_first, primeiras_compras_last)
+    receita_diff_text = get_diff_text(receita_first, receita_last)
+    receita_primeiras_diff_text = get_diff_text(receita_primeiras_first, receita_primeiras_last)
+    cpa_diff_text = get_diff_text(cpa_first, cpa_last, is_cost=True)
+    cpa_primeiras_diff_text = get_diff_text(cpa_primeiras_first, cpa_primeiras_last, is_cost=True)
+    roas_diff_text = get_diff_text(roas_first, roas_last)
+    roas_primeiras_diff_text = get_diff_text(roas_primeiras_first, roas_primeiras_last)
+
     # Selecionar valores baseado no modelo escolhido
     if modelo_funil == "Last Non Direct Click":
         vendas = vendas_last
@@ -602,6 +640,17 @@ def display_general_view(df_ads):
         .step-3 {{ background: linear-gradient(135deg, #42a5f5, #2196f3); width: 80%; }}
         .step-4 {{ background: linear-gradient(135deg, #64b5f6, #42a5f5); width: 70%; }}
         .step-5 {{ background: linear-gradient(135deg, #90caf9, #64b5f6); width: 60%; }}
+        .funnel-main > div {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .funnel-cost > div {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }}
     </style>
     <div class="funnel-container">
         <div class="funnel-step step-1">
@@ -632,33 +681,33 @@ def display_general_view(df_ads):
         </div>
         <div class="funnel-step step-4">
             <div class="funnel-main">
-                <div class="funnel-value">{vendas:,.0f}</div>
+                <div><div class="funnel-value">{vendas:,.0f}</div>{vendas_diff_text}</div>
                 <div class="funnel-label">Todas as Compras ({modelo_label})</div>
                 <div class="funnel-divider"></div>
-                <div class="funnel-value">{primeiras_compras:,.0f}</div>
+                <div><div class="funnel-value">{primeiras_compras:,.0f}</div>{primeiras_compras_diff_text}</div>
                 <div class="funnel-label">Primeiras Compras ({modelo_label})</div>
             </div>
             <div class="funnel-cost">
-                <div class="funnel-cost-value">R$ {cpa:,.2f}</div>
+                <div><div class="funnel-cost-value">R$ {cpa:,.2f}</div>{cpa_diff_text}</div>
                 <div class="funnel-cost-label">CPV ({modelo_label})</div>
                 <div class="funnel-divider"></div>
-                <div class="funnel-cost-value">R$ {cpa_primeiras:,.2f}</div>
+                <div><div class="funnel-cost-value">R$ {cpa_primeiras:,.2f}</div>{cpa_primeiras_diff_text}</div>
                 <div class="funnel-cost-label">CPA ({modelo_label})</div>
             </div>
         </div>
         <div class="funnel-step step-5">
             <div class="funnel-main">
-                <div class="funnel-value">R$ {receita:,.2f}</div>
+                <div><div class="funnel-value">R$ {receita:,.2f}</div>{receita_diff_text}</div>
                 <div class="funnel-label">Receita ({modelo_label})</div>
                 <div class="funnel-divider"></div>
-                <div class="funnel-value">R$ {receita_primeiras:,.2f}</div>
+                <div><div class="funnel-value">R$ {receita_primeiras:,.2f}</div>{receita_primeiras_diff_text}</div>
                 <div class="funnel-label">Receita Primeiras Compras ({modelo_label})</div>
             </div>
             <div class="funnel-cost">
-                <div class="funnel-cost-value">{roas:.2f}x</div>
+                <div><div class="funnel-cost-value">{roas:.2f}x</div>{roas_diff_text}</div>
                 <div class="funnel-cost-label">ROAS ({modelo_label})</div>
                 <div class="funnel-divider"></div>
-                <div class="funnel-cost-value">{roas_primeiras:.2f}x</div>
+                <div><div class="funnel-cost-value">{roas_primeiras:.2f}x</div>{roas_primeiras_diff_text}</div>
                 <div class="funnel-cost-label">ROAS Primeiras ({modelo_label})</div>
             </div>
         </div>
