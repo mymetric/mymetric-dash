@@ -2038,3 +2038,27 @@ def load_google_ads_keywords():
     except Exception as e:
         st.error(f"Erro ao carregar dados de keywords do Google Ads: {str(e)}")
         return pd.DataFrame()
+
+@background_cache(ttl_hours=1)
+def load_coffeemais_cohort():
+    """Load cohort data from BigQuery"""
+    
+    start_date = st.session_state.start_date
+    end_date = st.session_state.end_date
+    
+    query = f"""
+    SELECT
+        month,
+        purchase_number,
+        sessions_cluster,
+        orders
+    FROM `coffee-mais-mkt-data-lake.df_summary.ecommerce_cohort`
+    WHERE date(month) between '{start_date}' and '{end_date}'
+    """
+    
+    try:
+        df = client.query(query).to_dataframe()
+        return df
+    except Exception as e:
+        st.error(f"Error loading cohort data: {str(e)}")
+        return pd.DataFrame()

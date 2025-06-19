@@ -23,6 +23,7 @@ from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_
 from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
 from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
 from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
+from tabs_custom.tab_coffeemais_cohort import display_tab_coffeemais_cohort
 from tabs_custom.tab_holysoup_social import display_tab_holysoup_social
 from tabs_custom.tab_kaisan_erp import display_tab_kaisan_erp
 
@@ -109,6 +110,7 @@ def load_app():
             if st.session_state.tablename == 'coffeemais':
                 nav_options.extend(["Usuários"])
                 nav_options.extend(["CRM"])
+                nav_options.extend(["Cohort"])
 
             if st.session_state.tablename == 'gringa':
                 nav_options.extend(["Produtos Cadastrados"])
@@ -231,6 +233,10 @@ def load_app():
             elif selected_page == "RFM" and st.session_state.tablename == 'oculosshop':
                 save_event_name(event_name="tab_view", event_params={"tab": "rfm"})
                 display_tab_rfm()
+                
+            elif selected_page == "Cohort" and st.session_state.tablename == 'coffeemais':
+                save_event_name(event_name="tab_view", event_params={"tab": "coffeemais_cohort"})
+                display_tab_coffeemais_cohort()
                 
     except Exception as e:
         st.error(f"Erro ao carregar a aplicação: {str(e)}")
