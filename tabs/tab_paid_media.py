@@ -888,6 +888,251 @@ def display_general_view(df_ads):
     # Aplicar o estilo
     st.dataframe(styled_df, use_container_width=True)
 
+def display_attribution_comparison(df_ads):
+    """Exibe comparação lado a lado dos dois modelos de atribuição"""
+    
+    st.subheader("🔄 Comparação de Modelos de Atribuição")
+    
+    # Filtros na sidebar
+    with st.sidebar:
+        st.subheader("Filtros Comparação")
+        platform_options = ["Todas"] + sorted(df_ads['Plataforma'].dropna().unique().tolist())
+        campaign_options = ["Todas"] + sorted(df_ads['Campanha'].dropna().unique().tolist())
+
+        selected_platform = st.selectbox("Plataforma:", platform_options, key="comp_platform")
+        selected_campaign = st.selectbox("Campanha:", campaign_options, key="comp_campaign")
+
+    # Aplicar filtros
+    df_filtered = df_ads.copy()
+    if selected_platform != "Todas":
+        df_filtered = df_filtered[df_filtered['Plataforma'] == selected_platform]
+    if selected_campaign != "Todas":
+        df_filtered = df_filtered[df_filtered['Campanha'] == selected_campaign]
+
+    # Calcular métricas para ambos os modelos
+    investimento = df_filtered['Investimento'].sum()
+    impressoes = df_filtered['Impressões'].sum()
+    cliques = df_filtered['Cliques'].sum()
+    leads = df_filtered['Leads'].sum()
+    
+    # Last Non Direct Click
+    vendas_last = df_filtered['Transações'].sum()
+    receita_last = df_filtered['Receita'].sum()
+    primeiras_compras_last = df_filtered['Primeiras Compras'].sum()
+    receita_primeiras_last = df_filtered['Receita Primeiras Compras'].sum()
+    
+    # OriginStack™
+    vendas_first = df_filtered['Transações Primeiro Lead'].sum()
+    receita_first = df_filtered['Receita Primeiro Lead'].sum()
+    primeiras_compras_first = df_filtered['Primeiras Compras Primeiro Lead'].sum()
+    receita_primeiras_first = df_filtered['Receita Primeiras Compras Primeiro Lead'].sum()
+    
+    # Calcular métricas derivadas
+    # Last Non Direct Click
+    roas_last = (receita_last / investimento) if investimento > 0 else 0
+    cpv_last = (investimento / vendas_last) if vendas_last > 0 else 0
+    cpa_last = (investimento / primeiras_compras_last) if primeiras_compras_last > 0 else 0
+    taxa_conv_last = (vendas_last / cliques * 100) if cliques > 0 else 0
+    roas_primeiras_last = (receita_primeiras_last / investimento) if investimento > 0 else 0
+    
+    # OriginStack™
+    roas_first = (receita_first / investimento) if investimento > 0 else 0
+    cpv_first = (investimento / vendas_first) if vendas_first > 0 else 0
+    cpa_first = (investimento / primeiras_compras_first) if primeiras_compras_first > 0 else 0
+    taxa_conv_first = (vendas_first / cliques * 100) if cliques > 0 else 0
+    roas_primeiras_first = (receita_primeiras_first / investimento) if investimento > 0 else 0
+    
+    # Calcular diferenças
+    diff_vendas = vendas_first - vendas_last
+    diff_receita = receita_first - receita_last
+    diff_primeiras = primeiras_compras_first - primeiras_compras_last
+    diff_receita_primeiras = receita_primeiras_first - receita_primeiras_last
+    diff_roas = roas_first - roas_last
+    diff_roas_primeiras = roas_primeiras_first - roas_primeiras_last
+    
+    # Calcular porcentagens de diferença
+    pct_vendas = ((vendas_first / vendas_last - 1) * 100) if vendas_last > 0 else 0
+    pct_receita = ((receita_first / receita_last - 1) * 100) if receita_last > 0 else 0
+    pct_primeiras = ((primeiras_compras_first / primeiras_compras_last - 1) * 100) if primeiras_compras_last > 0 else 0
+    pct_receita_primeiras = ((receita_primeiras_first / receita_primeiras_last - 1) * 100) if receita_primeiras_last > 0 else 0
+    
+    # Exibir comparação em cards
+    st.markdown("### 📊 Métricas Gerais")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Investimento", f"R$ {investimento:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    with col2:
+        st.metric("Impressões", f"{impressoes:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    with col3:
+        st.metric("Cliques", f"{cliques:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    with col4:
+        st.metric("Leads", f"{leads:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+    st.markdown("---")
+    st.markdown("### 🔄 Comparação de Atribuições")
+    
+    # Criar tabela de comparação
+    comparison_data = {
+        'Métrica': [
+            'Todas as Vendas',
+            'Receita Total',
+            'ROAS Total',
+            'CPV',
+            'Taxa de Conversão (%)',
+            '',
+            'Primeiras Compras',
+            'Receita Primeiras Compras',
+            'ROAS Primeiras Compras',
+            'CPA'
+        ],
+        'Last Non Direct Click': [
+            f"{vendas_last:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"R$ {receita_last:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{roas_last:.2f}x".replace(".", ","),
+            f"R$ {cpv_last:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{taxa_conv_last:.2f}%".replace(".", ","),
+            '',
+            f"{primeiras_compras_last:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"R$ {receita_primeiras_last:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{roas_primeiras_last:.2f}x".replace(".", ","),
+            f"R$ {cpa_last:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        ],
+        'OriginStack™': [
+            f"{vendas_first:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"R$ {receita_first:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{roas_first:.2f}x".replace(".", ","),
+            f"R$ {cpv_first:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{taxa_conv_first:.2f}%".replace(".", ","),
+            '',
+            f"{primeiras_compras_first:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"R$ {receita_primeiras_first:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{roas_primeiras_first:.2f}x".replace(".", ","),
+            f"R$ {cpa_first:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        ],
+        'Diferença Absoluta': [
+            f"{diff_vendas:+,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"R$ {diff_receita:+,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{diff_roas:+.2f}x".replace(".", ","),
+            f"R$ {cpv_first - cpv_last:+,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{taxa_conv_first - taxa_conv_last:+.2f}%".replace(".", ","),
+            '',
+            f"{diff_primeiras:+,.0f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"R$ {diff_receita_primeiras:+,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            f"{diff_roas_primeiras:+.2f}x".replace(".", ","),
+            f"R$ {cpa_first - cpa_last:+,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        ],
+        'Diferença (%)': [
+            f"{pct_vendas:+.1f}%".replace(".", ",") if vendas_last > 0 else "N/A",
+            f"{pct_receita:+.1f}%".replace(".", ",") if receita_last > 0 else "N/A",
+            f"{((roas_first/roas_last-1)*100):+.1f}%".replace(".", ",") if roas_last > 0 else "N/A",
+            f"{((cpv_first/cpv_last-1)*100):+.1f}%".replace(".", ",") if cpv_last > 0 else "N/A",
+            f"{((taxa_conv_first/taxa_conv_last-1)*100):+.1f}%".replace(".", ",") if taxa_conv_last > 0 else "N/A",
+            '',
+            f"{pct_primeiras:+.1f}%".replace(".", ",") if primeiras_compras_last > 0 else "N/A",
+            f"{pct_receita_primeiras:+.1f}%".replace(".", ",") if receita_primeiras_last > 0 else "N/A",
+            f"{((roas_primeiras_first/roas_primeiras_last-1)*100):+.1f}%".replace(".", ",") if roas_primeiras_last > 0 else "N/A",
+            f"{((cpa_first/cpa_last-1)*100):+.1f}%".replace(".", ",") if cpa_last > 0 else "N/A"
+        ]
+    }
+    
+    df_comparison = pd.DataFrame(comparison_data)
+    
+    # Estilizar tabela
+    def highlight_differences(val):
+        if '+' in str(val) and val != '':
+            return 'background-color: #d4edda; color: #155724;'  # Verde claro para positivo
+        elif '-' in str(val) and val != '':
+            return 'background-color: #f8d7da; color: #721c24;'  # Vermelho claro para negativo
+        return ''
+    
+    styled_comparison = df_comparison.style.applymap(
+        highlight_differences, 
+        subset=['Diferença Absoluta', 'Diferença (%)']
+    )
+    
+    st.dataframe(styled_comparison, use_container_width=True, hide_index=True)
+    
+    # Insights de comparação
+    st.markdown("---")
+    st.markdown("### 💡 Insights da Comparação")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**🎯 OriginStack™ vs Last Non Direct Click:**")
+        if vendas_first > vendas_last:
+            st.success(f"✅ OriginStack™ identifica {diff_vendas:,.0f} vendas adicionais ({pct_vendas:.1f}% a mais)")
+        else:
+            st.info(f"ℹ️ Last Non Direct Click identifica {abs(diff_vendas):,.0f} vendas a mais")
+            
+        if receita_first > receita_last:
+            st.success(f"✅ OriginStack™ atribui R$ {diff_receita:,.2f} em receita adicional ({pct_receita:.1f}% a mais)")
+        else:
+            st.info(f"ℹ️ Last Non Direct Click atribui R$ {abs(diff_receita):,.2f} em receita a mais")
+    
+    with col2:
+        st.markdown("**📈 Impacto no ROAS:**")
+        if roas_first > roas_last:
+            st.success(f"✅ OriginStack™ mostra ROAS {diff_roas:.2f}x superior")
+        else:
+            st.info(f"ℹ️ Last Non Direct Click mostra ROAS {abs(diff_roas):.2f}x superior")
+            
+        if primeiras_compras_first > primeiras_compras_last:
+            st.success(f"✅ OriginStack™ identifica {diff_primeiras:,.0f} primeiras compras adicionais ({pct_primeiras:.1f}% a mais)")
+        else:
+            st.info(f"ℹ️ Last Non Direct Click identifica {abs(diff_primeiras):,.0f} primeiras compras a mais")
+
+    # Gráfico de comparação visual
+    st.markdown("---")
+    st.markdown("### 📊 Comparação Visual - ROAS ao Longo do Tempo")
+    
+    # Agrupar dados por data para comparação temporal
+    df_timeline = df_filtered.groupby('Data').agg({
+        'Investimento': 'sum',
+        'Receita': 'sum',
+        'Receita Primeiro Lead': 'sum',
+        'Receita Primeiras Compras': 'sum',
+        'Receita Primeiras Compras Primeiro Lead': 'sum'
+    }).reset_index()
+    
+    # Calcular ROAS para ambos os modelos
+    df_timeline['ROAS Last Click'] = (df_timeline['Receita'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS OriginStack™'] = (df_timeline['Receita Primeiro Lead'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS Primeiras Last Click'] = (df_timeline['Receita Primeiras Compras'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    df_timeline['ROAS Primeiras OriginStack™'] = (df_timeline['Receita Primeiras Compras Primeiro Lead'] / df_timeline['Investimento'].replace(0, float('nan'))).round(2)
+    
+    # Preencher NaN com 0
+    df_timeline = df_timeline.fillna(0)
+    
+    # Preparar dados para gráfico
+    chart_data = pd.melt(
+        df_timeline,
+        id_vars=['Data'],
+        value_vars=['ROAS Last Click', 'ROAS OriginStack™', 'ROAS Primeiras Last Click', 'ROAS Primeiras OriginStack™'],
+        var_name='Modelo',
+        value_name='ROAS'
+    )
+    
+    # Criar gráfico
+    chart = alt.Chart(chart_data).mark_line(strokeWidth=3).encode(
+        x=alt.X('Data:T', title='Data', axis=alt.Axis(format='%d/%m')),
+        y=alt.Y('ROAS:Q', title='ROAS', axis=alt.Axis(format='.2f')),
+        color=alt.Color('Modelo:N', 
+                       scale=alt.Scale(
+                           domain=['ROAS Last Click', 'ROAS OriginStack™', 'ROAS Primeiras Last Click', 'ROAS Primeiras OriginStack™'],
+                           range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+                       ),
+                       legend=alt.Legend(title="Modelo de Atribuição")),
+        tooltip=['Data:T', 'Modelo:N', 'ROAS:Q']
+    ).properties(
+        height=400,
+        title="Comparação de ROAS entre Modelos de Atribuição"
+    ).interactive()
+    
+    st.altair_chart(chart, use_container_width=True)
+
 def display_google_ads_keywords():
     """Exibe análise detalhada das keywords do Google Ads"""
     
@@ -1056,15 +1301,18 @@ def display_tab_paid_media():
     """Exibe a aba de mídia paga"""
     
     # Criar abas para diferentes visualizações
-    tab1, tab2, tab3 = st.tabs(["Visão Geral", "Meta Ads", "Google Ads Keywords"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Visão Geral", "Comparação Atribuição", "Meta Ads", "Google Ads Keywords"])
     
     with tab1:
         display_general_view(load_paid_media())
     
     with tab2:
-        display_meta_ads_analysis()
+        display_attribution_comparison(load_paid_media())
     
     with tab3:
+        display_meta_ads_analysis()
+    
+    with tab4:
         display_google_ads_keywords()
 
 def display_campaign_table(df):
