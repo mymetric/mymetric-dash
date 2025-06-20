@@ -35,6 +35,7 @@ def display_tab_items_sold():
         st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
         st.session_state.categoria_produto_selected = ["Selecionar Todos"]
         st.session_state.nome_produto_selected = ["Selecionar Todos"]
+        st.session_state.nome_produto_search = ""
 
     # Show filters in sidebar
     with st.sidebar:

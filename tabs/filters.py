@@ -163,6 +163,8 @@ def traffic_filters_detailed(df):
             st.session_state.categoria_produto_selected = ["Selecionar Todos"]
         if 'nome_produto_selected' not in st.session_state:
             st.session_state.nome_produto_selected = ["Selecionar Todos"]
+        if 'nome_produto_search' not in st.session_state:
+            st.session_state.nome_produto_search = ""
             
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
@@ -234,16 +236,28 @@ def traffic_filters_detailed(df):
                 else:
                     categoria_produto_selected = ["Selecionar Todos"]
                 
-                # Só mostrar o filtro de nome do produto se a coluna existir
+                # Só mostrar os filtros de nome do produto se a coluna existir
                 if 'Nome do Produto' in df.columns:
+                    st.markdown("**Filtros de Produto:**")
+                    
                     nome_produto_selected = st.multiselect(
-                        "Nome do Produto",
+                        "Nome do Produto (Seleção)",
                         options=all_products,
                         default=st.session_state.nome_produto_selected,
-                        key="nome_produto_select"
+                        key="nome_produto_select",
+                        help="Selecione produtos específicos da lista"
+                    )
+                    
+                    nome_produto_search = st.text_input(
+                        "Buscar por Nome do Produto",
+                        value=st.session_state.nome_produto_search,
+                        key="nome_produto_search_input",
+                        placeholder="Digite parte do nome do produto...",
+                        help="Busca produtos que contenham o texto digitado"
                     )
                 else:
                     nome_produto_selected = ["Selecionar Todos"]
+                    nome_produto_search = ""
                 
                 # Botão para aplicar filtros avançados
                 submitted = st.form_submit_button("Aplicar Filtros Avançados", type="primary", use_container_width=True)
@@ -256,6 +270,7 @@ def traffic_filters_detailed(df):
                     st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
                     st.session_state.categoria_produto_selected = categoria_produto_selected
                     st.session_state.nome_produto_selected = nome_produto_selected
+                    st.session_state.nome_produto_search = nome_produto_search
                     st.rerun()
 
 def apply_filters(df):
@@ -296,8 +311,15 @@ def apply_filters(df):
         df = df[df['Categoria do Produto'].isin(st.session_state.categoria_produto_selected)]
     
     # Aplicar filtros de nome do produto (só se a coluna existir)
-    if 'Nome do Produto' in df.columns and "Selecionar Todos" not in st.session_state.nome_produto_selected:
-        df = df[df['Nome do Produto'].isin(st.session_state.nome_produto_selected)]
+    if 'Nome do Produto' in df.columns:
+        # Aplicar filtro de seleção específica
+        if "Selecionar Todos" not in st.session_state.nome_produto_selected:
+            df = df[df['Nome do Produto'].isin(st.session_state.nome_produto_selected)]
+        
+        # Aplicar filtro de busca por texto (contains)
+        if st.session_state.nome_produto_search and st.session_state.nome_produto_search.strip():
+            search_term = st.session_state.nome_produto_search.strip().lower()
+            df = df[df['Nome do Produto'].str.lower().str.contains(search_term, na=False)]
     
     return df
 
