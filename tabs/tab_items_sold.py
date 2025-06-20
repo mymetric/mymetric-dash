@@ -33,6 +33,8 @@ def display_tab_items_sold():
         st.session_state.campanha_selected = ["Selecionar Todos"]
         st.session_state.conteudo_selected = ["Selecionar Todos"]
         st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+        st.session_state.categoria_produto_selected = ["Selecionar Todos"]
+        st.session_state.nome_produto_selected = ["Selecionar Todos"]
 
     # Show filters in sidebar
     with st.sidebar:
@@ -41,6 +43,20 @@ def display_tab_items_sold():
 
     # Apply filters to the data
     df = apply_filters(df)
+
+    # Verificar se as colunas existem
+    has_category_column = 'Categoria do Produto' in df.columns
+    has_product_name_column = 'Nome do Produto' in df.columns
+
+    # Tratar valores nulos ou vazios na categoria do produto (só se a coluna existir)
+    if has_category_column:
+        df['Categoria do Produto'] = df['Categoria do Produto'].fillna('Sem Categoria')
+        df['Categoria do Produto'] = df['Categoria do Produto'].replace('', 'Sem Categoria')
+
+    # Tratar valores nulos ou vazios no nome do produto (só se a coluna existir)
+    if has_product_name_column:
+        df['Nome do Produto'] = df['Nome do Produto'].fillna('Sem Nome')
+        df['Nome do Produto'] = df['Nome do Produto'].replace('', 'Sem Nome')
 
     # Criar colunas para os KPIs
     col1, col2, col3, col4 = st.columns(4)
@@ -74,6 +90,47 @@ def display_tab_items_sold():
         )
 
     st.markdown("""---""")
+
+    # Tabela de Resumo por Categoria (só se a coluna existir)
+    if has_category_column:
+        st.subheader("📊 Resumo por Categoria")
+        
+        # Criar resumo por categoria
+        category_summary = df.groupby('Categoria do Produto').agg({
+            'Receita': 'sum',
+            'Quantidade': 'sum',
+            'ID do Produto': 'nunique'
+        }).reset_index().sort_values('Receita', ascending=False)
+        
+        # Calcular percentuais
+        total_revenue = category_summary['Receita'].sum()
+        total_quantity = category_summary['Quantidade'].sum()
+        
+        category_summary['% Receita'] = (category_summary['Receita'] / total_revenue * 100).round(1)
+        category_summary['% Quantidade'] = (category_summary['Quantidade'] / total_quantity * 100).round(1)
+        
+        # Formatar a tabela
+        category_summary['Receita'] = category_summary['Receita'].apply(lambda x: f"R$ {x:,.2f}")
+        category_summary['Quantidade'] = category_summary['Quantidade'].apply(lambda x: f"{x:,.0f}")
+        category_summary['ID do Produto'] = category_summary['ID do Produto'].apply(lambda x: f"{x:,.0f}")
+        category_summary['% Receita'] = category_summary['% Receita'].apply(lambda x: f"{x}%")
+        category_summary['% Quantidade'] = category_summary['% Quantidade'].apply(lambda x: f"{x}%")
+        
+        st.data_editor(
+            category_summary,
+            column_config={
+                "Categoria do Produto": st.column_config.TextColumn("Categoria"),
+                "Receita": st.column_config.TextColumn("Receita"),
+                "% Receita": st.column_config.TextColumn("% Receita"),
+                "Quantidade": st.column_config.TextColumn("Quantidade"),
+                "% Quantidade": st.column_config.TextColumn("% Quantidade"),
+                "ID do Produto": st.column_config.TextColumn("Produtos")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+        
+        st.markdown("""---""")
 
     # Top N Produtos por Receita
     st.subheader("Top Produtos por Receita")
@@ -122,6 +179,57 @@ def display_tab_items_sold():
         hide_index=True,
         use_container_width=True
     )
+
+    # Análise por Categoria do Produto (só se a coluna existir)
+    if has_category_column:
+        st.subheader("Análise por Categoria do Produto")
+        category_analysis = df.groupby('Categoria do Produto').agg({
+            'Receita': 'sum',
+            'Quantidade': 'sum',
+            'ID do Produto': 'nunique'
+        }).reset_index().sort_values('Receita', ascending=False)
+
+        # Salvar dados numéricos para o gráfico
+        category_analysis_numeric = category_analysis.copy()
+
+        # Formatar a tabela
+        category_analysis['Receita'] = category_analysis['Receita'].apply(lambda x: f"R$ {x:,.2f}")
+        category_analysis['Quantidade'] = category_analysis['Quantidade'].apply(lambda x: f"{x:,.0f}")
+        category_analysis['ID do Produto'] = category_analysis['ID do Produto'].apply(lambda x: f"{x:,.0f}")
+        
+        st.data_editor(
+            category_analysis,
+            column_config={
+                "Categoria do Produto": st.column_config.TextColumn("Categoria"),
+                "Receita": st.column_config.TextColumn("Receita"),
+                "Quantidade": st.column_config.TextColumn("Quantidade"),
+                "ID do Produto": st.column_config.TextColumn("Produtos Diferentes")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+
+        # Gráfico de receita por categoria
+        if not category_analysis_numeric.empty:
+            fig = px.bar(
+                category_analysis_numeric.head(10),  # Top 10 categorias
+                x='Categoria do Produto',
+                y='Receita',
+                title='Receita por Categoria do Produto (Top 10)',
+                color='Receita',
+                color_continuous_scale='viridis'
+            )
+            
+            fig.update_layout(
+                xaxis_title="Categoria do Produto",
+                yaxis_title="Receita (R$)",
+                showlegend=False,
+                height=500
+            )
+            
+            fig.update_xaxes(tickangle=45)
+            
+            st.plotly_chart(fig, use_container_width=True)
 
     # Análise por Origem/Mídia
     st.subheader("Análise por Origem/Mídia")

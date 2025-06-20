@@ -159,6 +159,10 @@ def traffic_filters_detailed(df):
             st.session_state.conteudo_selected = ["Selecionar Todos"]
         if 'pagina_de_entrada_selected' not in st.session_state:
             st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+        if 'categoria_produto_selected' not in st.session_state:
+            st.session_state.categoria_produto_selected = ["Selecionar Todos"]
+        if 'nome_produto_selected' not in st.session_state:
+            st.session_state.nome_produto_selected = ["Selecionar Todos"]
             
         # Filtros existentes
         with st.expander("Filtros Avançados", expanded=False):
@@ -168,6 +172,18 @@ def traffic_filters_detailed(df):
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
+            
+            # Verificar se a coluna 'Categoria do Produto' existe antes de usá-la
+            if 'Categoria do Produto' in df.columns:
+                all_categories = sort_by_sessions('Categoria do Produto', df)
+            else:
+                all_categories = ["Selecionar Todos"]
+            
+            # Verificar se a coluna 'Nome do Produto' existe antes de usá-la
+            if 'Nome do Produto' in df.columns:
+                all_products = sort_by_sessions('Nome do Produto', df)
+            else:
+                all_products = ["Selecionar Todos"]
             
             # Criar o formulário
             with st.form(key="advanced_filters_form"):
@@ -207,6 +223,28 @@ def traffic_filters_detailed(df):
                     key="pagina_de_entrada_select"
                 )
                 
+                # Só mostrar o filtro de categoria se a coluna existir
+                if 'Categoria do Produto' in df.columns:
+                    categoria_produto_selected = st.multiselect(
+                        "Categoria do Produto",
+                        options=all_categories,
+                        default=st.session_state.categoria_produto_selected,
+                        key="categoria_produto_select"
+                    )
+                else:
+                    categoria_produto_selected = ["Selecionar Todos"]
+                
+                # Só mostrar o filtro de nome do produto se a coluna existir
+                if 'Nome do Produto' in df.columns:
+                    nome_produto_selected = st.multiselect(
+                        "Nome do Produto",
+                        options=all_products,
+                        default=st.session_state.nome_produto_selected,
+                        key="nome_produto_select"
+                    )
+                else:
+                    nome_produto_selected = ["Selecionar Todos"]
+                
                 # Botão para aplicar filtros avançados
                 submitted = st.form_submit_button("Aplicar Filtros Avançados", type="primary", use_container_width=True)
                 
@@ -216,6 +254,8 @@ def traffic_filters_detailed(df):
                     st.session_state.campanha_selected = campanha_selected
                     st.session_state.conteudo_selected = conteudo_selected
                     st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
+                    st.session_state.categoria_produto_selected = categoria_produto_selected
+                    st.session_state.nome_produto_selected = nome_produto_selected
                     st.rerun()
 
 def apply_filters(df):
@@ -250,6 +290,14 @@ def apply_filters(df):
     # Aplicar filtros de página de entrada
     if "Selecionar Todos" not in st.session_state.pagina_de_entrada_selected:
         df = df[df['Página de Entrada'].isin(st.session_state.pagina_de_entrada_selected)]
+    
+    # Aplicar filtros de categoria do produto (só se a coluna existir)
+    if 'Categoria do Produto' in df.columns and "Selecionar Todos" not in st.session_state.categoria_produto_selected:
+        df = df[df['Categoria do Produto'].isin(st.session_state.categoria_produto_selected)]
+    
+    # Aplicar filtros de nome do produto (só se a coluna existir)
+    if 'Nome do Produto' in df.columns and "Selecionar Todos" not in st.session_state.nome_produto_selected:
+        df = df[df['Nome do Produto'].isin(st.session_state.nome_produto_selected)]
     
     return df
 

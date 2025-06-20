@@ -1919,6 +1919,7 @@ def load_purchase_items_sessions():
             event_date `Data`,
             item.item_id `ID do Produto`,
             item.item_name `Nome do Produto`,
+            item.item_category `Categoria do Produto`,
             item.item_revenue `Receita`,
             item.quantity `Quantidade`,
             traffic_category `Cluster`,
