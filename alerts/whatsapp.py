@@ -327,7 +327,9 @@ def send_goal_alert(tablename, phone, testing_mode=False):
     try:
         if testing_mode:
             message = f"""
-🧪 *Mensagem de Teste - {tablename}*
+*{tablename.upper()}*
+
+Mensagem de Teste
 
 Esta é uma mensagem de teste para verificar o funcionamento do sistema de alertas.
 """
@@ -379,7 +381,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         
         if df_goals.empty or 'goals' not in df_goals.columns or df_goals['goals'].isna().all():
             print(f"❌ DataFrame de metas vazio ou coluna ausente para {tablename}")
-            msg = f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
             if aviso_duplicadas:
                 msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
@@ -395,7 +397,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         
         if not goals_json:
             print(f"❌ JSON de metas vazio para {tablename}")
-            msg = f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
             if aviso_duplicadas:
                 msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
@@ -416,7 +418,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
 
         if meta_receita == 0:
             print(f"❌ Meta de receita é zero para {tablename}")
-            msg = f"❌ Meta do mês não cadastrada para {tablename}\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
             if aviso_duplicadas:
                 msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
@@ -451,33 +453,35 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
 
         # Criar mensagem
         message = f"""
-📊 *Status da Meta - {tablename}*
+*{tablename.upper()}*
 
-✅ Meta do mês: R$ {meta_receita:,.2f}
-💰 Receita atual: R$ {total_receita_mes:,.2f}
-📊 Percentual atingido: {percentual_atingido:.1f}%
-📈 Média diária (até ontem): R$ {media_diaria:,.2f}
-📅 Dias passados: {dias_passados} de {ultimo_dia}
-🎯 Projeção final: R$ {projecao_final:,.2f}
-📊 Percentual projetado: {percentual_projetado:.1f}%
+📊 Status da Meta
+
+- Meta do mês: R$ {meta_receita:,.2f}
+- Receita atual: R$ {total_receita_mes:,.2f}
+- Percentual atingido: {percentual_atingido:.1f}%
+- Média diária (até ontem): R$ {media_diaria:,.2f}
+- Dias passados: {dias_passados} de {ultimo_dia}
+- Projeção final: R$ {projecao_final:,.2f}
+- Percentual projetado: {percentual_projetado:.1f}%
 """
         if vendas_ontem > 0:
-            message += f"\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            message += f"\n\n💰 Vendas de Ontem\n- Total: R$ {vendas_ontem:,.2f}"
 
         if aviso_duplicadas or aviso_cookies:
-            message += "\n\n🔄 *Qualidade dos Dados*"
+            message += "\n\n🔄 Qualidade dos Dados"
             if aviso_duplicadas:
-                message += f"\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
+                message += f"\n- Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
-                message += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+                message += f"\n- Perda de cookies: {lost_cookies:.1%}"
                 
         # Adicionar métricas de UTM apenas se houver alertas
         if aviso_utm or aviso_mm_ads:
-            message += "\n\n🎯 *Parâmetros UTM de Meta*"
+            message += "\n\n🎯 Parâmetros UTM de Meta"
             if aviso_utm:
-                message += f"\n⚠️ Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
+                message += f"\n- Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
             if aviso_mm_ads:
-                message += f"\n⚠️ Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)\nInstruções: https://abrir.link/kAnOz"
+                message += f"\n- Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)\n- Instruções: https://abrir.link/kAnOz"
 
         # Enviar mensagem
         send_whatsapp_message(message, phone)
@@ -486,7 +490,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         print(f"❌ Erro ao verificar meta para {tablename}: {str(e)}")
         # Mesmo em caso de erro, tenta enviar o aviso de sessões duplicadas e cookies
         try:
-            msg = f"❌ Erro ao verificar meta: {str(e)}"
+            msg = f"*{tablename.upper()}*\n\n❌ *Erro ao verificar meta*\n{str(e)}"
             if vendas_ontem > 0:
                 msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
             if aviso_duplicadas or aviso_cookies:
@@ -497,7 +501,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                     msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
             send_whatsapp_message(msg, phone)
         except:
-            send_whatsapp_message(f"❌ Erro ao verificar meta: {str(e)}", phone)
+            send_whatsapp_message(f"*{tablename.upper()}*\n\n❌ *Erro ao verificar meta*\n{str(e)}", phone)
 
 def send_alerts_to_all_groups(test_mode=False):
     """
