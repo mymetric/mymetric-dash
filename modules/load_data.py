@@ -59,12 +59,13 @@ def background_cache(ttl_hours=1):
             tablename = st.session_state.get('tablename')
             start_date = st.session_state.get('start_date')
             end_date = st.session_state.get('end_date')
+            attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
             
             if not tablename:
                 raise ValueError("tablename não está definido na sessão")
             
-            # Criar chave única para o cache incluindo tablename e datas
-            cache_key = f"{tablename}:{start_date}:{end_date}:{func.__name__}:{str(args)}:{str(kwargs)}"
+            # Criar chave única para o cache incluindo tablename, datas e modelo de atribuição
+            cache_key = f"{tablename}:{start_date}:{end_date}:{attribution_model}:{func.__name__}:{str(args)}:{str(kwargs)}"
             
             # Verificar se existe cache
             if cache_key in st.session_state.cache_data:
@@ -279,27 +280,18 @@ def load_basic_data():
     # Usa o modelo de atribuição da sessão, com fallback para o padrão
     attribution_model = st.session_state.get('attribution_model', 'Último Clique Não Direto')
     
-    # Adiciona o modelo de atribuição ao cache key para forçar recarregamento quando mudar
-    cache_key = f"basic_data_{tablename}_{start_date_str}_{end_date_str}_{attribution_model}"
-
-    # Limpa o cache se o modelo de atribuição mudou
-    if 'last_attribution_model' in st.session_state and st.session_state.last_attribution_model != attribution_model:
-        if cache_key in st.session_state.cache_data:
-            del st.session_state.cache_data[cache_key]
-        if cache_key in st.session_state.cache_timestamps:
-            del st.session_state.cache_timestamps[cache_key]
-        if cache_key in st.session_state.background_tasks:
-            del st.session_state.background_tasks[cache_key]
-
     if attribution_model == 'Último Clique Não Direto':
         attribution_model = 'purchase'
     elif attribution_model == 'Primeiro Clique':
         attribution_model = 'fs_purchase'
+    elif attribution_model == 'Assinaturas' and tablename == 'coffeemais':
+        attribution_model = 'purchase_subscription'
     
     # Use get_project_name only for non-dbt_config datasets
     project_name = get_project_name(tablename)
     
-    query = f"""
+    # Base query for all cases
+    base_query = f"""
         SELECT
             event_date AS Data,
             traffic_category `Cluster`,
@@ -312,8 +304,10 @@ def load_basic_data():
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
             SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Paga`,
             COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN transaction_id END) `Novos Clientes`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`
+            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`"""
 
+    query = f"""
+        {base_query}
         FROM `{project_name}.dbt_join.{tablename}_events_long`
         WHERE {date_condition}
         GROUP BY ALL

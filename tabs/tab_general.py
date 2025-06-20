@@ -481,6 +481,35 @@ def tables(df):
         st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs")
 
 def display_tab_general():
+    # Add attribution model selector in sidebar
+    if 'tablename' in st.session_state:
+        attribution_options = ['Último Clique Não Direto', 'Primeiro Clique']
+        if st.session_state.tablename == 'coffeemais':
+            attribution_options.append('Assinaturas')
+        
+        with st.sidebar:
+            attribution_model = st.selectbox(
+                'Modelo de Atribuição',
+                options=attribution_options,
+                key='attribution_model',
+                help='Escolha o modelo de atribuição para análise dos dados'
+            )
+            
+            # Store the last selected model to detect changes
+            if 'last_attribution_model' not in st.session_state:
+                st.session_state.last_attribution_model = attribution_model
+            elif st.session_state.last_attribution_model != attribution_model:
+                # Clear the cache key for basic data
+                cache_key = f"basic_data_{st.session_state.tablename}_{st.session_state.start_date}_{st.session_state.end_date}_{attribution_model}"
+                if 'cache_data' in st.session_state and cache_key in st.session_state.cache_data:
+                    del st.session_state.cache_data[cache_key]
+                if 'cache_timestamps' in st.session_state and cache_key in st.session_state.cache_timestamps:
+                    del st.session_state.cache_timestamps[cache_key]
+                if 'background_tasks' in st.session_state and cache_key in st.session_state.background_tasks:
+                    del st.session_state.background_tasks[cache_key]
+                st.session_state.last_attribution_model = attribution_model
+                st.rerun()
+
     with st.spinner("🔄 Carregando pendências..."):
         display_pendings()
     
