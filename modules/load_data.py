@@ -2057,3 +2057,42 @@ def load_coffeemais_cohort():
     except Exception as e:
         st.error(f"Error loading cohort data: {str(e)}")
         return pd.DataFrame()
+
+
+def load_enhanced_ecommerce_items_funnel():
+
+    tablename = st.session_state.tablename
+    project_name = get_project_name(tablename)
+
+    start_date = st.session_state.start_date
+    end_date = st.session_state.end_date
+    where_date = f"event_date >= '{st.session_state.start_date}' and event_date <= '{st.session_state.end_date}'"
+
+    query = f"""
+        select
+
+        item_id `ID do Produto`,
+        item_name `Nome do Produto`,
+        item_category `Categoria do Produto`,
+        sum(view_item) `Visualização de Item`,
+        sum(add_to_cart) `Adicionar ao Carrinho`,
+        sum(begin_checkout) `Iniciar Checkout`,
+        sum(add_shipping_info) `Adicionar Informação de Frete`,
+        sum(add_payment_info) `Adicionar Informação de Pagamento`,
+        sum(purchase) `Pedido`
+
+        from `{project_name}.dbt_aggregated.{tablename}_enhanced_ecommerce_sessions_items`
+
+        where {where_date}
+
+        group by all
+
+        
+    """
+
+    try:
+        df = client.query(query).to_dataframe()
+        return df
+    except Exception as e:
+        st.error(f"Error loading cohort data: {str(e)}")
+        return pd.DataFrame()

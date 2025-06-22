@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.load_data import load_funnel_data, load_detailed_data, load_enhanced_ecommerce_funnel, load_intraday_ecommerce_funnel
+from modules.load_data import load_funnel_data, load_detailed_data, load_enhanced_ecommerce_funnel, load_intraday_ecommerce_funnel, load_enhanced_ecommerce_items_funnel
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -851,9 +851,10 @@ def display_tab_funnel():
     st.title("Funil de Conversão")
     
     # Criar abas para diferentes análises
-    tab1, tab2 = st.tabs([
+    tab1, tab2, tab3 = st.tabs([
         "Análise Diária",
-        "Comparativo Ontem vs Hoje"
+        "Comparativo Ontem vs Hoje",
+        "Funnel de Produtos"
     ])
     
     with tab1:
@@ -861,3 +862,314 @@ def display_tab_funnel():
     
     with tab2:
         display_intraday_comparison()
+    
+    with tab3:
+        df = load_enhanced_ecommerce_items_funnel()
+        
+        # Add filters
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Get unique categories and add "Todos" option
+            categorias = ['Todos'] + sorted(df['Categoria do Produto'].unique().tolist())
+            categoria_selecionada = st.selectbox(
+                'Filtrar por Categoria',
+                categorias,
+                index=0
+            )
+        
+        with col2:
+            # Get products based on selected category
+            if categoria_selecionada == 'Todos':
+                produtos = ['Todos'] + sorted(df['Nome do Produto'].unique().tolist())
+            else:
+                produtos = ['Todos'] + sorted(df[df['Categoria do Produto'] == categoria_selecionada]['Nome do Produto'].unique().tolist())
+            
+            produto_selecionado = st.selectbox(
+                'Filtrar por Produto',
+                produtos,
+                index=0
+            )
+        
+        # Apply filters
+        if categoria_selecionada != 'Todos':
+            df = df[df['Categoria do Produto'] == categoria_selecionada]
+        if produto_selecionado != 'Todos':
+            df = df[df['Nome do Produto'] == produto_selecionado]
+        
+        # Calculate total values for the funnel with filtered data
+        total_data = {
+            'Visualização de Item': df['Visualização de Item'].sum(),
+            'Adicionar ao Carrinho': df['Adicionar ao Carrinho'].sum(),
+            'Iniciar Checkout': df['Iniciar Checkout'].sum(),
+            'Adicionar Informação de Frete': df['Adicionar Informação de Frete'].sum(),
+            'Adicionar Informação de Pagamento': df['Adicionar Informação de Pagamento'].sum(),
+            'Pedido': df['Pedido'].sum()
+        }
+
+        # Calculate conversion rates
+        total_taxas = {
+            'Taxa View Product -> Cart': (total_data['Adicionar ao Carrinho'] / total_data['Visualização de Item'] * 100).round(2),
+            'Taxa Cart -> Checkout': (total_data['Iniciar Checkout'] / total_data['Adicionar ao Carrinho'] * 100).round(2),
+            'Taxa Checkout -> Frete': (total_data['Adicionar Informação de Frete'] / total_data['Iniciar Checkout'] * 100).round(2),
+            'Taxa Frete -> Pagamento': (total_data['Adicionar Informação de Pagamento'] / total_data['Adicionar Informação de Frete'] * 100).round(2),
+            'Taxa Pagamento -> Pedido': (total_data['Pedido'] / total_data['Adicionar Informação de Pagamento'] * 100).round(2)
+        }
+
+        # Create funnel HTML
+        funnel_html = f"""
+        <style>
+            .funnel-container {{
+                width: 100%;
+                max-width: 800px;
+                margin: 0 auto 2rem auto;
+                font-family: 'DM Sans', sans-serif;
+            }}
+            .funnel-step {{
+                position: relative;
+                margin: 10px 0;
+                padding: 20px;
+                border-radius: 8px;
+                color: white;
+                transition: all 0.3s ease;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }}
+            .funnel-step:hover {{
+                transform: scale(1.02);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }}
+            .funnel-main {{
+                flex: 1;
+            }}
+            .funnel-cost {{
+                text-align: right;
+                margin-left: 20px;
+                padding-left: 20px;
+                border-left: 1px solid rgba(255, 255, 255, 0.2);
+            }}
+            .funnel-value {{
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }}
+            .funnel-label {{
+                font-size: 16px;
+                opacity: 0.9;
+            }}
+            .funnel-cost-value {{
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }}
+            .funnel-cost-label {{
+                font-size: 14px;
+                opacity: 0.9;
+            }}
+            .step-1 {{ background: linear-gradient(135deg, #1a73e8, #0d47a1); width: 100%; }}
+            .step-2 {{ background: linear-gradient(135deg, #2196f3, #1976d2); width: 90%; }}
+            .step-3 {{ background: linear-gradient(135deg, #42a5f5, #2196f3); width: 80%; }}
+            .step-4 {{ background: linear-gradient(135deg, #64b5f6, #42a5f5); width: 70%; }}
+            .step-5 {{ background: linear-gradient(135deg, #90caf9, #64b5f6); width: 60%; }}
+            .step-6 {{ background: linear-gradient(135deg, #bbdefb, #90caf9); width: 50%; }}
+        </style>
+        <div class="funnel-container">
+            <div class="funnel-step step-1">
+                <div class="funnel-main">
+                    <div class="funnel-value">{total_data['Visualização de Item']:,.0f}</div>
+                    <div class="funnel-label">Visualização de Item</div>
+                </div>
+            </div>
+            <div class="funnel-step step-2">
+                <div class="funnel-main">
+                    <div class="funnel-value">{total_data['Adicionar ao Carrinho']:,.0f}</div>
+                    <div class="funnel-label">Adicionar ao Carrinho</div>
+                </div>
+                <div class="funnel-cost">
+                    <div class="funnel-cost-value">{total_taxas['Taxa View Product -> Cart']:.2f}%</div>
+                    <div class="funnel-cost-label">Taxa de Conversão</div>
+                </div>
+            </div>
+            <div class="funnel-step step-3">
+                <div class="funnel-main">
+                    <div class="funnel-value">{total_data['Iniciar Checkout']:,.0f}</div>
+                    <div class="funnel-label">Iniciar Checkout</div>
+                </div>
+                <div class="funnel-cost">
+                    <div class="funnel-cost-value">{total_taxas['Taxa Cart -> Checkout']:.2f}%</div>
+                    <div class="funnel-cost-label">Taxa de Conversão</div>
+                </div>
+            </div>
+            <div class="funnel-step step-4">
+                <div class="funnel-main">
+                    <div class="funnel-value">{total_data['Adicionar Informação de Frete']:,.0f}</div>
+                    <div class="funnel-label">Adicionar Informação de Frete</div>
+                </div>
+                <div class="funnel-cost">
+                    <div class="funnel-cost-value">{total_taxas['Taxa Checkout -> Frete']:.2f}%</div>
+                    <div class="funnel-cost-label">Taxa de Conversão</div>
+                </div>
+            </div>
+            <div class="funnel-step step-5">
+                <div class="funnel-main">
+                    <div class="funnel-value">{total_data['Adicionar Informação de Pagamento']:,.0f}</div>
+                    <div class="funnel-label">Adicionar Informação de Pagamento</div>
+                </div>
+                <div class="funnel-cost">
+                    <div class="funnel-cost-value">{total_taxas['Taxa Frete -> Pagamento']:.2f}%</div>
+                    <div class="funnel-cost-label">Taxa de Conversão</div>
+                </div>
+            </div>
+            <div class="funnel-step step-6">
+                <div class="funnel-main">
+                    <div class="funnel-value">{total_data['Pedido']:,.0f}</div>
+                    <div class="funnel-label">Pedido</div>
+                </div>
+                <div class="funnel-cost">
+                    <div class="funnel-cost-value">{total_taxas['Taxa Pagamento -> Pedido']:.2f}%</div>
+                    <div class="funnel-cost-label">Taxa de Conversão</div>
+                </div>
+            </div>
+        </div>
+        """
+        
+        st.markdown(funnel_html, unsafe_allow_html=True)
+        
+        # First plot - Views vs Sales
+        st.markdown("### Relação entre Visualizações e Vendas")
+        
+        # Create scatter plot for views vs orders
+        fig_views = go.Figure()
+        
+        fig_views.add_trace(
+            go.Scatter(
+                x=df['Visualização de Item'],
+                y=df['Pedido'],
+                mode='markers',
+                marker=dict(
+                    size=8,
+                    color='#3B82F6',
+                    opacity=0.7
+                ),
+                text=df['Nome do Produto'],  # Add item names as hover text
+                hovertemplate="<b>%{text}</b><br>" +
+                            "Visualizações: %{x}<br>" +
+                            "Vendas: %{y}<br>" +
+                            "<extra></extra>"  # This removes the secondary box in the hover
+            )
+        )
+        
+        # Update layout for views plot
+        fig_views.update_layout(
+            xaxis_title='Número de Visualizações',
+            yaxis_title='Número de Vendas',
+            plot_bgcolor='white',
+            height=500,  # Fixed height for better visualization
+            showlegend=False
+        )
+        
+        # Add grid lines for views plot
+        fig_views.update_xaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='#f1f5f9',
+            zeroline=False
+        )
+        fig_views.update_yaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='#f1f5f9',
+            zeroline=False
+        )
+        
+        # Display the views plot
+        st.plotly_chart(fig_views, use_container_width=True)
+        
+        # Second plot - Checkout vs Sales
+        st.markdown("### Relação entre Checkout e Vendas")
+        
+        # Create scatter plot for checkout vs orders
+        fig_checkout = go.Figure()
+        
+        fig_checkout.add_trace(
+            go.Scatter(
+                x=df['Iniciar Checkout'],
+                y=df['Pedido'],
+                mode='markers',
+                marker=dict(
+                    size=8,
+                    color='#10B981',  # Different color for distinction
+                    opacity=0.7
+                ),
+                text=df['Nome do Produto'],  # Add item names as hover text
+                hovertemplate="<b>%{text}</b><br>" +
+                            "Checkouts: %{x}<br>" +
+                            "Vendas: %{y}<br>" +
+                            "<extra></extra>"
+            )
+        )
+        
+        # Update layout for checkout plot
+        fig_checkout.update_layout(
+            xaxis_title='Número de Checkouts',
+            yaxis_title='Número de Vendas',
+            plot_bgcolor='white',
+            height=500,  # Fixed height for better visualization
+            showlegend=False
+        )
+        
+        # Add grid lines for checkout plot
+        fig_checkout.update_xaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='#f1f5f9',
+            zeroline=False
+        )
+        fig_checkout.update_yaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='#f1f5f9',
+            zeroline=False
+        )
+        
+        # Display the checkout plot
+        st.plotly_chart(fig_checkout, use_container_width=True)
+        
+        # Calculate conversion rates for each product
+        df_display = df.copy()
+        df_display['Taxa Visualização -> Carrinho (%)'] = (df_display['Adicionar ao Carrinho'] / df_display['Visualização de Item'] * 100).round(2)
+        df_display['Taxa Carrinho -> Checkout (%)'] = (df_display['Iniciar Checkout'] / df_display['Adicionar ao Carrinho'] * 100).round(2)
+        df_display['Taxa Checkout -> Frete (%)'] = (df_display['Adicionar Informação de Frete'] / df_display['Iniciar Checkout'] * 100).round(2)
+        df_display['Taxa Frete -> Pagamento (%)'] = (df_display['Adicionar Informação de Pagamento'] / df_display['Adicionar Informação de Frete'] * 100).round(2)
+        df_display['Taxa Pagamento -> Pedido (%)'] = (df_display['Pedido'] / df_display['Adicionar Informação de Pagamento'] * 100).round(2)
+        df_display['Taxa Visualização -> Pedido (%)'] = (df_display['Pedido'] / df_display['Visualização de Item'] * 100).round(2)
+        
+        # Reorder columns for better visualization
+        columns_order = [
+            'ID do Produto',
+            'Nome do Produto',
+            'Categoria do Produto',
+            'Visualização de Item',
+            'Taxa Visualização -> Carrinho (%)',
+            'Adicionar ao Carrinho',
+            'Taxa Carrinho -> Checkout (%)',
+            'Iniciar Checkout',
+            'Taxa Checkout -> Frete (%)',
+            'Adicionar Informação de Frete',
+            'Taxa Frete -> Pagamento (%)',
+            'Adicionar Informação de Pagamento',
+            'Taxa Pagamento -> Pedido (%)',
+            'Pedido',
+            'Taxa Visualização -> Pedido (%)'
+        ]
+        
+        df_display = df_display[columns_order]
+        
+        # Display the data table below both plots
+        st.markdown("### Dados Detalhados")
+        st.dataframe(
+            df_display,
+            hide_index=True,
+            use_container_width=True
+        )
