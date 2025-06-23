@@ -854,7 +854,7 @@ def display_tab_funnel():
     tab1, tab2, tab3 = st.tabs([
         "Análise Diária",
         "Comparativo Ontem vs Hoje",
-        "Funnel de Produtos"
+        "Funil de Produtos"
     ])
     
     with tab1:
