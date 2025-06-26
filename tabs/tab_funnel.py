@@ -1166,10 +1166,27 @@ def display_tab_funnel():
         
         df_display = df_display[columns_order]
         
+        # Sort by sales (Pedido) in descending order
+        df_display = df_display.sort_values('Pedido', ascending=False)
+        
         # Display the data table below both plots
         st.markdown("### Dados Detalhados")
-        st.dataframe(
-            df_display,
-            hide_index=True,
-            use_container_width=True
-        )
+        
+        # Aplicar formatação usando pandas styling
+        styled_df = df_display.style.format({
+            'Visualização de Item': lambda x: f"{int(x):,}".replace(",", "."),
+            'Adicionar ao Carrinho': lambda x: f"{int(x):,}".replace(",", "."),
+            'Iniciar Checkout': lambda x: f"{int(x):,}".replace(",", "."),
+            'Adicionar Informação de Frete': lambda x: f"{int(x):,}".replace(",", "."),
+            'Adicionar Informação de Pagamento': lambda x: f"{int(x):,}".replace(",", "."),
+            'Pedido': lambda x: f"{int(x):,}".replace(",", "."),
+            'Taxa Visualização -> Carrinho (%)': lambda x: f"{float(x):.2f}%".replace(".", ","),
+            'Taxa Carrinho -> Checkout (%)': lambda x: f"{float(x):.2f}%".replace(".", ","),
+            'Taxa Checkout -> Frete (%)': lambda x: f"{float(x):.2f}%".replace(".", ","),
+            'Taxa Frete -> Pagamento (%)': lambda x: f"{float(x):.2f}%".replace(".", ","),
+            'Taxa Pagamento -> Pedido (%)': lambda x: f"{float(x):.2f}%".replace(".", ","),
+            'Taxa Visualização -> Pedido (%)': lambda x: f"{float(x):.2f}%".replace(".", ",")
+        })
+        
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+
