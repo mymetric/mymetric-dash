@@ -290,21 +290,38 @@ def load_basic_data():
     # Use get_project_name only for non-dbt_config datasets
     project_name = get_project_name(tablename)
     
-    # Base query for all cases
-    base_query = f"""
-        SELECT
-            event_date AS Data,
-            traffic_category `Cluster`,
-            SUM(CASE WHEN event_name = 'paid_media' then value else 0 end) `Investimento`,
-            SUM(CASE WHEN event_name = 'paid_media' then clicks else 0 end) `Cliques`,
-            COUNTIF(event_name = 'session') `Sessões`,
-            COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
-            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' then value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) end) `Receita`,
-            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Paga`,
-            COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN transaction_id END) `Novos Clientes`,
-            SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`"""
+    if tablename == 'endogen':
+        base_query = f"""
+            SELECT
+                event_date AS Data,
+                traffic_category `Cluster`,
+                SUM(CASE WHEN event_name = 'paid_media' then value else 0 end) `Investimento`,
+                SUM(CASE WHEN event_name = 'paid_media' then clicks else 0 end) `Cliques`,
+                COUNTIF(event_name = 'session') `Sessões`,
+                COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
+                COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
+                SUM(CASE WHEN event_name = '{attribution_model}' then value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) end) `Receita`,
+                COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
+                SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value ELSE 0 END) `Receita Paga`,
+                COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN transaction_id END) `Novos Clientes`,
+                SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`"""
+
+    else:
+        # Base query for all cases
+        base_query = f"""
+            SELECT
+                event_date AS Data,
+                traffic_category `Cluster`,
+                SUM(CASE WHEN event_name = 'paid_media' then value else 0 end) `Investimento`,
+                SUM(CASE WHEN event_name = 'paid_media' then clicks else 0 end) `Cliques`,
+                COUNTIF(event_name = 'session') `Sessões`,
+                COUNTIF(event_name = 'add_to_cart') `Adições ao Carrinho`,
+                COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' then transaction_id end) `Pedidos`,
+                SUM(CASE WHEN event_name = '{attribution_model}' then value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) end) `Receita`,
+                COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN transaction_id END) `Pedidos Pagos`,
+                SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Paga`,
+                COUNT(DISTINCT CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN transaction_id END) `Novos Clientes`,
+                SUM(CASE WHEN event_name = '{attribution_model}' and status in ('paid', 'authorized') and transaction_no = 1 THEN value - coalesce(total_discounts, 0) + coalesce(shipping_value, 0) ELSE 0 END) `Receita Novos Clientes`"""
 
     query = f"""
         {base_query}
@@ -2132,4 +2149,67 @@ def load_enhanced_ecommerce_items_funnel():
         return df
     except Exception as e:
         st.error(f"Error loading cohort data: {str(e)}")
+        return pd.DataFrame()
+
+@background_cache(ttl_hours=1)
+def load_revenue_by_traffic_category():
+    """
+    Carrega dados detalhados de receita por categoria de tráfego.
+    """
+    if toast_alerts():
+        st.toast("Carregando dados de receita por categoria...")
+
+    tablename = st.session_state.get('tablename')
+    start_date = st.session_state.get('start_date')
+    end_date = st.session_state.get('end_date')
+
+    if not tablename or not start_date or not end_date:
+        print("Erro: tablename, start_date ou end_date não estão definidos na sessão")
+        return pd.DataFrame()
+
+    try:
+        project_name = get_project_name(tablename)
+        
+        query = f"""
+        SELECT
+            traffic_category as categoria_de_trafego,
+            SUM(total_discounts) as receita_venda,
+            SUM(shipping_value) as frete,
+            SUM(current_total_additional_fees_set) as taxas_pagamento,
+            sum(total_discounts+shipping_value-current_total_additional_fees_set-value) cupom,
+            SUM(value) as receita_com_descontos
+        FROM `{project_name}.dbt_join.{tablename}_orders_sessions` a
+        WHERE
+            DATE(created_at) >= @start_date
+            AND DATE(created_at) <= @end_date
+            AND status = "paid"
+        GROUP BY traffic_category
+        ORDER BY receita_com_descontos DESC
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("start_date", "DATE", start_date),
+                bigquery.ScalarQueryParameter("end_date", "DATE", end_date),
+            ]
+        )
+        
+        print(f"Executando query de receita por categoria com datas: {start_date} a {end_date}")
+        query_job = client.query(query, job_config=job_config)
+        rows = query_job.result()
+        
+        # Converter para DataFrame
+        df = pd.DataFrame([dict(row) for row in rows])
+        
+        if not df.empty:
+            print(f"Dados de receita carregados: {len(df)} categorias")
+            return df
+        else:
+            print("Nenhum dado de receita encontrado")
+            return pd.DataFrame()
+        
+    except Exception as e:
+        print(f"Erro ao carregar dados de receita por categoria: {str(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
         return pd.DataFrame()
