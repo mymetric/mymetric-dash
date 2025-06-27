@@ -146,7 +146,7 @@ def check_password():
 
     if not st.session_state.authenticated:
         username = st.sidebar.text_input("Usuário")
-        password = st.sidebar.text_input("Senha", type="password")
+        password = st.sidebar.text_input("Senha", type="password", autocomplete="current-password")
 
         users = load_users()
         new_users = load_all_users()
