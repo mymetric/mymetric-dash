@@ -30,7 +30,8 @@ def display_tab_coffeemais_users():
         'updated_at',
         'pagbrasil_payment_date',
         'last_purchase_date',
-        'first_purchase_date'
+        'first_purchase_date',
+        'second_purchase_date'
     ]
     
     for col in date_columns:
@@ -42,8 +43,13 @@ def display_tab_coffeemais_users():
         'pagbrasil_recurrence_number',
         'last_purchase_revenue',
         'first_purchase_revenue',
+        'second_purchase_revenue',
         'total_revenue',
-        'purchase_quantity'
+        'purchase_quantity',
+        'last_total_items_distinct',
+        'last_total_items_quantity',
+        'lifetime_total_items_distinct',
+        'lifetime_total_items_quantity'
     ]
     
     for col in numeric_columns:
@@ -55,7 +61,8 @@ def display_tab_coffeemais_users():
         'pagbrasil_subscription_status',
         'pagbrasil_order_status',
         'last_purchase_cluster',
-        'first_purchase_cluster'
+        'first_purchase_cluster',
+        'second_purchase_cluster'
     ]
     
     for col in text_columns:
@@ -107,20 +114,36 @@ def display_tab_coffeemais_users():
         'first_lead_content': 'Conteúdo do Lead',
         'first_lead_term': 'Termo do Lead',
         'first_lead_page_location': 'Página do Lead',
+        
+        # Purchase metrics
+        'total_revenue': 'Total de Receita',
+        'purchase_quantity': 'Quantidade de Compras',
+        
+        # Purchase timeline
+        'first_purchase_date': 'Data da Primeira Compra',
+        'first_purchase_revenue': 'Receita da Primeira Compra',
+        'first_purchase_cluster': 'Cluster da Primeira Compra',
+        'second_purchase_date': 'Data da Segunda Compra',
+        'second_purchase_revenue': 'Receita da Segunda Compra',
+        'second_purchase_cluster': 'Cluster da Segunda Compra',
+        'last_purchase_date': 'Data da Última Compra',
+        'last_purchase_revenue': 'Receita da Última Compra',
+        'last_purchase_cluster': 'Cluster da Última Compra',
+        
+        # Item metrics
+        'last_total_items_distinct': 'Itens Distintos (Última)',
+        'last_total_items_quantity': 'Quantidade Itens (Última)',
+        'lifetime_total_items_distinct': 'Itens Distintos (Total)',
+        'lifetime_total_items_quantity': 'Quantidade Itens (Total)',
+        
+        # PagBrasil subscription info
+        'pagbrasil_subscription_id': 'ID da Assinatura',
         'pagbrasil_recurrence_id': 'ID da Recorrência',
         'pagbrasil_recurrence_number': 'Número da Recorrência',
         'pagbrasil_subscription_link': 'Link da Assinatura',
         'pagbrasil_payment_date': 'Data do Pagamento',
         'pagbrasil_subscription_status': 'Status da Assinatura',
-        'pagbrasil_order_status': 'Status do Pedido',
-        'last_purchase_date': 'Data da Última Compra',
-        'last_purchase_revenue': 'Receita da Última Compra',
-        'last_purchase_cluster': 'Cluster da Última Compra',
-        'first_purchase_date': 'Data da Primeira Compra',
-        'first_purchase_revenue': 'Receita da Primeira Compra',
-        'first_purchase_cluster': 'Cluster da Primeira Compra',
-        'total_revenue': 'Total de Receita',
-        'purchase_quantity': 'Quantidade de Compras'
+        'pagbrasil_order_status': 'Status do Pedido'
     }
 
     # Criar uma cópia do DataFrame e renomear as colunas
@@ -134,9 +157,9 @@ def display_tab_coffeemais_users():
     for old_col, new_col in column_mapping.items():
         if old_col in date_columns:
             column_config[new_col] = st.column_config.DatetimeColumn(format="DD/MM/YYYY HH:mm")
-        elif old_col in ['last_purchase_revenue', 'first_purchase_revenue', 'total_revenue']:
+        elif old_col in ['last_purchase_revenue', 'first_purchase_revenue', 'second_purchase_revenue', 'total_revenue']:
             column_config[new_col] = st.column_config.NumberColumn(format="R$ %.2f")
-        elif old_col in ['purchase_quantity', 'pagbrasil_recurrence_number']:
+        elif old_col in ['purchase_quantity', 'pagbrasil_recurrence_number', 'last_total_items_distinct', 'last_total_items_quantity', 'lifetime_total_items_distinct', 'lifetime_total_items_quantity']:
             column_config[new_col] = st.column_config.NumberColumn(format="%d")
         elif old_col == 'pagbrasil_subscription_link':
             column_config[new_col] = st.column_config.LinkColumn()

@@ -1161,22 +1161,38 @@ def load_coffeemais_users():
             email,
             name,
             phone,
+            
+            # Lead/source information
             first_lead_source,
             first_lead_medium,
             first_lead_campaign,
             first_lead_content,
             first_lead_term,
             first_lead_page_location,
-
-            last_purchase_date,
-            last_purchase_revenue,
-            last_purchase_cluster,
+            
+            # Purchase metrics
+            total_revenue,
+            purchase_quantity,
+            
+            # Purchase timeline
             first_purchase_date,
             first_purchase_revenue,
             first_purchase_cluster,
-            total_revenue,
-            purchase_quantity,
-
+            second_purchase_date,
+            second_purchase_revenue,
+            second_purchase_cluster,
+            last_purchase_date,
+            last_purchase_revenue,
+            last_purchase_cluster,
+            
+            # Item metrics
+            last_total_items_distinct,
+            last_total_items_quantity,
+            lifetime_total_items_distinct,
+            lifetime_total_items_quantity,
+            
+            # PagBrasil subscription info
+            pagbrasil_subscription_id,
             pagbrasil_recurrence_id,
             pagbrasil_recurrence_number,
             pagbrasil_subscription_link,
