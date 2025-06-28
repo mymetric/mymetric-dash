@@ -150,6 +150,255 @@ def load_yesterday_revenue(tablename):
         print(f"Erro ao carregar receita de ontem: {str(e)}")
         return pd.DataFrame()
 
+def load_yesterday_sessions(tablename):
+    """
+    Carrega o número de sessões do dia anterior, usando fallback para _sessions_intraday se necessário.
+    Retorna None se a data de ontem não existir em nenhuma das tabelas.
+    """
+    try:
+        try:
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+        client = bigquery.Client(credentials=credentials)
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        # Descobrir a data de ontem
+        from datetime import datetime, timedelta
+        ontem = (datetime.now() - timedelta(days=1)).date()
+        ontem_str = str(ontem)
+        
+        # 1. Verificar se a data de ontem existe na tabela principal
+        check_main = f"""
+        SELECT COUNT(*) as n FROM `{project_id}.dbt_granular.{tablename}_sessions` WHERE event_date = DATE('{ontem_str}')
+        """
+        res_main = list(client.query(check_main).result())
+        if res_main and res_main[0].n > 0:
+            # Buscar o count real
+            query_main = f"""
+            SELECT COUNT(*) as total_sessions
+            FROM `{project_id}.dbt_granular.{tablename}_sessions`
+            WHERE event_date = DATE('{ontem_str}')
+            """
+            rows = [dict(row) for row in client.query(query_main).result()]
+            return pd.DataFrame(rows)
+        # 2. Se não houver na principal, verificar na intraday
+        check_intraday = f"""
+        SELECT COUNT(*) as n FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday` WHERE event_date = DATE('{ontem_str}')
+        """
+        res_intraday = list(client.query(check_intraday).result())
+        if res_intraday and res_intraday[0].n > 0:
+            query_intraday = f"""
+            SELECT COUNT(*) as total_sessions
+            FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+            WHERE event_date = DATE('{ontem_str}')
+            """
+            rows2 = [dict(row) for row in client.query(query_intraday).result()]
+            return pd.DataFrame(rows2)
+        # 3. Se a data não existe em nenhuma, retorna None
+        return None
+    except Exception as e:
+        print(f"Erro ao carregar sessões de ontem: {str(e)}")
+        return None
+
+def load_day_before_yesterday_revenue(tablename):
+    """
+    Carrega a receita de anteontem.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        # Ajusta a query baseado na tabela
+        if tablename == 'wtennis':
+            query = f"""
+            WITH filtered_events AS (
+                SELECT 
+                    value,
+                    total_discounts
+                FROM `{project_id}.dbt_join.{tablename}_events_long`
+                WHERE event_date = date_sub(current_date(), interval 2 day)
+                AND event_name = 'purchase'
+                AND status in ('paid', 'authorized')
+            )
+            SELECT COALESCE(SUM(value - COALESCE(total_discounts, 0)), 0) as total_anteontem
+            FROM filtered_events
+            """
+        else:
+            query = f"""
+            SELECT COALESCE(SUM(CASE 
+                WHEN event_name = 'purchase' and status in ('paid', 'authorized') 
+                THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
+                ELSE 0 
+            END), 0) as total_anteontem
+            FROM `{project_id}.dbt_join.{tablename}_events_long`
+            WHERE event_date = date_sub(current_date(), interval 2 day)
+            """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao carregar receita de anteontem: {str(e)}")
+        return pd.DataFrame()
+
+def load_day_before_yesterday_sessions(tablename):
+    """
+    Carrega o número de sessões de anteontem, usando fallback para _sessions_intraday se necessário.
+    Retorna None se a data de anteontem não existir em nenhuma das tabelas.
+    """
+    try:
+        try:
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+        client = bigquery.Client(credentials=credentials)
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        from datetime import datetime, timedelta
+        anteontem = (datetime.now() - timedelta(days=2)).date()
+        anteontem_str = str(anteontem)
+        
+        check_main = f"""
+        SELECT COUNT(*) as n FROM `{project_id}.dbt_granular.{tablename}_sessions` WHERE event_date = DATE('{anteontem_str}')
+        """
+        res_main = list(client.query(check_main).result())
+        if res_main and res_main[0].n > 0:
+            query_main = f"""
+            SELECT COUNT(*) as total_sessions
+            FROM `{project_id}.dbt_granular.{tablename}_sessions`
+            WHERE event_date = DATE('{anteontem_str}')
+            """
+            rows = [dict(row) for row in client.query(query_main).result()]
+            return pd.DataFrame(rows)
+        check_intraday = f"""
+        SELECT COUNT(*) as n FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday` WHERE event_date = DATE('{anteontem_str}')
+        """
+        res_intraday = list(client.query(check_intraday).result())
+        if res_intraday and res_intraday[0].n > 0:
+            query_intraday = f"""
+            SELECT COUNT(*) as total_sessions
+            FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+            WHERE event_date = DATE('{anteontem_str}')
+            """
+            rows2 = [dict(row) for row in client.query(query_intraday).result()]
+            return pd.DataFrame(rows2)
+        return None
+    except Exception as e:
+        print(f"Erro ao carregar sessões de anteontem: {str(e)}")
+        return None
+
+def load_funnel_comparison(tablename):
+    """
+    Carrega as taxas de funil de ontem vs anteontem.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        query = f"""
+        SELECT
+            event_date,
+            event_name,
+            COUNT(*) as events
+        FROM `{project_id}.dbt_granular.{tablename}_enhanced_ecommerce_only_intraday`
+        WHERE event_name IN ('view_item', 'add_to_cart', 'begin_checkout', 'add_shipping_info', 'add_payment_info', 'purchase')
+        AND event_date IN (date_sub(current_date(), interval 1 day), date_sub(current_date(), interval 2 day))
+        GROUP BY event_date, event_name
+        ORDER BY event_date, event_name
+        """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        df = pd.DataFrame(rows)
+        
+        if df.empty:
+            return pd.DataFrame()
+        
+        # Separar dados de ontem e anteontem
+        ontem = (pd.Timestamp.now(tz='America/Sao_Paulo') - pd.Timedelta(days=1)).date()
+        anteontem = (pd.Timestamp.now(tz='America/Sao_Paulo') - pd.Timedelta(days=2)).date()
+        
+        df_ontem = df[df['event_date'] == ontem]
+        df_anteontem = df[df['event_date'] == anteontem]
+        
+        # Calcular totais por evento
+        totais_ontem = df_ontem.groupby('event_name')['events'].sum()
+        totais_anteontem = df_anteontem.groupby('event_name')['events'].sum()
+        
+        # Calcular taxas de conversão
+        taxas_ontem = {
+            'Visualização → Carrinho': round(totais_ontem.get('add_to_cart', 0) / totais_ontem.get('view_item', 1) * 100, 2),
+            'Carrinho → Checkout': round(totais_ontem.get('begin_checkout', 0) / totais_ontem.get('add_to_cart', 1) * 100, 2),
+            'Checkout → Frete': round(totais_ontem.get('add_shipping_info', 0) / totais_ontem.get('begin_checkout', 1) * 100, 2),
+            'Frete → Pagamento': round(totais_ontem.get('add_payment_info', 0) / totais_ontem.get('add_shipping_info', 1) * 100, 2),
+            'Pagamento → Pedido': round(totais_ontem.get('purchase', 0) / totais_ontem.get('add_payment_info', 1) * 100, 2),
+            'Visualização → Pedido': round(totais_ontem.get('purchase', 0) / totais_ontem.get('view_item', 1) * 100, 2)
+        }
+        
+        taxas_anteontem = {
+            'Visualização → Carrinho': round(totais_anteontem.get('add_to_cart', 0) / totais_anteontem.get('view_item', 1) * 100, 2),
+            'Carrinho → Checkout': round(totais_anteontem.get('begin_checkout', 0) / totais_anteontem.get('add_to_cart', 1) * 100, 2),
+            'Checkout → Frete': round(totais_anteontem.get('add_shipping_info', 0) / totais_anteontem.get('begin_checkout', 1) * 100, 2),
+            'Frete → Pagamento': round(totais_anteontem.get('add_payment_info', 0) / totais_anteontem.get('add_shipping_info', 1) * 100, 2),
+            'Pagamento → Pedido': round(totais_anteontem.get('purchase', 0) / totais_anteontem.get('add_payment_info', 1) * 100, 2),
+            'Visualização → Pedido': round(totais_anteontem.get('purchase', 0) / totais_anteontem.get('view_item', 1) * 100, 2)
+        }
+        
+        # Criar DataFrame de comparação
+        df_comparison = pd.DataFrame({
+            'Etapa': list(taxas_ontem.keys()),
+            'Ontem (%)': list(taxas_ontem.values()),
+            'Anteontem (%)': list(taxas_anteontem.values())
+        })
+        
+        # Calcular variação percentual
+        df_comparison['Variação (%)'] = ((df_comparison['Ontem (%)'] - df_comparison['Anteontem (%)']) / df_comparison['Anteontem (%)'] * 100).round(2)
+        
+        return df_comparison
+        
+    except Exception as e:
+        print(f"Erro ao carregar comparação de funil: {str(e)}")
+        return pd.DataFrame()
+
 def load_duplicate_sessions(tablename):
     """
     Carrega o percentual de sessões duplicadas.
@@ -182,7 +431,7 @@ def load_duplicate_sessions(tablename):
                     PARTITION BY user_pseudo_id
                     ORDER BY ga_session_id
                 ) AS previous_ga_session_id
-            FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+            FROM `{project_id}.dbt_granular.{tablename}_sessions`
         )
         select
             round(
@@ -260,7 +509,7 @@ def load_utm_metrics(tablename):
             )
         except:
             # Se falhar, tenta usar as credenciais do ambiente
-            credentials = service_account.Credentials.from_service_file(
+            credentials = service_account.Credentials.from_service_account_file(
                 os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
             )
             
@@ -273,7 +522,7 @@ def load_utm_metrics(tablename):
         SELECT
             sum(case when page_params like "%utm%" then 1 else 0 end)/count(*) as with_utm,
             sum(case when page_params like "%mm_ads%" then 1 else 0 end)/count(*) as with_mm_ads
-        FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+        FROM `{project_id}.dbt_granular.{tablename}_sessions`
         WHERE page_params like "%fbclid%"
         """
 
@@ -374,6 +623,53 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         vendas_ontem = float(df_yesterday['total_ontem'].iloc[0]) if not df_yesterday.empty else 0
         print(f"Vendas de ontem: {vendas_ontem}")
 
+        # Carregar sessões de ontem
+        print("Carregando sessões de ontem...")
+        df_yesterday_sessions = load_yesterday_sessions(tablename)
+        print(f"DataFrame de sessões de ontem: {df_yesterday_sessions}")
+        if df_yesterday_sessions is None:
+            sessoes_ontem = None
+        else:
+            sessoes_ontem = int(df_yesterday_sessions['total_sessions'].iloc[0]) if not df_yesterday_sessions.empty else 0
+        print(f"Sessões de ontem: {sessoes_ontem}")
+
+        # Carregar vendas de anteontem
+        print("Carregando vendas de anteontem...")
+        df_anteontem = load_day_before_yesterday_revenue(tablename)
+        print(f"DataFrame de vendas de anteontem: {df_anteontem}")
+        vendas_anteontem = float(df_anteontem['total_anteontem'].iloc[0]) if not df_anteontem.empty else 0
+        print(f"Vendas de anteontem: {vendas_anteontem}")
+
+        # Carregar sessões de anteontem
+        print("Carregando sessões de anteontem...")
+        df_anteontem_sessions = load_day_before_yesterday_sessions(tablename)
+        print(f"DataFrame de sessões de anteontem: {df_anteontem_sessions}")
+        if df_anteontem_sessions is None:
+            sessoes_anteontem = None
+        else:
+            sessoes_anteontem = int(df_anteontem_sessions['total_sessions'].iloc[0]) if not df_anteontem_sessions.empty else 0
+        print(f"Sessões de anteontem: {sessoes_anteontem}")
+
+        # Verificar alertas de vendas e sessões zeradas
+        aviso_vendas_zeradas = vendas_ontem == 0
+        aviso_sessoes_zeradas = (sessoes_ontem == 0) if sessoes_ontem is not None else False
+
+        # Carregar comparação de taxas de funil
+        print("Carregando comparação de taxas de funil...")
+        df_funnel = load_funnel_comparison(tablename)
+        print(f"DataFrame de comparação de funil: {df_funnel}")
+
+        # Verificar métricas zeradas do funil
+        aviso_funil_zerado = False
+        etapas_zeradas = []
+        if not df_funnel.empty:
+            for _, row in df_funnel.iterrows():
+                etapa = row['Etapa']
+                taxa_ontem = row['Ontem (%)']
+                if taxa_ontem == 0:
+                    aviso_funil_zerado = True
+                    etapas_zeradas.append(etapa)
+
         # Carregar metas
         print("Carregando metas...")
         df_goals = load_goals(tablename)
@@ -382,12 +678,47 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         if df_goals.empty or 'goals' not in df_goals.columns or df_goals['goals'].isna().all():
             print(f"❌ DataFrame de metas vazio ou coluna ausente para {tablename}")
             msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            
+            # Adicionar alertas de vendas e sessões zeradas
+            if aviso_vendas_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Vendas Zeradas*\n💰 Vendas de ontem: R$ 0,00"
+            if sessoes_ontem is None:
+                msg += f"\n\n🚨 *ALERTA: Sessões*\n📊 Sessões de ontem: Dados não disponíveis"
+            elif aviso_sessoes_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Sessões Zeradas*\n📊 Sessões de ontem: 0"
+            
+            # Adicionar alerta de funil zerado
+            if aviso_funil_zerado:
+                msg += f"\n\n🚨 *ALERTA: Funil Zerado*"
+                for etapa in etapas_zeradas:
+                    msg += f"\n- {etapa}"
+            
             if aviso_duplicadas:
                 msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
                 msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
             if vendas_ontem > 0:
                 msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            
+            # Adicionar comparação de taxas de funil se disponível
+            if not df_funnel.empty:
+                message += "\n\n🔄 Taxas de Funil (Ontem vs Anteontem)"
+                for _, row in df_funnel.iterrows():
+                    etapa = row['Etapa']
+                    taxa_ontem = row['Ontem (%)']
+                    taxa_anteontem = row['Anteontem (%)']
+                    variacao = row['Variação (%)']
+                    
+                    # Adicionar emoji se variação > 10%
+                    emoji = ""
+                    if abs(variacao) > 10:
+                        if variacao > 0:
+                            emoji = "🟢 "
+                        else:
+                            emoji = "🔴 "
+                    
+                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+            
             send_whatsapp_message(msg, phone)
             return
 
@@ -398,12 +729,47 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         if not goals_json:
             print(f"❌ JSON de metas vazio para {tablename}")
             msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            
+            # Adicionar alertas de vendas e sessões zeradas
+            if aviso_vendas_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Vendas Zeradas*\n💰 Vendas de ontem: R$ 0,00"
+            if sessoes_ontem is None:
+                msg += f"\n\n🚨 *ALERTA: Sessões*\n📊 Sessões de ontem: Dados não disponíveis"
+            elif aviso_sessoes_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Sessões Zeradas*\n📊 Sessões de ontem: 0"
+            
+            # Adicionar alerta de funil zerado
+            if aviso_funil_zerado:
+                msg += f"\n\n🚨 *ALERTA: Funil Zerado*"
+                for etapa in etapas_zeradas:
+                    msg += f"\n- {etapa}"
+            
             if aviso_duplicadas:
                 msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
                 msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
             if vendas_ontem > 0:
                 msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            
+            # Adicionar comparação de taxas de funil se disponível
+            if not df_funnel.empty:
+                message += "\n\n🔄 Taxas de Funil (Ontem vs Anteontem)"
+                for _, row in df_funnel.iterrows():
+                    etapa = row['Etapa']
+                    taxa_ontem = row['Ontem (%)']
+                    taxa_anteontem = row['Anteontem (%)']
+                    variacao = row['Variação (%)']
+                    
+                    # Adicionar emoji se variação > 10%
+                    emoji = ""
+                    if abs(variacao) > 10:
+                        if variacao > 0:
+                            emoji = "🟢 "
+                        else:
+                            emoji = "🔴 "
+                    
+                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+            
             send_whatsapp_message(msg, phone)
             return
 
@@ -419,12 +785,47 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         if meta_receita == 0:
             print(f"❌ Meta de receita é zero para {tablename}")
             msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            
+            # Adicionar alertas de vendas e sessões zeradas
+            if aviso_vendas_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Vendas Zeradas*\n💰 Vendas de ontem: R$ 0,00"
+            if sessoes_ontem is None:
+                msg += f"\n\n🚨 *ALERTA: Sessões*\n📊 Sessões de ontem: Dados não disponíveis"
+            elif aviso_sessoes_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Sessões Zeradas*\n📊 Sessões de ontem: 0"
+            
+            # Adicionar alerta de funil zerado
+            if aviso_funil_zerado:
+                msg += f"\n\n🚨 *ALERTA: Funil Zerado*\n"
+                for etapa in etapas_zeradas:
+                    msg += f"\n- {etapa}"
+            
             if aviso_duplicadas:
                 msg += f"\n\n🔄 *Qualidade dos Dados*\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
                 msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
             if vendas_ontem > 0:
                 msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+            
+            # Adicionar comparação de taxas de funil se disponível
+            if not df_funnel.empty:
+                message += "\n\n🔄 Taxas de Funil (Ontem vs Anteontem)"
+                for _, row in df_funnel.iterrows():
+                    etapa = row['Etapa']
+                    taxa_ontem = row['Ontem (%)']
+                    taxa_anteontem = row['Anteontem (%)']
+                    variacao = row['Variação (%)']
+                    
+                    # Adicionar emoji se variação > 10%
+                    emoji = ""
+                    if abs(variacao) > 10:
+                        if variacao > 0:
+                            emoji = "🟢 "
+                        else:
+                            emoji = "🔴 "
+                    
+                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+            
             send_whatsapp_message(msg, phone)
             return
 
@@ -465,8 +866,77 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
 - Projeção final: R$ {projecao_final:,.2f}
 - Percentual projetado: {percentual_projetado:.1f}%
 """
+        
+        # Adicionar alertas de vendas e sessões zeradas
+        if aviso_vendas_zeradas:
+            message += f"\n\n🚨 *ALERTA: Vendas Zeradas*\n💰 Vendas de ontem: R$ 0,00"
+        if sessoes_ontem is None:
+            message += f"\n\n🚨 *ALERTA: Sessões*\n📊 Sessões de ontem: Dados não disponíveis"
+        elif aviso_sessoes_zeradas:
+            message += f"\n\n🚨 *ALERTA: Sessões Zeradas*\n📊 Sessões de ontem: 0"
+        
+        # Adicionar alerta de funil zerado
+        if aviso_funil_zerado:
+            message += f"\n\n🚨 *ALERTA: Funil Zerado*\n"
+            for etapa in etapas_zeradas:
+                message += f"\n- {etapa}"
+        
         if vendas_ontem > 0:
-            message += f"\n\n💰 Vendas de Ontem\n- Total: R$ {vendas_ontem:,.2f}"
+            # Calcular variação de vendas
+            variacao_vendas = ((vendas_ontem - vendas_anteontem) / vendas_anteontem * 100) if vendas_anteontem > 0 else 0
+            emoji_vendas = ""
+            if abs(variacao_vendas) > 10:
+                if variacao_vendas > 0:
+                    emoji_vendas = " 🟢"
+                else:
+                    emoji_vendas = " 🔴"
+            
+            message += f"\n\n💰 *Vendas de Ontem*\n- Total: R$ {vendas_ontem:,.2f}"
+            if vendas_anteontem > 0:
+                message += f"\n- Variação vs anteontem: {variacao_vendas:+.1f}%{emoji_vendas}"
+            else:
+                message += f"\n- Anteontem: Sem dados disponíveis"
+        
+        if sessoes_ontem is not None and sessoes_ontem > 0:
+            # Calcular variação de sessões
+            if sessoes_anteontem is not None and sessoes_anteontem > 0:
+                variacao_sessoes = ((sessoes_ontem - sessoes_anteontem) / sessoes_anteontem * 100)
+                emoji_sessoes = ""
+                if abs(variacao_sessoes) > 10:
+                    if variacao_sessoes > 0:
+                        emoji_sessoes = " 🟢"
+                    else:
+                        emoji_sessoes = " 🔴"
+                message += f"\n\n📊 Sessões de Ontem\n- Total: {sessoes_ontem:,}"
+                message += f"\n- Variação vs anteontem: {variacao_sessoes:+.1f}%{emoji_sessoes}"
+            else:
+                message += f"\n\n📊 Sessões de Ontem\n- Total: {sessoes_ontem:,}"
+                message += f"\n- Anteontem: Dados não disponíveis"
+        elif sessoes_ontem is not None and sessoes_ontem == 0:
+            message += f"\n\n📊 Sessões de Ontem\n- Total: 0"
+            if sessoes_anteontem is not None and sessoes_anteontem > 0:
+                message += f"\n- Variação vs anteontem: -100% 🔴"
+            elif sessoes_anteontem is None:
+                message += f"\n- Anteontem: Dados não disponíveis"
+
+        # Adicionar comparação de taxas de funil se disponível
+        if not df_funnel.empty:
+            message += "\n\n🔄 Taxas de Funil (Ontem vs Anteontem)"
+            for _, row in df_funnel.iterrows():
+                etapa = row['Etapa']
+                taxa_ontem = row['Ontem (%)']
+                taxa_anteontem = row['Anteontem (%)']
+                variacao = row['Variação (%)']
+                
+                # Adicionar emoji se variação > 10%
+                emoji = ""
+                if abs(variacao) > 10:
+                    if variacao > 0:
+                        emoji = " 🟢"
+                    else:
+                        emoji = " 🔴"
+                
+                message += f"\n- {etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%){emoji}"
 
         if aviso_duplicadas or aviso_cookies:
             message += "\n\n🔄 Qualidade dos Dados"
@@ -491,6 +961,15 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         # Mesmo em caso de erro, tenta enviar o aviso de sessões duplicadas e cookies
         try:
             msg = f"*{tablename.upper()}*\n\n❌ *Erro ao verificar meta*\n{str(e)}"
+            
+            # Adicionar alertas de vendas e sessões zeradas
+            if aviso_vendas_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Vendas Zeradas*\n💰 Vendas de ontem: R$ 0,00"
+            if sessoes_ontem is None:
+                msg += f"\n\n🚨 *ALERTA: Sessões*\n📊 Sessões de ontem: Dados não disponíveis"
+            elif aviso_sessoes_zeradas:
+                msg += f"\n\n🚨 *ALERTA: Sessões Zeradas*\n📊 Sessões de ontem: 0"
+            
             if vendas_ontem > 0:
                 msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
             if aviso_duplicadas or aviso_cookies:
@@ -499,6 +978,26 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                     msg += f"\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
                 if aviso_cookies:
                     msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+            
+            # Adicionar comparação de taxas de funil se disponível
+            if not df_funnel.empty:
+                msg += "\n\n🔄 *Taxas de Funil (Ontem vs Anteontem)*"
+                for _, row in df_funnel.iterrows():
+                    etapa = row['Etapa']
+                    taxa_ontem = row['Ontem (%)']
+                    taxa_anteontem = row['Anteontem (%)']
+                    variacao = row['Variação (%)']
+                    
+                    # Adicionar emoji se variação > 10%
+                    emoji = ""
+                    if abs(variacao) > 10:
+                        if variacao > 0:
+                            emoji = "🟢 "
+                        else:
+                            emoji = "🔴 "
+                    
+                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+            
             send_whatsapp_message(msg, phone)
         except:
             send_whatsapp_message(f"*{tablename.upper()}*\n\n❌ *Erro ao verificar meta*\n{str(e)}", phone)
