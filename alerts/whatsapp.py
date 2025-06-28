@@ -717,7 +717,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                         else:
                             emoji = "🔴 "
                     
-                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+                    msg += f"\n- {etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%){emoji}"
             
             send_whatsapp_message(msg, phone)
             return
@@ -768,7 +768,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                         else:
                             emoji = "🔴 "
                     
-                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+                    msg += f"\n- {etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%){emoji}"
             
             send_whatsapp_message(msg, phone)
             return
@@ -824,7 +824,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                         else:
                             emoji = "🔴 "
                     
-                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+                    msg += f"\n- {etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%){emoji}"
             
             send_whatsapp_message(msg, phone)
             return
@@ -957,10 +957,10 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         send_whatsapp_message(message, phone)
 
     except Exception as e:
-        print(f"❌ Erro ao verificar meta para {tablename}: {str(e)}")
+        print(f"❌ Erro ao verificar meta")
         # Mesmo em caso de erro, tenta enviar o aviso de sessões duplicadas e cookies
         try:
-            msg = f"*{tablename.upper()}*\n\n❌ *Erro ao verificar meta*\n{str(e)}"
+            msg = f"*{tablename.upper()}*\n\n❌ *Meta não cadastrada*\nAcesse o MyMetricHUB em Configurações > Metas e cadastre a meta do mês"
             
             # Adicionar alertas de vendas e sessões zeradas
             if aviso_vendas_zeradas:
@@ -996,7 +996,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                         else:
                             emoji = "🔴 "
                     
-                    message += f"\n- {emoji}{etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%)"
+                    msg += f"\n- {etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%){emoji}"
             
             send_whatsapp_message(msg, phone)
         except:
