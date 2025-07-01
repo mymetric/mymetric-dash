@@ -564,6 +564,70 @@ def send_whatsapp_message(message, phone):
     except Exception as e:
         print(f"❌ Erro ao enviar mensagem para {phone}: {str(e)}")
 
+def load_previous_month_revenue(tablename):
+    """
+    Carrega a receita do mês anterior para uma tabela específica.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        credentials = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"]
+        )
+        client = bigquery.Client(credentials=credentials)
+
+        hoje = pd.Timestamp.now(tz='America/Sao_Paulo')
+        
+        # Calcular primeiro e último dia do mês anterior
+        if hoje.month == 1:
+            # Janeiro - mês anterior é dezembro do ano anterior
+            mes_anterior = hoje.replace(year=hoje.year-1, month=12)
+        else:
+            # Outros meses
+            mes_anterior = hoje.replace(month=hoje.month-1)
+        
+        primeiro_dia_mes_anterior = mes_anterior.replace(day=1)
+        ultimo_dia_mes_anterior = mes_anterior.replace(day=calendar.monthrange(mes_anterior.year, mes_anterior.month)[1])
+        
+        primeiro_dia = primeiro_dia_mes_anterior.strftime('%Y-%m-%d')
+        ultimo_dia = ultimo_dia_mes_anterior.strftime('%Y-%m-%d')
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        # Ajusta a query baseado na tabela
+        if tablename == 'wtennis':
+            query = f"""
+            WITH filtered_events AS (
+                SELECT 
+                    value,
+                    total_discounts
+                FROM `{project_id}.dbt_join.{tablename}_events_long`
+                WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
+                AND event_name = 'purchase'
+                AND status in ('paid', 'authorized')
+            )
+            SELECT SUM(value - COALESCE(total_discounts, 0)) as total_mes_anterior
+            FROM filtered_events
+            """
+        else:
+            query = f"""
+            SELECT SUM(CASE 
+                WHEN event_name = 'purchase' and status in ('paid', 'authorized') 
+                THEN value - COALESCE(total_discounts, 0) + COALESCE(shipping_value, 0)
+                ELSE 0 
+            END) as total_mes_anterior
+            FROM `{project_id}.dbt_join.{tablename}_events_long`
+            WHERE event_date BETWEEN '{primeiro_dia}' AND '{ultimo_dia}'
+            """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao carregar receita do mês anterior: {str(e)}")
+        return pd.DataFrame()
+
 def send_goal_alert(tablename, phone, testing_mode=False):
     """
     Envia um alerta com o status da meta do mês via WhatsApp.
@@ -585,7 +649,18 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
             send_whatsapp_message(message, phone)
             return
 
+        # Verificar se é dia 1 do mês
+        hoje = datetime.now()
+        is_primeiro_dia = hoje.day == 1
+        
         print(f"\nVerificando meta para {tablename}...")
+        print(f"📅 Data atual: {hoje.strftime('%d/%m/%Y')}")
+        print(f"🎯 É dia 1? {'Sim' if is_primeiro_dia else 'Não'}")
+        
+        if is_primeiro_dia:
+            print("🎉 É dia 1! Enviando mensagem especial de comemoração do mês anterior...")
+        else:
+            print("📊 Não é dia 1. Enviando mensagem normal...")
         
         # Carregar métricas de UTM
         print("Carregando métricas de UTM...")
@@ -675,9 +750,41 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         df_goals = load_goals(tablename)
         print(f"DataFrame de metas: {df_goals}")
         
+        # Se for dia 1, carregar dados do mês anterior para comemoração
+        if is_primeiro_dia:
+            print("Carregando dados do mês anterior para comemoração...")
+            df_previous_month = load_previous_month_revenue(tablename)
+            print(f"DataFrame do mês anterior: {df_previous_month}")
+            receita_mes_anterior = float(df_previous_month['total_mes_anterior'].iloc[0]) if not df_previous_month.empty else 0
+            print(f"Receita do mês anterior: {receita_mes_anterior}")
+            
+            # Calcular mês anterior para buscar a meta
+            if hoje.month == 1:
+                mes_anterior = hoje.replace(year=hoje.year-1, month=12)
+            else:
+                mes_anterior = hoje.replace(month=hoje.month-1)
+            
+            mes_anterior_str = mes_anterior.strftime("%Y-%m")
+            print(f"Mês anterior: {mes_anterior_str}")
+        
         if df_goals.empty or 'goals' not in df_goals.columns or df_goals['goals'].isna().all():
             print(f"❌ DataFrame de metas vazio ou coluna ausente para {tablename}")
-            msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            
+            # Se for dia 1, enviar mensagem especial mesmo sem meta
+            if is_primeiro_dia:
+                msg = f"""
+*{tablename.upper()}*
+
+🎉 *Fechamento do Mês Anterior*
+
+📊 *Resultado do Mês Anterior*
+💰 Receita total: R$ {receita_mes_anterior:,.2f}
+
+❌ *Meta não cadastrada*
+📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas para acompanhar o progresso mensal.
+"""
+            else:
+                msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
             
             # Adicionar alertas de vendas e sessões zeradas
             if aviso_vendas_zeradas:
@@ -728,7 +835,22 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         
         if not goals_json:
             print(f"❌ JSON de metas vazio para {tablename}")
-            msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            
+            # Se for dia 1, enviar mensagem especial mesmo sem meta
+            if is_primeiro_dia:
+                msg = f"""
+*{tablename.upper()}*
+
+🎉 *Fechamento do Mês Anterior*
+
+📊 *Resultado do Mês Anterior*
+💰 Receita total: R$ {receita_mes_anterior:,.2f}
+
+❌ *Meta não cadastrada*
+📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas para acompanhar o progresso mensal.
+"""
+            else:
+                msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
             
             # Adicionar alertas de vendas e sessões zeradas
             if aviso_vendas_zeradas:
@@ -781,10 +903,72 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         
         meta_receita = metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
         print(f"Meta de receita: {meta_receita}")
+        
+        # Se for dia 1, buscar meta do mês anterior para comparação
+        if is_primeiro_dia:
+            meta_mes_anterior = metas.get('metas_mensais', {}).get(mes_anterior_str, {}).get('meta_receita_paga', 0)
+            print(f"Meta do mês anterior: {meta_mes_anterior}")
+            
+            # Calcular percentual atingido do mês anterior
+            percentual_atingido_mes_anterior = (receita_mes_anterior / meta_mes_anterior * 100) if meta_mes_anterior > 0 else 0
+            print(f"Percentual atingido do mês anterior: {percentual_atingido_mes_anterior:.1f}%")
 
         if meta_receita == 0:
             print(f"❌ Meta de receita é zero para {tablename}")
-            msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
+            
+            # Se for dia 1, enviar mensagem especial de comemoração
+            if is_primeiro_dia:
+                # Determinar emoji e mensagem baseado no percentual atingido
+                if meta_mes_anterior > 0:
+                    if percentual_atingido_mes_anterior >= 100:
+                        emoji_status = "🎉"
+                        status_msg = "META ATINGIDA!"
+                        emoji_extra = "🏆"
+                    elif percentual_atingido_mes_anterior >= 80:
+                        emoji_status = "🎯"
+                        status_msg = "QUASE LÁ!"
+                        emoji_extra = "💪"
+                    elif percentual_atingido_mes_anterior >= 60:
+                        emoji_status = "📈"
+                        status_msg = "BOM TRABALHO!"
+                        emoji_extra = "👍"
+                    else:
+                        emoji_status = "📊"
+                        status_msg = "PRECISA MELHORAR"
+                        emoji_extra = "💡"
+                else:
+                    emoji_status = "📊"
+                    status_msg = "RESULTADO DO MÊS"
+                    emoji_extra = "📈"
+                
+                msg = f"""
+*{tablename.upper()}*
+
+{emoji_status} *Fechamento do Mês Anterior*
+
+📊 *Resultado do Mês Anterior*
+💰 Receita total: R$ {receita_mes_anterior:,.2f}
+"""
+                
+                if meta_mes_anterior > 0:
+                    msg += f"""
+🎯 *Meta do Mês Anterior*
+💰 Meta: R$ {meta_mes_anterior:,.2f}
+📊 Atingido: {percentual_atingido_mes_anterior:.1f}%
+
+{emoji_extra} *{status_msg}*
+"""
+                else:
+                    msg += f"""
+{emoji_extra} *{status_msg}*
+"""
+                
+                msg += f"""
+❌ *Meta do Mês Atual não cadastrada*
+📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas para acompanhar o progresso mensal.
+"""
+            else:
+                msg = f"*{tablename.upper()}*\n\n❌ *Meta do mês não cadastrada*\n\n📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas"
             
             # Adicionar alertas de vendas e sessões zeradas
             if aviso_vendas_zeradas:
@@ -853,7 +1037,66 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         percentual_projetado = (projecao_final / meta_receita * 100) if meta_receita > 0 else 0
 
         # Criar mensagem
-        message = f"""
+        if is_primeiro_dia:
+            # Determinar emoji e mensagem baseado no percentual atingido do mês anterior
+            if meta_mes_anterior > 0:
+                if percentual_atingido_mes_anterior >= 100:
+                    emoji_status = "🎉"
+                    status_msg = "META ATINGIDA!"
+                    emoji_extra = "🏆"
+                elif percentual_atingido_mes_anterior >= 80:
+                    emoji_status = "🎯"
+                    status_msg = "QUASE LÁ!"
+                    emoji_extra = "💪"
+                elif percentual_atingido_mes_anterior >= 60:
+                    emoji_status = "📈"
+                    status_msg = "BOM TRABALHO!"
+                    emoji_extra = "👍"
+                else:
+                    emoji_status = "📊"
+                    status_msg = "PRECISA MELHORAR"
+                    emoji_extra = "💡"
+            else:
+                emoji_status = "📊"
+                status_msg = "RESULTADO DO MÊS"
+                emoji_extra = "📈"
+            
+            message = f"""
+*{tablename.upper()}*
+
+{emoji_status} *Fechamento do Mês Anterior*
+
+📊 *Resultado do Mês Anterior*
+💰 Receita total: R$ {receita_mes_anterior:,.2f}
+"""
+            
+            if meta_mes_anterior > 0:
+                message += f"""
+🎯 *Meta do Mês Anterior*
+💰 Meta: R$ {meta_mes_anterior:,.2f}
+📊 Atingido: {percentual_atingido_mes_anterior:.1f}%
+
+{emoji_extra} *{status_msg}*
+"""
+            else:
+                message += f"""
+{emoji_extra} *{status_msg}*
+"""
+            
+            message += f"""
+
+📊 *Status da Meta do Mês Atual*
+
+- Meta do mês: R$ {meta_receita:,.2f}
+- Receita atual: R$ {total_receita_mes:,.2f}
+- Percentual atingido: {percentual_atingido:.1f}%
+- Média diária (até ontem): R$ {media_diaria:,.2f}
+- Dias passados: {dias_passados} de {ultimo_dia}
+- Projeção final: R$ {projecao_final:,.2f}
+- Percentual projetado: {percentual_projetado:.1f}%
+"""
+        else:
+            message = f"""
 *{tablename.upper()}*
 
 📊 Status da Meta
@@ -960,7 +1203,60 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         print(f"❌ Erro ao verificar meta")
         # Mesmo em caso de erro, tenta enviar o aviso de sessões duplicadas e cookies
         try:
-            msg = f"*{tablename.upper()}*\n\n❌ *Meta não cadastrada*\nAcesse o MyMetricHUB em Configurações > Metas e cadastre a meta do mês"
+            # Se for dia 1, incluir comemoração do mês anterior mesmo em caso de erro
+            if is_primeiro_dia and 'receita_mes_anterior' in locals() and 'meta_mes_anterior' in locals() and 'percentual_atingido_mes_anterior' in locals():
+                # Determinar emoji e mensagem baseado no percentual atingido
+                if meta_mes_anterior > 0:
+                    if percentual_atingido_mes_anterior >= 100:
+                        emoji_status = "🎉"
+                        status_msg = "META ATINGIDA!"
+                        emoji_extra = "🏆"
+                    elif percentual_atingido_mes_anterior >= 80:
+                        emoji_status = "🎯"
+                        status_msg = "QUASE LÁ!"
+                        emoji_extra = "💪"
+                    elif percentual_atingido_mes_anterior >= 60:
+                        emoji_status = "📈"
+                        status_msg = "BOM TRABALHO!"
+                        emoji_extra = "👍"
+                    else:
+                        emoji_status = "📊"
+                        status_msg = "PRECISA MELHORAR"
+                        emoji_extra = "💡"
+                else:
+                    emoji_status = "📊"
+                    status_msg = "RESULTADO DO MÊS"
+                    emoji_extra = "📈"
+                
+                msg = f"""
+*{tablename.upper()}*
+
+{emoji_status} *Fechamento do Mês Anterior*
+
+📊 *Resultado do Mês Anterior*
+💰 Receita total: R$ {receita_mes_anterior:,.2f}
+"""
+                
+                if meta_mes_anterior > 0:
+                    msg += f"""
+🎯 *Meta do Mês Anterior*
+💰 Meta: R$ {meta_mes_anterior:,.2f}
+📊 Atingido: {percentual_atingido_mes_anterior:.1f}%
+
+{emoji_extra} *{status_msg}*
+"""
+                else:
+                    msg += f"""
+{emoji_extra} *{status_msg}*
+"""
+                
+                msg += f"""
+
+❌ *Meta do Mês Atual não cadastrada*
+📝 Acesse o MyMetricHUB em Configurações > Metas e cadastre a meta do mês
+"""
+            else:
+                msg = f"*{tablename.upper()}*\n\n❌ *Meta não cadastrada*\nAcesse o MyMetricHUB em Configurações > Metas e cadastre a meta do mês"
             
             # Adicionar alertas de vendas e sessões zeradas
             if aviso_vendas_zeradas:
