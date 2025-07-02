@@ -159,6 +159,8 @@ def traffic_filters_detailed(df):
             st.session_state.conteudo_selected = ["Selecionar Todos"]
         if 'pagina_de_entrada_selected' not in st.session_state:
             st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+        if 'cupom_selected' not in st.session_state:
+            st.session_state.cupom_selected = ["Selecionar Todos"]
         if 'categoria_produto_selected' not in st.session_state:
             st.session_state.categoria_produto_selected = ["Selecionar Todos"]
         if 'nome_produto_selected' not in st.session_state:
@@ -174,6 +176,7 @@ def traffic_filters_detailed(df):
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
+            all_cupons = sort_by_sessions('Cupom', df)
             
             # Verificar se a coluna 'Categoria do Produto' existe antes de usá-la
             if 'Categoria do Produto' in df.columns:
@@ -225,6 +228,13 @@ def traffic_filters_detailed(df):
                     key="pagina_de_entrada_select"
                 )
                 
+                cupom_selected = st.multiselect(
+                    "Cupom",
+                    options=all_cupons,
+                    default=st.session_state.cupom_selected,
+                    key="cupom_select"
+                )
+                
                 # Só mostrar o filtro de categoria se a coluna existir
                 if 'Categoria do Produto' in df.columns:
                     categoria_produto_selected = st.multiselect(
@@ -268,6 +278,7 @@ def traffic_filters_detailed(df):
                     st.session_state.campanha_selected = campanha_selected
                     st.session_state.conteudo_selected = conteudo_selected
                     st.session_state.pagina_de_entrada_selected = pagina_de_entrada_selected
+                    st.session_state.cupom_selected = cupom_selected
                     st.session_state.categoria_produto_selected = categoria_produto_selected
                     st.session_state.nome_produto_selected = nome_produto_selected
                     st.session_state.nome_produto_search = nome_produto_search
@@ -305,6 +316,10 @@ def apply_filters(df):
     # Aplicar filtros de página de entrada
     if "Selecionar Todos" not in st.session_state.pagina_de_entrada_selected:
         df = df[df['Página de Entrada'].isin(st.session_state.pagina_de_entrada_selected)]
+    
+    # Aplicar filtros de cupom
+    if "Selecionar Todos" not in st.session_state.cupom_selected:
+        df = df[df['Cupom'].isin(st.session_state.cupom_selected)]
     
     # Aplicar filtros de categoria do produto (só se a coluna existir)
     if 'Categoria do Produto' in df.columns and "Selecionar Todos" not in st.session_state.categoria_produto_selected:

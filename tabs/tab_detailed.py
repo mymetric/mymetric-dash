@@ -659,6 +659,7 @@ def display_tab_detailed():
         st.session_state.campanha_selected = ["Selecionar Todos"]
         st.session_state.conteudo_selected = ["Selecionar Todos"]
         st.session_state.pagina_de_entrada_selected = ["Selecionar Todos"]
+        st.session_state.cupom_selected = ["Selecionar Todos"]
     
     # Show filters in sidebar
     with st.sidebar:
