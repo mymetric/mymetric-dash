@@ -476,22 +476,20 @@ def load_lost_cookies(tablename):
         # Define o project_id baseado na empresa
         project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
         
-        if tablename == "linus":
-            query = f"""
-            select
-                1-round(count(distinct concat(user_pseudo_id, ga_session_id)) / count(*),2) lost_cookies
-            from `{project_id}.dbt_granular.linus_orders_dedup`
-            where
-                date(created_at) = date_sub(current_date(), interval 1 day)
-                and source_name = "web"
-            group by all
-            """
+        # Query genérica para todas as empresas usando a tabela de sessões
+        query = f"""
+        select
+            1-round(count(distinct concat(user_pseudo_id, ga_session_id)) / count(*),2) lost_cookies
+        from `{project_id}.dbt_granular.{tablename}_sessions`
+        where
+            event_date = date_sub(current_date(), interval 1 day)
+        group by all
+        """
 
-            query_job = client.query(query)
-            rows_raw = query_job.result()
-            rows = [dict(row) for row in rows_raw]
-            return pd.DataFrame(rows)
-        return pd.DataFrame()
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
     except Exception as e:
         print(f"Erro ao carregar perda de cookies: {str(e)}")
         return pd.DataFrame()
@@ -683,7 +681,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         print(f"Sessões duplicadas: {duplicated_sessions}")
         aviso_duplicadas = duplicated_sessions > 0.02
 
-        # Carregar perda de cookies (apenas para Linus)
+        # Carregar perda de cookies
         print("Carregando perda de cookies...")
         df_lost_cookies = load_lost_cookies(tablename)
         print(f"DataFrame de perda de cookies: {df_lost_cookies}")
