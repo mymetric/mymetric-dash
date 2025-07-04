@@ -1698,7 +1698,10 @@ def load_costs():
                                 'Mês': month,
                                 'Categoria': category,
                                 'Custo do Produto (%)': category_data.get('cost_of_product_percentage', 0),
-                                'Custo Total': category_data.get('total_cost', 0)
+                                'Custo Total': category_data.get('total_cost', 0),
+                                'Imposto (%)': category_data.get('tax_percentage', 0),
+                                'Frete Empresa (%)': category_data.get('shipping_percentage', 0),
+                                'Comissão (%)': category_data.get('commission_percentage', 0)
                             })
                 except json.JSONDecodeError as e:
                     print(f"Erro ao decodificar JSON: {e}")
@@ -1720,16 +1723,25 @@ def load_costs():
         print(f"Stack trace: {traceback.format_exc()}")
         return pd.DataFrame()
 
-def save_costs(month, category, cost_of_product_percentage, total_cost):
+def save_costs(month, category, cost_of_product_percentage, total_cost, tax_percentage=0.0, shipping_percentage=0.0, commission_percentage=0.0):
     """
     Salva os custos no BigQuery.
+    
+    Args:
+        month (str): Mês de referência (formato YYYY-MM)
+        category (str): Categoria de tráfego
+        cost_of_product_percentage (float): Percentual do custo do produto
+        total_cost (float): Custo total fixo
+        tax_percentage (float): Percentual de imposto (padrão: 0.0)
+        shipping_percentage (float): Percentual de frete pago pela empresa (padrão: 0.0)
+        commission_percentage (float): Percentual de comissão de vendas (padrão: 0.0)
     """
     if toast_alerts():
         st.toast("Salvando custos...")
 
     tablename = st.session_state.tablename
     print(f"Salvando custos para tablename: {tablename}")
-    print(f"Dados recebidos: month={month}, category={category}, cost_of_product_percentage={cost_of_product_percentage}, total_cost={total_cost}")
+    print(f"Dados recebidos: month={month}, category={category}, cost_of_product_percentage={cost_of_product_percentage}, total_cost={total_cost}, tax_percentage={tax_percentage}, shipping_percentage={shipping_percentage}, commission_percentage={commission_percentage}")
 
     try:
         # Verificar se a tabela existe
@@ -1790,7 +1802,10 @@ def save_costs(month, category, cost_of_product_percentage, total_cost):
         # Atualizar ou criar categoria
         configs[month][category] = {
             "cost_of_product_percentage": float(cost_of_product_percentage),
-            "total_cost": float(total_cost)
+            "total_cost": float(total_cost),
+            "tax_percentage": float(tax_percentage),
+            "shipping_percentage": float(shipping_percentage),
+            "commission_percentage": float(commission_percentage)
         }
         print(f"Configs atualizadas: {configs}")
         

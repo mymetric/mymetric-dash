@@ -324,27 +324,61 @@ def costs_config():
         )
         
         # Campos para custos
-        cost_of_product_percentage = st.number_input(
-            "Custo do Produto (%)",
-            min_value=0.0,
-            max_value=100.0,
-            step=0.1,
-            format="%.1f",
-            help="Porcentagem do custo do produto em relação à receita"
-        )
+        col1, col2, col3, col4, col5 = st.columns(5)
         
-        total_cost = st.number_input(
-            "Custo Total (R$)",
-            min_value=0.0,
-            step=100.0,
-            format="%.2f",
-            help="Custo total da categoria no mês"
-        )
+        with col1:
+            cost_of_product_percentage = st.number_input(
+                "Custo do Produto (%)",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                format="%.1f",
+                help="Porcentagem do custo do produto em relação à receita"
+            )
+        
+        with col2:
+            total_cost = st.number_input(
+                "Custo Total (R$)",
+                min_value=0.0,
+                step=100.0,
+                format="%.2f",
+                help="Custo total da categoria no mês"
+            )
+        
+        with col3:
+            tax_percentage = st.number_input(
+                "Imposto (%)",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                format="%.1f",
+                help="Percentual de imposto sobre a receita"
+            )
+        
+        with col4:
+            shipping_percentage = st.number_input(
+                "Frete Empresa (%)",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                format="%.1f",
+                help="Percentual de frete pago pela empresa"
+            )
+        
+        with col5:
+            commission_percentage = st.number_input(
+                "Comissão (%)",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                format="%.1f",
+                help="Percentual de comissão de vendas"
+            )
         
         submitted = st.form_submit_button("Salvar")
         
         if submitted:
-            if save_costs(selected_month, selected_category, cost_of_product_percentage, total_cost):
+            if save_costs(selected_month, selected_category, cost_of_product_percentage, total_cost, tax_percentage, shipping_percentage, commission_percentage):
                 st.success("Custos salvos com sucesso!")
                 st.rerun()
             else:
