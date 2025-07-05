@@ -479,11 +479,13 @@ def load_lost_cookies(tablename):
         # Query genérica para todas as empresas usando a tabela de sessões
         query = f"""
         select
-            1-round(count(distinct concat(user_pseudo_id, ga_session_id)) / count(*),2) lost_cookies
-        from `{project_id}.dbt_granular.{tablename}_sessions`
+            case 
+                when count(*) = 0 then 0
+                else round(1 - (count(distinct concat(user_pseudo_id, ga_session_id)) / count(*)), 2)
+            end as lost_cookies
+        from `{project_id}.dbt_join.{tablename}_orders_sessions`
         where
-            event_date = date_sub(current_date(), interval 1 day)
-        group by all
+            date(created_at) = date_sub(current_date(), interval 1 day)
         """
 
         query_job = client.query(query)
@@ -688,6 +690,8 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         lost_cookies = float(df_lost_cookies['lost_cookies'].iloc[0]) if not df_lost_cookies.empty else 0
         print(f"Perda de cookies: {lost_cookies}")
         aviso_cookies = lost_cookies > 0.05
+        print(f"Aviso de cookies ativado: {aviso_cookies} (threshold: 0.05)")
+        print(f"Valor de lost_cookies: {lost_cookies}, tipo: {type(lost_cookies)}")
 
         # Carregar vendas de ontem
         print("Carregando vendas de ontem...")
@@ -803,7 +807,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
             if aviso_cookies:
                 msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
             if vendas_ontem > 0:
-                msg += f"\n\n📊 *Vendas de Ontem*\n💰 Total: R$ {vendas_ontem:,.2f}"
+                msg += f"\n\n📊 Vendas de Ontem\n💰 Total: R$ {vendas_ontem:,.2f}"
             
             # Adicionar comparação de taxas de funil se disponível
             if not df_funnel.empty:
@@ -1132,7 +1136,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                 else:
                     emoji_vendas = " 🔴"
             
-            message += f"\n\n💰 *Vendas de Ontem*\n- Total: R$ {vendas_ontem:,.2f}"
+            message += f"\n\n💰 Vendas de Ontem\n- Total: R$ {vendas_ontem:,.2f}"
             if vendas_anteontem > 0:
                 message += f"\n- Variação vs anteontem: {variacao_vendas:+.1f}%{emoji_vendas}"
             else:
@@ -1180,15 +1184,18 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                 message += f"\n- {etapa}: {taxa_ontem:.1f}% ({variacao:+.1f}%){emoji}"
 
         if aviso_duplicadas or aviso_cookies:
-            message += "\n\n🔄 Qualidade dos Dados"
+            message += "\n\n🚨 Qualidade dos Dados"
             if aviso_duplicadas:
                 message += f"\n- Sessões duplicadas: {duplicated_sessions:.1%}"
             if aviso_cookies:
                 message += f"\n- Perda de cookies: {lost_cookies:.1%}"
+                print(f"✅ Aviso de perda de cookies incluído na mensagem: {lost_cookies:.1%}")
+        else:
+            print("ℹ️ Nenhum aviso de qualidade de dados para incluir")
                 
         # Adicionar métricas de UTM apenas se houver alertas
         if aviso_utm or aviso_mm_ads:
-            message += "\n\n🎯 Parâmetros UTM de Meta"
+            message += "\n\n🚨 Parâmetros UTM de Meta"
             if aviso_utm:
                 message += f"\n- Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
             if aviso_mm_ads:
@@ -1272,6 +1279,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                     msg += f"\n📊 Sessões duplicadas: {duplicated_sessions:.1%}"
                 if aviso_cookies:
                     msg += f"\n📊 Perda de cookies: {lost_cookies:.1%}"
+                    print(f"✅ Aviso de perda de cookies incluído na mensagem de erro: {lost_cookies:.1%}")
             
             # Adicionar comparação de taxas de funil se disponível
             if not df_funnel.empty:
