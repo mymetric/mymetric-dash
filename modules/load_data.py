@@ -2228,3 +2228,36 @@ def load_revenue_by_traffic_category():
         import traceback
         print(f"Stack trace: {traceback.format_exc()}")
         return pd.DataFrame()
+
+@background_cache(ttl_hours=0.1)  # Cache reduzido para forçar atualização
+def load_constance_errors():
+    """
+    Carrega dados de erros da tabela constance-421122.views.error
+    """
+    try:
+        # Query para buscar dados de erros
+        query = """
+        SELECT 
+            error_message,
+            CAST(errors AS INT64) as errors,
+            CAST(dropoff_rate AS FLOAT64) as dropoff_rate,
+            CAST(purchase_revenue AS FLOAT64) as purchase_revenue
+        FROM `constance-421122.views.error`
+        ORDER BY errors DESC
+        """
+        
+        df = execute_query(query)
+        
+        if df is not None and not df.empty:
+            # Converter tipos de dados
+            df['errors'] = pd.to_numeric(df['errors'], errors='coerce')
+            df['dropoff_rate'] = pd.to_numeric(df['dropoff_rate'], errors='coerce')
+            df['purchase_revenue'] = pd.to_numeric(df['purchase_revenue'], errors='coerce')
+            
+            return df
+        else:
+            return pd.DataFrame()
+            
+    except Exception as e:
+        st.error(f"Erro ao carregar dados de erros: {str(e)}")
+        return pd.DataFrame()

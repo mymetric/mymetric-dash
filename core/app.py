@@ -20,6 +20,7 @@ from tabs.tab_items_sold import display_tab_items_sold
 
 # Custom Tabs
 from tabs_custom.tab_gringa_product_submitted import display_tab_gringa_product_submitted
+from tabs_custom.tab_constance_errors import display_tab_constance_errors
 from tabs_custom.tab_holysoup_crm import display_tab_holysoup_crm
 from tabs_custom.tab_coffeemais_users import display_tab_coffeemais_users
 from tabs_custom.tab_coffeemais_crm import display_tab_coffeemais_crm
@@ -67,7 +68,7 @@ def load_app():
             is_admin = st.session_state.get('admin', False)
 
             # Definir quais filtros devem ser carregados para cada aba
-            pages_without_filters = ["Leads", "Master", "Configurações", "Tempo Real", "Usuários", "ERP"]
+            pages_without_filters = ["Leads", "Master", "Configurações", "Tempo Real", "Usuários", "ERP", "Erros"]
             pages_with_only_date = ["Mídia Paga", "Funil de Conversão"]
             pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
             pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
@@ -121,6 +122,9 @@ def load_app():
 
             if st.session_state.tablename == 'kaisan':
                 nav_options.extend(["ERP"])
+
+            if st.session_state.tablename == 'constance':
+                nav_options.extend(["Erros"])
 
             if is_admin:
                 nav_options.extend(["Configurações"])
@@ -197,6 +201,10 @@ def load_app():
             elif selected_page == "Itens Vendidos":
                 save_event_name(event_name="tab_view", event_params={"tab": "items_sold"})
                 display_tab_items_sold()
+            
+            elif selected_page == "Erros" and st.session_state.tablename == 'constance':
+                save_event_name(event_name="tab_view", event_params={"tab": "constance_errors"})
+                display_tab_constance_errors()
             
             elif selected_page == "Configurações":
                 save_event_name(event_name="tab_view", event_params={"tab": "config"})
