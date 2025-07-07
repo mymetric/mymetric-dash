@@ -522,7 +522,7 @@ def load_utm_metrics(tablename):
         SELECT
             sum(case when page_params like "%utm%" then 1 else 0 end)/count(*) as with_utm,
             sum(case when page_params like "%mm_ads%" then 1 else 0 end)/count(*) as with_mm_ads
-        FROM `{project_id}.dbt_granular.{tablename}_sessions`
+        FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
         WHERE page_params like "%fbclid%"
         """
 
