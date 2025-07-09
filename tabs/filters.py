@@ -176,7 +176,12 @@ def traffic_filters_detailed(df):
             all_campaigns = sort_by_sessions('Campanha', df)
             all_content = sort_by_sessions('Conteúdo', df)
             all_pages = sort_by_sessions('Página de Entrada', df)
-            all_cupons = sort_by_sessions('Cupom', df)
+            
+            # Verificar se a coluna 'Cupom' existe antes de usá-la
+            if 'Cupom' in df.columns:
+                all_cupons = sort_by_sessions('Cupom', df)
+            else:
+                all_cupons = ["Selecionar Todos"]
             
             # Verificar se a coluna 'Categoria do Produto' existe antes de usá-la
             if 'Categoria do Produto' in df.columns:
@@ -228,12 +233,16 @@ def traffic_filters_detailed(df):
                     key="pagina_de_entrada_select"
                 )
                 
-                cupom_selected = st.multiselect(
-                    "Cupom",
-                    options=all_cupons,
-                    default=st.session_state.cupom_selected,
-                    key="cupom_select"
-                )
+                # Só mostrar o filtro de cupom se a coluna existir
+                if 'Cupom' in df.columns:
+                    cupom_selected = st.multiselect(
+                        "Cupom",
+                        options=all_cupons,
+                        default=st.session_state.cupom_selected,
+                        key="cupom_select"
+                    )
+                else:
+                    cupom_selected = ["Selecionar Todos"]
                 
                 # Só mostrar o filtro de categoria se a coluna existir
                 if 'Categoria do Produto' in df.columns:
@@ -317,8 +326,8 @@ def apply_filters(df):
     if "Selecionar Todos" not in st.session_state.pagina_de_entrada_selected:
         df = df[df['Página de Entrada'].isin(st.session_state.pagina_de_entrada_selected)]
     
-    # Aplicar filtros de cupom
-    if "Selecionar Todos" not in st.session_state.cupom_selected:
+    # Aplicar filtros de cupom (só se a coluna existir)
+    if 'Cupom' in df.columns and "Selecionar Todos" not in st.session_state.cupom_selected:
         df = df[df['Cupom'].isin(st.session_state.cupom_selected)]
     
     # Aplicar filtros de categoria do produto (só se a coluna existir)
