@@ -481,11 +481,13 @@ def load_lost_cookies(tablename):
         select
             case 
                 when count(*) = 0 then 0
-                else round(1 - (count(distinct concat(user_pseudo_id, ga_session_id)) / count(*)), 2)
+                else round(sum(case when user_pseudo_id is null or ga_session_id is null then 1 else 0 end)/count(*),2)
+                # else round(1 - (count(distinct concat(user_pseudo_id, ga_session_id)) / count(*)), 2)
             end as lost_cookies
         from `{project_id}.dbt_join.{tablename}_orders_sessions`
         where
             date(created_at) = date_sub(current_date(), interval 1 day)
+            and source_name = "web"
         """
 
         query_job = client.query(query)
@@ -906,67 +908,37 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
         meta_receita = metas.get('metas_mensais', {}).get(current_month, {}).get('meta_receita_paga', 0)
         print(f"Meta de receita: {meta_receita}")
         
-        # Se for dia 1, buscar meta do mês anterior para comparação
+        # Se for dia 1, carregar dados do mês anterior para comparação
         if is_primeiro_dia:
-            meta_mes_anterior = metas.get('metas_mensais', {}).get(mes_anterior_str, {}).get('meta_receita_paga', 0)
-            print(f"Meta do mês anterior: {meta_mes_anterior}")
+            print("Carregando dados do mês anterior para comemoração...")
+            df_previous_month = load_previous_month_revenue(tablename)
+            print(f"DataFrame do mês anterior: {df_previous_month}")
+            receita_mes_anterior = float(df_previous_month['total_mes_anterior'].iloc[0]) if not df_previous_month.empty else 0
+            print(f"Receita do mês anterior: {receita_mes_anterior}")
             
-            # Calcular percentual atingido do mês anterior
-            percentual_atingido_mes_anterior = (receita_mes_anterior / meta_mes_anterior * 100) if meta_mes_anterior > 0 else 0
-            print(f"Percentual atingido do mês anterior: {percentual_atingido_mes_anterior:.1f}%")
-
-        if meta_receita == 0:
-            print(f"❌ Meta de receita é zero para {tablename}")
+            # Calcular mês anterior para buscar a meta
+            if hoje.month == 1:
+                mes_anterior = hoje.replace(year=hoje.year-1, month=12)
+            else:
+                mes_anterior = hoje.replace(month=hoje.month-1)
             
-            # Se for dia 1, enviar mensagem especial de comemoração
+            mes_anterior_str = mes_anterior.strftime("%Y-%m")
+            print(f"Mês anterior: {mes_anterior_str}")
+        
+        if df_goals.empty or 'goals' not in df_goals.columns or df_goals['goals'].isna().all():
+            print(f"❌ DataFrame de metas vazio ou coluna ausente para {tablename}")
+            
+            # Se for dia 1, enviar mensagem especial mesmo sem meta
             if is_primeiro_dia:
-                # Determinar emoji e mensagem baseado no percentual atingido
-                if meta_mes_anterior > 0:
-                    if percentual_atingido_mes_anterior >= 100:
-                        emoji_status = "🎉"
-                        status_msg = "META ATINGIDA!"
-                        emoji_extra = "🏆"
-                    elif percentual_atingido_mes_anterior >= 80:
-                        emoji_status = "🎯"
-                        status_msg = "QUASE LÁ!"
-                        emoji_extra = "💪"
-                    elif percentual_atingido_mes_anterior >= 60:
-                        emoji_status = "📈"
-                        status_msg = "BOM TRABALHO!"
-                        emoji_extra = "👍"
-                    else:
-                        emoji_status = "📊"
-                        status_msg = "PRECISA MELHORAR"
-                        emoji_extra = "💡"
-                else:
-                    emoji_status = "📊"
-                    status_msg = "RESULTADO DO MÊS"
-                    emoji_extra = "📈"
-                
                 msg = f"""
 *{tablename.upper()}*
 
-{emoji_status} *Fechamento do Mês Anterior*
+🎉 *Fechamento do Mês Anterior*
 
 📊 *Resultado do Mês Anterior*
 💰 Receita total: R$ {receita_mes_anterior:,.2f}
-"""
-                
-                if meta_mes_anterior > 0:
-                    msg += f"""
-🎯 *Meta do Mês Anterior*
-💰 Meta: R$ {meta_mes_anterior:,.2f}
-📊 Atingido: {percentual_atingido_mes_anterior:.1f}%
 
-{emoji_extra} *{status_msg}*
-"""
-                else:
-                    msg += f"""
-{emoji_extra} *{status_msg}*
-"""
-                
-                msg += f"""
-❌ *Meta do Mês Atual não cadastrada*
+❌ *Meta não cadastrada*
 📝 Cadastre sua meta no MyMetric Hub em Configurações > Metas para acompanhar o progresso mensal.
 """
             else:
@@ -982,7 +954,7 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
             
             # Adicionar alerta de funil zerado
             if aviso_funil_zerado:
-                msg += f"\n\n🚨 *ALERTA: Funil Zerado*\n"
+                msg += f"\n\n🚨 *ALERTA: Funil Zerado*"
                 for etapa in etapas_zeradas:
                     msg += f"\n- {etapa}"
             
@@ -1330,12 +1302,123 @@ def send_alerts_to_all_groups(test_mode=False):
     except Exception as e:
         print(f"❌ Erro ao enviar alertas: {str(e)}")
 
+def send_cookie_loss_alert(tablename, phone):
+    """
+    Envia um alerta específico sobre perda de cookies via WhatsApp.
+    
+    Args:
+        tablename (str): Nome da tabela para verificar perda de cookies
+        phone (str): Número do telefone ou ID do grupo
+    """
+    try:
+        print(f"\nVerificando perda de cookies para {tablename}...")
+        
+        # Carregar perda de cookies
+        print("Carregando perda de cookies...")
+        df_lost_cookies = load_lost_cookies(tablename)
+        print(f"DataFrame de perda de cookies: {df_lost_cookies}")
+        lost_cookies = float(df_lost_cookies['lost_cookies'].iloc[0]) if not df_lost_cookies.empty else 0
+        print(f"Perda de cookies: {lost_cookies:.1%}")
+        
+        # Determinar status baseado no percentual
+        if lost_cookies == 0:
+            status_emoji = "✅"
+            status_msg = "EXCELENTE"
+            status_desc = "Sem perda de cookies detectada"
+        elif lost_cookies <= 0.05:
+            status_emoji = "🟡"
+            status_msg = "ATENÇÃO"
+            status_desc = "Perda de cookies dentro do aceitável"
+        elif lost_cookies <= 0.10:
+            status_emoji = "🟠"
+            status_msg = "ALERTA"
+            status_desc = "Perda de cookies elevada"
+        else:
+            status_emoji = "🔴"
+            status_msg = "CRÍTICO"
+            status_desc = "Perda de cookies muito elevada"
+        
+        # Criar mensagem
+        message = f"""
+*{tablename.upper()}*
+
+{status_emoji} *Relatório de Perda de Cookies*
+
+📊 *Status: {status_msg}*
+{status_desc}
+
+📈 *Métrica*
+- Perda de cookies: {lost_cookies:.1%}
+
+💡 *Informações*
+- Meta: < 5% (excelente)
+- Aceitável: 5-10%
+- Crítico: > 10%
+
+🔧 *Ações Recomendadas*
+"""
+        
+        if lost_cookies > 0.10:
+            message += """
+- Verificar configuração do Google Analytics
+- Revisar implementação de cookies
+- Contatar suporte técnico
+"""
+        elif lost_cookies > 0.05:
+            message += """
+- Monitorar tendência
+- Verificar mudanças recentes
+- Revisar implementação
+"""
+        else:
+            message += """
+- Manter configuração atual
+- Continuar monitoramento
+"""
+        
+        # Enviar mensagem
+        send_whatsapp_message(message, phone)
+        
+    except Exception as e:
+        print(f"❌ Erro ao verificar perda de cookies para {tablename}: {str(e)}")
+        error_msg = f"*{tablename.upper()}*\n\n❌ *Erro ao verificar perda de cookies*\n{str(e)}"
+        send_whatsapp_message(error_msg, phone)
+
+def send_cookie_alerts_to_test_group():
+    """
+    Envia alertas de perda de cookies para todos os clientes no grupo de teste.
+    """
+    try:
+        # Carregar usuários
+        users = load_users()
+        
+        # Grupo de teste
+        test_group = "120363322379870288-group"
+        
+        print(f"🔍 Verificando perda de cookies para {len(users)} clientes...")
+        
+        # Enviar alerta de perda de cookies para cada usuário
+        for user in users:
+            if user.get('slug'):
+                print(f"\nVerificando {user.get('slug')}...")
+                send_cookie_loss_alert(user.get('slug'), test_group)
+        
+        print(f"\n✅ Verificação de perda de cookies concluída para todos os clientes!")
+        
+    except Exception as e:
+        print(f"❌ Erro ao enviar alertas de perda de cookies: {str(e)}")
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "all":
         if len(sys.argv) > 2 and sys.argv[2] == "test":
             send_alerts_to_all_groups(test_mode=True)
         else:
             send_alerts_to_all_groups(test_mode=False)
+    elif len(sys.argv) > 1 and sys.argv[1] == "cookies":
+        if len(sys.argv) > 2 and sys.argv[2] == "test":
+            send_cookie_alerts_to_test_group()
+        else:
+            print("❌ Para verificar perda de cookies, use: python3 alerts/whatsapp.py cookies test")
     elif len(sys.argv) > 2:
         company = sys.argv[1]
         is_test = sys.argv[2] == "test"
@@ -1363,4 +1446,5 @@ if __name__ == "__main__":
         print("❌ Uso incorreto do script")
         print("Para enviar para um cliente específico: python3 alerts/whatsapp.py [slug] [test]")
         print("Para enviar para todos os grupos: python3 alerts/whatsapp.py all")
-        print("Para enviar para todos os clientes em modo teste: python3 alerts/whatsapp.py all test") 
+        print("Para enviar para todos os clientes em modo teste: python3 alerts/whatsapp.py all test")
+        print("Para verificar perda de cookies: python3 alerts/whatsapp.py cookies test") 
