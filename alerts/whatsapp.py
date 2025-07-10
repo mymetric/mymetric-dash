@@ -536,6 +536,50 @@ def load_utm_metrics(tablename):
         print(f"Erro ao carregar métricas de UTM: {str(e)}")
         return pd.DataFrame()
 
+def load_detailed_mm_ads_data(tablename):
+    """
+    Carrega dados detalhados de mm_ads por source e medium quando o alerta é disparado.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            # Tenta usar as credenciais do Streamlit
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            # Se falhar, tenta usar as credenciais do ambiente
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        query = f"""
+        SELECT
+          source,
+          medium,
+          count(*) sessions,
+          sum(case when page_params like "%utm%" then 1 else 0 end)/count(*) as with_utm,
+          sum(case when page_params like "%mm_ads%" then 1 else 0 end)/count(*) as with_mm_ads
+        FROM `{project_id}.dbt_granular.{tablename}_sessions_intraday`
+        WHERE page_params like "%fbclid%"
+        GROUP BY source, medium
+        HAVING with_mm_ads < 0.9
+        ORDER BY sessions DESC
+        """
+
+        query_job = client.query(query)
+        rows_raw = query_job.result()
+        rows = [dict(row) for row in rows_raw]
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"Erro ao carregar dados detalhados de mm_ads: {str(e)}")
+        return pd.DataFrame()
+
 def send_whatsapp_message(message, phone):
     """
     Envia uma mensagem via WhatsApp usando o Z-API.
@@ -1172,6 +1216,40 @@ Esta é uma mensagem de teste para verificar o funcionamento do sistema de alert
                 message += f"\n- Tráfego com UTM: {with_utm:.1%}\n(abaixo de 90%)"
             if aviso_mm_ads:
                 message += f"\n- Tráfego com mm_ads: {with_mm_ads:.1%}\n(menor que 95% do UTM)\n- Instruções: https://abrir.link/kAnOz"
+                
+                # Carregar dados detalhados de mm_ads
+                print("Carregando dados detalhados de mm_ads...")
+                df_detailed_mm_ads = load_detailed_mm_ads_data(tablename)
+                print(f"DataFrame de dados detalhados de mm_ads: {df_detailed_mm_ads}")
+                
+                if not df_detailed_mm_ads.empty:
+                    message += "\n\n📊 *Top 3 Canais com mm_ads < 90%*\n"
+                    
+                    # Pegar apenas os top 3
+                    top_3_df = df_detailed_mm_ads.head(3)
+                    
+                    for _, row in top_3_df.iterrows():
+                        source = row['source']
+                        medium = row['medium']
+                        sessions = int(row['sessions'])
+                        with_utm_detail = float(row['with_utm'])
+                        with_mm_ads_detail = float(row['with_mm_ads'])
+                        
+                        # Determinar emoji baseado na diferença
+                        if with_mm_ads_detail < 0.5:
+                            emoji = "🔴"
+                        elif with_mm_ads_detail < 0.7:
+                            emoji = "🟠"
+                        else:
+                            emoji = "🟡"
+                        
+                        message += f"\n{emoji} {source}/{medium}"
+                        message += f"\n  - Sessões: {sessions:,}"
+                        message += f"\n  - UTM: {with_utm_detail:.1%}"
+                        message += f"\n  - mm_ads: {with_mm_ads_detail:.1%}"
+                else:
+                    message += "\n\nℹ️ *Análise Detalhada*"
+                    message += "\nNenhum canal com mm_ads < 90% encontrado"
 
         # Enviar mensagem
         send_whatsapp_message(message, phone)
