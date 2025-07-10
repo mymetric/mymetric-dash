@@ -423,361 +423,362 @@ def tables(df):
 
     # Tabela de Cálculo de ROI
     # Carregar custos e dados de receita
-    costs_df = load_costs()
-    revenue_df = load_revenue_by_traffic_category()
-    st.write(revenue_df)
-    
-    if not costs_df.empty and not revenue_df.empty:
-        st.header("Análise de Custos e Receita por Categoria")
+    if st.session_state.get('tablename') == 'endogen':
+        costs_df = load_costs()
+        revenue_df = load_revenue_by_traffic_category()
+        st.write(revenue_df)
         
-        # Criar sub-abas
-        tab_analysis, tab_config = st.tabs(["📊 Análise", "💰 Configuração"])
-        
-        with tab_analysis:
-            # Fazer left join com os custos respeitando o mês dos dados filtrados
-            # Usar o mês dos dados de receita (que é o mês atual do dashboard)
-            start_date = st.session_state.get('start_date')
-            end_date = st.session_state.get('end_date')
+        if not costs_df.empty and not revenue_df.empty:
+            st.header("Análise de Custos e Receita por Categoria")
             
-            if start_date and end_date:
-                # Usar o mês do início do período como referência para custos
-                analysis_month = start_date.strftime("%Y-%m") if hasattr(start_date, 'strftime') else str(start_date)[:7]
-            else:
-                # Fallback: usar mês atual
-                analysis_month = date.today().strftime("%Y-%m")
+            # Criar sub-abas
+            tab_analysis, tab_config = st.tabs(["📊 Análise", "💰 Configuração"])
             
-            # Filtrar custos do mês de análise
-            month_costs = costs_df[costs_df['Mês'] == analysis_month]
-            
-            # Se não há custos para o mês específico, criar DataFrame vazio
-            if month_costs.empty:
-                # Criar DataFrame vazio com as colunas necessárias
-                month_costs = pd.DataFrame(columns=['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)'])
-                st.info(f"ℹ️ Não há custos cadastrados para {analysis_month}. Usando 50% como custo padrão do produto e 0% para demais percentuais.")
-            
-            # Garantir que todas as colunas necessárias existem
-            required_columns = ['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)']
-            for col in required_columns:
-                if col not in month_costs.columns:
-                    month_costs[col] = 0.0
-            
-            # Fazer o merge entre receita e custos
-            merged_df = pd.merge(
-                revenue_df,
-                month_costs[['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)']],
-                left_on='categoria_de_trafego',
-                right_on='Categoria',
-                how='left'
-            )
-            
-            # Remover a coluna Categoria duplicada
-            if 'Categoria' in merged_df.columns:
-                merged_df = merged_df.drop('Categoria', axis=1)
-            
-            # Calcular Receita Líquida (receita_com_descontos + frete - taxas_pagamento - cupom)
-            merged_df['Receita Líquida'] = merged_df['receita_venda'] + merged_df['frete'] - merged_df['taxas_pagamento'] - merged_df['cupom']
-            
-            # Usar receita_venda como Receita (receita bruta)
-            merged_df['Receita'] = merged_df['receita_venda']
-            
-            # Preencher valores nulos com 0
-            merged_df['Custo do Produto (%)'] = merged_df['Custo do Produto (%)'].fillna(50.0)  # Impor 50% como padrão
-            merged_df['Custo Total'] = merged_df['Custo Total'].fillna(0)
-            merged_df['Imp  osto (%)'] = merged_df['Imposto (%)'].fillna(0.0)  # Imposto padrão 0%
-            merged_df['Frete Empresa (%)'] = merged_df['Frete Empresa (%)'].fillna(0.0)  # Frete empresa padrão 0%
-            merged_df['Comissão (%)'] = merged_df['Comissão (%)'].fillna(0.0)  # Comissão padrão 0%
-            
-            # Renomear Custo Total para Custo Fixo para consistência
-            merged_df = merged_df.rename(columns={'Custo Total': 'Custo Fixo'})
-            
-            # Calcular Custo do Produto Absoluto
-            merged_df['Custo do Produto Absoluto'] = merged_df['Receita'] * (merged_df['Custo do Produto (%)'] / 100)
-            
-            # Calcular Imposto Absoluto
-            merged_df['Imposto Absoluto'] = merged_df['Receita'] * (merged_df['Imposto (%)'] / 100)
-            
-            # Calcular Frete Empresa Absoluto
-            merged_df['Frete Empresa Absoluto'] = merged_df['Receita'] * (merged_df['Frete Empresa (%)'] / 100)
-            
-            # Calcular Comissão Absoluta
-            merged_df['Comissão Absoluta'] = merged_df['Receita'] * (merged_df['Comissão (%)'] / 100)
-            
-            # Calcular Custo Geral
-            merged_df['Custo Geral'] = merged_df['Custo do Produto Absoluto'] + merged_df['Imposto Absoluto'] + merged_df['Frete Empresa Absoluto'] + merged_df['Comissão Absoluta'] + merged_df['Custo Fixo']
-            
-            # Calcular Retorno Absoluto (considerando todos os custos)
-            merged_df['Retorno Absoluto'] = merged_df['Receita Líquida'] - merged_df['Custo Geral']
-            
-            # Calcular ROI considerando todos os custos
-            merged_df['ROI'] = merged_df['Retorno Absoluto'] / merged_df['Custo Geral'] * 100
-            
-            # Calcular Margem de Contribuição (considerando todos os custos)
-            merged_df['Margem de Contribuição'] = merged_df['Retorno Absoluto'] / merged_df['Receita Líquida'] * 100
-            
-            # Formatar os números antes de exibir
-            display_df = merged_df.copy()
-            
-            # Aplicar formatação
-            display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['frete'] = display_df['frete'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['taxas_pagamento'] = display_df['taxas_pagamento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['cupom'] = display_df['cupom'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Receita Líquida'] = display_df['Receita Líquida'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Custo Fixo'] = display_df['Custo Fixo'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Custo do Produto Absoluto'] = display_df['Custo do Produto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Imposto Absoluto'] = display_df['Imposto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Frete Empresa Absoluto'] = display_df['Frete Empresa Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Comissão Absoluta'] = display_df['Comissão Absoluta'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Custo Geral'] = display_df['Custo Geral'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Retorno Absoluto'] = display_df['Retorno Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-            display_df['Custo do Produto (%)'] = display_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
-            display_df['Imposto (%)'] = display_df['Imposto (%)'].apply(lambda x: f"{x:.1f}%")
-            display_df['Frete Empresa (%)'] = display_df['Frete Empresa (%)'].apply(lambda x: f"{x:.1f}%")
-            display_df['Comissão (%)'] = display_df['Comissão (%)'].apply(lambda x: f"{x:.1f}%")
-            
-            # Formatar ROI e Margem substituindo inf% por "-" ou "0"
-            display_df['ROI'] = display_df['ROI'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
-            display_df['Margem de Contribuição'] = display_df['Margem de Contribuição'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
-            
-            # Reordenar as colunas
-            display_df = display_df[[
-                'categoria_de_trafego', 
-                'Receita',
-                'frete',
-                'taxas_pagamento', 
-                'cupom',
-                'Receita Líquida',
-                'Custo do Produto (%)', 
-                'Custo do Produto Absoluto', 
-                'Imposto (%)',
-                'Imposto Absoluto',
-                'Frete Empresa (%)',
-                'Frete Empresa Absoluto',
-                'Comissão (%)',
-                'Comissão Absoluta',
-                'Custo Fixo', 
-                'Custo Geral', 
-                'Retorno Absoluto', 
-                'ROI',
-                'Margem de Contribuição'
-            ]]
-            
-            # Renomear colunas para melhor visualização
-            display_df = display_df.rename(columns={
-                'categoria_de_trafego': 'Categoria de Tráfego',
-                'Receita': 'Receita Bruta',
-                'frete': 'Frete',
-                'taxas_pagamento': 'Taxas',
-                'cupom': 'Cupons',
-                'Receita Líquida': 'Receita Líquida',
-                'Custo do Produto (%)': 'Custo Produto (%)',
-                'Custo do Produto Absoluto': 'Custo Produto (R$)',
-                'Imposto (%)': 'Imposto (%)',
-                'Imposto Absoluto': 'Imposto (R$)',
-                'Frete Empresa (%)': 'Frete Empresa (%)',
-                'Frete Empresa Absoluto': 'Frete Empresa (R$)',
-                'Comissão (%)': 'Comissão (%)',
-                'Comissão Absoluta': 'Comissão (R$)',
-                'Custo Fixo': 'Custo Fixo',
-                'Custo Geral': 'Custo Geral',
-                'Retorno Absoluto': 'Retorno (R$)',
-                'ROI': 'ROI (%)',
-                'Margem de Contribuição': 'Margem (%)'
-            })
-            
-            # Tratar None como "🍪 Perda de Cookies" na coluna Categoria de Tráfego
-            display_df['Categoria de Tráfego'] = display_df['Categoria de Tráfego'].fillna("🍪 Perda de Cookies")
-            
-            # Adicionar expander com explicação
-            with st.expander("📊 Entenda os Indicadores", expanded=False):
-                st.markdown("""
-                ### Explicação dos Indicadores
+            with tab_analysis:
+                # Fazer left join com os custos respeitando o mês dos dados filtrados
+                # Usar o mês dos dados de receita (que é o mês atual do dashboard)
+                start_date = st.session_state.get('start_date')
+                end_date = st.session_state.get('end_date')
                 
-                #### 📈 **Indicadores de Receita**
+                if start_date and end_date:
+                    # Usar o mês do início do período como referência para custos
+                    analysis_month = start_date.strftime("%Y-%m") if hasattr(start_date, 'strftime') else str(start_date)[:7]
+                else:
+                    # Fallback: usar mês atual
+                    analysis_month = date.today().strftime("%Y-%m")
                 
-                **Receita Bruta**: Valor total das vendas antes de qualquer desconto ou dedução. Representa o faturamento bruto da empresa.
+                # Filtrar custos do mês de análise
+                month_costs = costs_df[costs_df['Mês'] == analysis_month]
                 
-                **Frete**: Valor do frete pago pelo cliente. Este valor é adicionado à receita bruta para formar parte da receita líquida.
+                # Se não há custos para o mês específico, criar DataFrame vazio
+                if month_costs.empty:
+                    # Criar DataFrame vazio com as colunas necessárias
+                    month_costs = pd.DataFrame(columns=['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)'])
+                    st.info(f"ℹ️ Não há custos cadastrados para {analysis_month}. Usando 50% como custo padrão do produto e 0% para demais percentuais.")
                 
-                **Taxas**: Taxas cobradas pelos gateways de pagamento (PIX, cartão de crédito, boleto, etc.). São deduzidas da receita.
+                # Garantir que todas as colunas necessárias existem
+                required_columns = ['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)']
+                for col in required_columns:
+                    if col not in month_costs.columns:
+                        month_costs[col] = 0.0
                 
-                **Cupons**: Valor total dos cupons de desconto aplicados pelos clientes. Representa descontos diretos na receita.
-                
-                **Receita Líquida**: Receita final calculada como: Receita Bruta + Frete - Taxas - Cupons. É o valor real que entra no caixa da empresa.
-                
-                #### 💰 **Indicadores de Custo**
-                
-                **Custo Produto (%)**: Percentual do custo do produto em relação à receita bruta. Quando não configurado, usa 50% como padrão.
-                
-                **Custo Produto (R$)**: Valor absoluto do custo do produto calculado sobre a receita bruta.
-                
-                **Imposto (%)**: Percentual de impostos (ICMS, PIS, COFINS, etc.) configurado sobre a receita bruta.
-                
-                **Imposto (R$)**: Valor absoluto dos impostos calculado sobre a receita bruta.
-                
-                **Frete Empresa (%)**: Percentual de frete pago pela empresa (frete grátis) em relação à receita bruta.
-                
-                **Frete Empresa (R$)**: Valor absoluto do frete pago pela empresa calculado sobre a receita bruta.
-                
-                **Comissão (%)**: Percentual de comissão de vendas pago a vendedores ou afiliados sobre a receita bruta.
-                
-                **Comissão (R$)**: Valor absoluto da comissão de vendas calculado sobre a receita bruta.
-                
-                **Custo Fixo**: Custos operacionais mensais configurados por categoria (mídia paga, operação, infraestrutura, etc.).
-                
-                **Custo Geral**: Soma total de todos os custos: Custo do Produto + Custo Fixo + Imposto + Frete Empresa + Comissão.
-                
-                #### 📊 **Indicadores de Performance**
-                
-                **Retorno (R$)**: Lucro operacional calculado como: Receita Bruta - Custo Geral. Representa o resultado financeiro antes de impostos sobre o lucro.
-                
-                **ROI (%)**: Retorno sobre o investimento calculado como: (Retorno / Custo Geral) × 100. Mostra a eficiência do investimento em custos.
-                
-                **Margem (%)**: Margem de lucro calculada como: (Retorno / Receita Líquida) × 100. Indica a porcentagem de lucro sobre a receita líquida.
-                
-                ---
-                
-                **💡 Dica**: Configure os percentuais de custo na aba "Configuração" para obter análises mais precisas por categoria de tráfego.
-                """)
-            
-            st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs_enhanced")
-        
-        with tab_config:
-            # Formulário para adicionar/editar custos
-            with st.form("custo_form_geral"):
-                # Lista dos últimos 12 meses para seleção
-                months = []
-                for i in range(12):
-                    month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
-                    months.append(month)
-                
-                selected_month = st.selectbox(
-                    "Mês de Referência",
-                    options=months,
-                    format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize(),
-                    key="custo_month"
+                # Fazer o merge entre receita e custos
+                merged_df = pd.merge(
+                    revenue_df,
+                    month_costs[['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)']],
+                    left_on='categoria_de_trafego',
+                    right_on='Categoria',
+                    how='left'
                 )
                 
-                # Obter todos os clusters disponíveis na tabela de análise
-                available_clusters = revenue_df['categoria_de_trafego'].unique().tolist()
+                # Remover a coluna Categoria duplicada
+                if 'Categoria' in merged_df.columns:
+                    merged_df = merged_df.drop('Categoria', axis=1)
                 
-                # Tratar None como "🍪 Perda de Cookies"
-                available_clusters = ["🍪 Perda de Cookies" if cluster is None else cluster for cluster in available_clusters]
+                # Calcular Receita Líquida (receita_com_descontos + frete - taxas_pagamento - cupom)
+                merged_df['Receita Líquida'] = merged_df['receita_venda'] + merged_df['frete'] - merged_df['taxas_pagamento'] - merged_df['cupom']
                 
-                # Selecionar categoria/cluster
-                selected_category = st.selectbox(
-                    "Categoria de Tráfego",
-                    options=available_clusters,
-                    key="custo_category"
-                )
+                # Usar receita_venda como Receita (receita bruta)
+                merged_df['Receita'] = merged_df['receita_venda']
                 
-                # Campos para custos
-                col1, col2, col3, col4, col5 = st.columns(5)
+                # Preencher valores nulos com 0
+                merged_df['Custo do Produto (%)'] = merged_df['Custo do Produto (%)'].fillna(50.0)  # Impor 50% como padrão
+                merged_df['Custo Total'] = merged_df['Custo Total'].fillna(0)
+                merged_df['Imposto (%)'] = merged_df['Imposto (%)'].fillna(0.0)  # Imposto padrão 0%
+                merged_df['Frete Empresa (%)'] = merged_df['Frete Empresa (%)'].fillna(0.0)  # Frete empresa padrão 0%
+                merged_df['Comissão (%)'] = merged_df['Comissão (%)'].fillna(0.0)  # Comissão padrão 0%
                 
-                with col1:
-                    cost_of_product_percentage = st.number_input(
-                        "Custo do Produto (%)",
-                        min_value=0.0,
-                        max_value=100.0,
-                        step=0.1,
-                        format="%.1f",
-                        help="Porcentagem do custo do produto em relação à receita",
-                        key="custo_percentage"
-                    )
+                # Renomear Custo Total para Custo Fixo para consistência
+                merged_df = merged_df.rename(columns={'Custo Total': 'Custo Fixo'})
                 
-                with col2:
-                    total_cost = st.number_input(
-                        "Custo Fixo (R$)",
-                        min_value=0.0,
-                        step=100.0,
-                        format="%.2f",
-                        help="Custo total da categoria no mês",
-                        key="custo_total"
-                    )
+                # Calcular Custo do Produto Absoluto
+                merged_df['Custo do Produto Absoluto'] = merged_df['Receita'] * (merged_df['Custo do Produto (%)'] / 100)
                 
-                with col3:
-                    tax_percentage = st.number_input(
-                        "Imposto (%)",
-                        min_value=0.0,
-                        max_value=100.0,
-                        step=0.1,
-                        format="%.1f",
-                        help="Percentual de imposto sobre a receita",
-                        key="custo_tax"
-                    )
+                # Calcular Imposto Absoluto
+                merged_df['Imposto Absoluto'] = merged_df['Receita'] * (merged_df['Imposto (%)'] / 100)
                 
-                with col4:
-                    shipping_percentage = st.number_input(
-                        "Frete Empresa (%)",
-                        min_value=0.0,
-                        max_value=100.0,
-                        step=0.1,
-                        format="%.1f",
-                        help="Percentual de frete pago pela empresa",
-                        key="custo_shipping"
-                    )
+                # Calcular Frete Empresa Absoluto
+                merged_df['Frete Empresa Absoluto'] = merged_df['Receita'] * (merged_df['Frete Empresa (%)'] / 100)
                 
-                with col5:
-                    commission_percentage = st.number_input(
-                        "Comissão (%)",
-                        min_value=0.0,
-                        max_value=100.0,
-                        step=0.1,
-                        format="%.1f",
-                        help="Percentual de comissão de vendas",
-                        key="custo_commission"
-                    )
+                # Calcular Comissão Absoluta
+                merged_df['Comissão Absoluta'] = merged_df['Receita'] * (merged_df['Comissão (%)'] / 100)
                 
-                submitted = st.form_submit_button("Salvar Custos")
+                # Calcular Custo Geral
+                merged_df['Custo Geral'] = merged_df['Custo do Produto Absoluto'] + merged_df['Imposto Absoluto'] + merged_df['Frete Empresa Absoluto'] + merged_df['Comissão Absoluta'] + merged_df['Custo Fixo']
                 
-                if submitted:
-                    # Tratar "🍪 Perda de Cookies" como None para salvar no banco
-                    category_to_save = None if selected_category == "🍪 Perda de Cookies" else selected_category
+                # Calcular Retorno Absoluto (considerando todos os custos)
+                merged_df['Retorno Absoluto'] = merged_df['Receita Líquida'] - merged_df['Custo Geral']
+                
+                # Calcular ROI considerando todos os custos
+                merged_df['ROI'] = merged_df['Retorno Absoluto'] / merged_df['Custo Geral'] * 100
+                
+                # Calcular Margem de Contribuição (considerando todos os custos)
+                merged_df['Margem de Contribuição'] = merged_df['Retorno Absoluto'] / merged_df['Receita Líquida'] * 100
+                
+                # Formatar os números antes de exibir
+                display_df = merged_df.copy()
+                
+                # Aplicar formatação
+                display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['frete'] = display_df['frete'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['taxas_pagamento'] = display_df['taxas_pagamento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['cupom'] = display_df['cupom'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Receita Líquida'] = display_df['Receita Líquida'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Custo Fixo'] = display_df['Custo Fixo'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Custo do Produto Absoluto'] = display_df['Custo do Produto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Imposto Absoluto'] = display_df['Imposto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Frete Empresa Absoluto'] = display_df['Frete Empresa Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Comissão Absoluta'] = display_df['Comissão Absoluta'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Custo Geral'] = display_df['Custo Geral'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Retorno Absoluto'] = display_df['Retorno Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Custo do Produto (%)'] = display_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
+                display_df['Imposto (%)'] = display_df['Imposto (%)'].apply(lambda x: f"{x:.1f}%")
+                display_df['Frete Empresa (%)'] = display_df['Frete Empresa (%)'].apply(lambda x: f"{x:.1f}%")
+                display_df['Comissão (%)'] = display_df['Comissão (%)'].apply(lambda x: f"{x:.1f}%")
+                
+                # Formatar ROI e Margem substituindo inf% por "-" ou "0"
+                display_df['ROI'] = display_df['ROI'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+                display_df['Margem de Contribuição'] = display_df['Margem de Contribuição'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+                
+                # Reordenar as colunas
+                display_df = display_df[[
+                    'categoria_de_trafego', 
+                    'Receita',
+                    'frete',
+                    'taxas_pagamento', 
+                    'cupom',
+                    'Receita Líquida',
+                    'Custo do Produto (%)', 
+                    'Custo do Produto Absoluto', 
+                    'Imposto (%)',
+                    'Imposto Absoluto',
+                    'Frete Empresa (%)',
+                    'Frete Empresa Absoluto',
+                    'Comissão (%)',
+                    'Comissão Absoluta',
+                    'Custo Fixo', 
+                    'Custo Geral', 
+                    'Retorno Absoluto', 
+                    'ROI',
+                    'Margem de Contribuição'
+                ]]
+                
+                # Renomear colunas para melhor visualização
+                display_df = display_df.rename(columns={
+                    'categoria_de_trafego': 'Categoria de Tráfego',
+                    'Receita': 'Receita Bruta',
+                    'frete': 'Frete',
+                    'taxas_pagamento': 'Taxas',
+                    'cupom': 'Cupons',
+                    'Receita Líquida': 'Receita Líquida',
+                    'Custo do Produto (%)': 'Custo Produto (%)',
+                    'Custo do Produto Absoluto': 'Custo Produto (R$)',
+                    'Imposto (%)': 'Imposto (%)',
+                    'Imposto Absoluto': 'Imposto (R$)',
+                    'Frete Empresa (%)': 'Frete Empresa (%)',
+                    'Frete Empresa Absoluto': 'Frete Empresa (R$)',
+                    'Comissão (%)': 'Comissão (%)',
+                    'Comissão Absoluta': 'Comissão (R$)',
+                    'Custo Fixo': 'Custo Fixo',
+                    'Custo Geral': 'Custo Geral',
+                    'Retorno Absoluto': 'Retorno (R$)',
+                    'ROI': 'ROI (%)',
+                    'Margem de Contribuição': 'Margem (%)'
+                })
+                
+                # Tratar None como "🍪 Perda de Cookies" na coluna Categoria de Tráfego
+                display_df['Categoria de Tráfego'] = display_df['Categoria de Tráfego'].fillna("🍪 Perda de Cookies")
+                
+                # Adicionar expander com explicação
+                with st.expander("📊 Entenda os Indicadores", expanded=False):
+                    st.markdown("""
+                    ### Explicação dos Indicadores
                     
-                    if save_costs(selected_month, category_to_save, cost_of_product_percentage, total_cost, tax_percentage, shipping_percentage, commission_percentage):
-                        st.success("Custos salvos com sucesso!")
-                        st.rerun()
-                    else:
-                        st.error("Erro ao salvar custos.")
+                    #### 📈 **Indicadores de Receita**
+                    
+                    **Receita Bruta**: Valor total das vendas antes de qualquer desconto ou dedução. Representa o faturamento bruto da empresa.
+                    
+                    **Frete**: Valor do frete pago pelo cliente. Este valor é adicionado à receita bruta para formar parte da receita líquida.
+                    
+                    **Taxas**: Taxas cobradas pelos gateways de pagamento (PIX, cartão de crédito, boleto, etc.). São deduzidas da receita.
+                    
+                    **Cupons**: Valor total dos cupons de desconto aplicados pelos clientes. Representa descontos diretos na receita.
+                    
+                    **Receita Líquida**: Receita final calculada como: Receita Bruta + Frete - Taxas - Cupons. É o valor real que entra no caixa da empresa.
+                    
+                    #### 💰 **Indicadores de Custo**
+                    
+                    **Custo Produto (%)**: Percentual do custo do produto em relação à receita bruta. Quando não configurado, usa 50% como padrão.
+                    
+                    **Custo Produto (R$)**: Valor absoluto do custo do produto calculado sobre a receita bruta.
+                    
+                    **Imposto (%)**: Percentual de impostos (ICMS, PIS, COFINS, etc.) configurado sobre a receita bruta.
+                    
+                    **Imposto (R$)**: Valor absoluto dos impostos calculado sobre a receita bruta.
+                    
+                    **Frete Empresa (%)**: Percentual de frete pago pela empresa (frete grátis) em relação à receita bruta.
+                    
+                    **Frete Empresa (R$)**: Valor absoluto do frete pago pela empresa calculado sobre a receita bruta.
+                    
+                    **Comissão (%)**: Percentual de comissão de vendas pago a vendedores ou afiliados sobre a receita bruta.
+                    
+                    **Comissão (R$)**: Valor absoluto da comissão de vendas calculado sobre a receita bruta.
+                    
+                    **Custo Fixo**: Custos operacionais mensais configurados por categoria (mídia paga, operação, infraestrutura, etc.).
+                    
+                    **Custo Geral**: Soma total de todos os custos: Custo do Produto + Custo Fixo + Imposto + Frete Empresa + Comissão.
+                    
+                    #### 📊 **Indicadores de Performance**
+                    
+                    **Retorno (R$)**: Lucro operacional calculado como: Receita Bruta - Custo Geral. Representa o resultado financeiro antes de impostos sobre o lucro.
+                    
+                    **ROI (%)**: Retorno sobre o investimento calculado como: (Retorno / Custo Geral) × 100. Mostra a eficiência do investimento em custos.
+                    
+                    **Margem (%)**: Margem de lucro calculada como: (Retorno / Receita Líquida) × 100. Indica a porcentagem de lucro sobre a receita líquida.
+                    
+                    ---
+                    
+                    **💡 Dica**: Configure os percentuais de custo na aba "Configuração" para obter análises mais precisas por categoria de tráfego.
+                    """)
+                
+                st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs_enhanced")
             
-            # Exibir custos existentes
-            if not costs_df.empty:
-                st.markdown("### Custos Cadastrados")
+            with tab_config:
+                # Formulário para adicionar/editar custos
+                with st.form("custo_form_geral"):
+                    # Lista dos últimos 12 meses para seleção
+                    months = []
+                    for i in range(12):
+                        month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
+                        months.append(month)
+                    
+                    selected_month = st.selectbox(
+                        "Mês de Referência",
+                        options=months,
+                        format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize(),
+                        key="custo_month"
+                    )
+                    
+                    # Obter todos os clusters disponíveis na tabela de análise
+                    available_clusters = revenue_df['categoria_de_trafego'].unique().tolist()
+                    
+                    # Tratar None como "🍪 Perda de Cookies"
+                    available_clusters = ["🍪 Perda de Cookies" if cluster is None else cluster for cluster in available_clusters]
+                    
+                    # Selecionar categoria/cluster
+                    selected_category = st.selectbox(
+                        "Categoria de Tráfego",
+                        options=available_clusters,
+                        key="custo_category"
+                    )
+                    
+                    # Campos para custos
+                    col1, col2, col3, col4, col5 = st.columns(5)
+                    
+                    with col1:
+                        cost_of_product_percentage = st.number_input(
+                            "Custo do Produto (%)",
+                            min_value=0.0,
+                            max_value=100.0,
+                            step=0.1,
+                            format="%.1f",
+                            help="Porcentagem do custo do produto em relação à receita",
+                            key="custo_percentage"
+                        )
+                    
+                    with col2:
+                        total_cost = st.number_input(
+                            "Custo Fixo (R$)",
+                            min_value=0.0,
+                            step=100.0,
+                            format="%.2f",
+                            help="Custo total da categoria no mês",
+                            key="custo_total"
+                        )
+                    
+                    with col3:
+                        tax_percentage = st.number_input(
+                            "Imposto (%)",
+                            min_value=0.0,
+                            max_value=100.0,
+                            step=0.1,
+                            format="%.1f",
+                            help="Percentual de imposto sobre a receita",
+                            key="custo_tax"
+                        )
+                    
+                    with col4:
+                        shipping_percentage = st.number_input(
+                            "Frete Empresa (%)",
+                            min_value=0.0,
+                            max_value=100.0,
+                            step=0.1,
+                            format="%.1f",
+                            help="Percentual de frete pago pela empresa",
+                            key="custo_shipping"
+                        )
+                    
+                    with col5:
+                        commission_percentage = st.number_input(
+                            "Comissão (%)",
+                            min_value=0.0,
+                            max_value=100.0,
+                            step=0.1,
+                            format="%.1f",
+                            help="Percentual de comissão de vendas",
+                            key="custo_commission"
+                        )
+                    
+                    submitted = st.form_submit_button("Salvar Custos")
+                    
+                    if submitted:
+                        # Tratar "🍪 Perda de Cookies" como None para salvar no banco
+                        category_to_save = None if selected_category == "🍪 Perda de Cookies" else selected_category
+                        
+                        if save_costs(selected_month, category_to_save, cost_of_product_percentage, total_cost, tax_percentage, shipping_percentage, commission_percentage):
+                            st.success("Custos salvos com sucesso!")
+                            st.rerun()
+                        else:
+                            st.error("Erro ao salvar custos.")
                 
-                # Campo de busca
-                search_term = st.text_input("Buscar custos", key="costs_search_geral")
-                
-                # Filtrar custos baseado no termo de busca
-                display_costs_df = costs_df.copy()
-                
-                # Tratar None como "🍪 Perda de Cookies" na exibição
-                display_costs_df['Categoria'] = display_costs_df['Categoria'].fillna("🍪 Perda de Cookies")
-                
-                if search_term:
-                    display_costs_df = display_costs_df[
-                        display_costs_df['Categoria'].str.contains(search_term, case=False, na=False) |
-                        display_costs_df['Mês'].str.contains(search_term, case=False, na=False)
-                    ]
-                
-                # Formatar valores para exibição
-                display_costs_df['Custo do Produto (%)'] = display_costs_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
-                display_costs_df['Custo Total'] = display_costs_df['Custo Total'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_costs_df['Imposto (%)'] = display_costs_df['Imposto (%)'].apply(lambda x: f"{x:.1f}%")
-                display_costs_df['Frete Empresa (%)'] = display_costs_df['Frete Empresa (%)'].apply(lambda x: f"{x:.1f}%")
-                display_costs_df['Comissão (%)'] = display_costs_df['Comissão (%)'].apply(lambda x: f"{x:.1f}%")
-                
-                # Renomear coluna para exibição
-                display_costs_df = display_costs_df.rename(columns={'Custo Total': 'Custo Fixo'})
-                
-                # Exibir custos em uma tabela
-                st.data_editor(
-                    display_costs_df,
-                    hide_index=True,
-                    use_container_width=True,
-                    key="costs_table_geral"
-                )
-            else:
-                st.info("Nenhum custo cadastrado ainda.")
+                # Exibir custos existentes
+                if not costs_df.empty:
+                    st.markdown("### Custos Cadastrados")
+                    
+                    # Campo de busca
+                    search_term = st.text_input("Buscar custos", key="costs_search_geral")
+                    
+                    # Filtrar custos baseado no termo de busca
+                    display_costs_df = costs_df.copy()
+                    
+                    # Tratar None como "🍪 Perda de Cookies" na exibição
+                    display_costs_df['Categoria'] = display_costs_df['Categoria'].fillna("🍪 Perda de Cookies")
+                    
+                    if search_term:
+                        display_costs_df = display_costs_df[
+                            display_costs_df['Categoria'].str.contains(search_term, case=False, na=False) |
+                            display_costs_df['Mês'].str.contains(search_term, case=False, na=False)
+                        ]
+                    
+                    # Formatar valores para exibição
+                    display_costs_df['Custo do Produto (%)'] = display_costs_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
+                    display_costs_df['Custo Total'] = display_costs_df['Custo Total'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    display_costs_df['Imposto (%)'] = display_costs_df['Imposto (%)'].apply(lambda x: f"{x:.1f}%")
+                    display_costs_df['Frete Empresa (%)'] = display_costs_df['Frete Empresa (%)'].apply(lambda x: f"{x:.1f}%")
+                    display_costs_df['Comissão (%)'] = display_costs_df['Comissão (%)'].apply(lambda x: f"{x:.1f}%")
+                    
+                    # Renomear coluna para exibição
+                    display_costs_df = display_costs_df.rename(columns={'Custo Total': 'Custo Fixo'})
+                    
+                    # Exibir custos em uma tabela
+                    st.data_editor(
+                        display_costs_df,
+                        hide_index=True,
+                        use_container_width=True,
+                        key="costs_table_geral"
+                    )
+                else:
+                    st.info("Nenhum custo cadastrado ainda.")
 
 def display_tab_general():
     # Add attribution model selector in sidebar
