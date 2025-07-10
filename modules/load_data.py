@@ -684,14 +684,14 @@ def load_leads_popup():
     start_date = st.session_state.start_date
     end_date = st.session_state.end_date
 
+    project_name = get_project_name(tablename)
     query = f"""
         SELECT
             date `Data do Cadastro`,
             emails `E-mails`
-        FROM `mymetric-hub-shopify.dbt_aggregated.{tablename}_daily_leads`
+        FROM `{project_name}.dbt_aggregated.{tablename}_daily_leads`
         where
-        date between "{start_date}" and "{end_date}"
-        
+        date between \"{start_date}\" and \"{end_date}\"
         order by 1 desc
     """
 
