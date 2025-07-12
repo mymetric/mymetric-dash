@@ -145,15 +145,40 @@ def check_password():
             st.session_state.admin = None
 
     if not st.session_state.authenticated:
-        username = st.sidebar.text_input("Usuário")
-        password = st.sidebar.text_input("Senha", type="password", autocomplete="current-password")
+        # Adicionar CSS para melhorar autopreenchimento
+        st.markdown("""
+            <style>
+                /* Melhorar autopreenchimento do Chrome */
+                .stTextInput input:-webkit-autofill,
+                .stTextInput input:-webkit-autofill:hover,
+                .stTextInput input:-webkit-autofill:focus,
+                .stTextInput input:-webkit-autofill:active {
+                    -webkit-box-shadow: 0 0 0 30px white inset !important;
+                    -webkit-text-fill-color: #31333F !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        # Formulário HTML oculto para ajudar o Chrome a reconhecer os campos
+        st.sidebar.markdown("""
+            <form id="hidden-login-form" style="display: none;">
+                <input type="text" name="username" autocomplete="username">
+                <input type="password" name="current-password" autocomplete="current-password">
+            </form>
+        """, unsafe_allow_html=True)
+        
+        # Formulário Streamlit com melhorias para autopreenchimento
+        with st.sidebar.form("login_form", clear_on_submit=False):
+            username = st.text_input("Usuário", key="username_input", autocomplete="username")
+            password = st.text_input("Senha", type="password", key="password_input", autocomplete="current-password")
+            submit_button = st.form_submit_button("Entrar", type="primary")
 
         users = load_users()
         new_users = load_all_users()
         new_users = new_users.to_dict(orient="records")
         
 
-        if st.sidebar.button("Entrar"):
+        if submit_button:
             # Loop through the users list to check credentials
             for user in users:
                 if user["slug"] == username and user["password"] == password:
