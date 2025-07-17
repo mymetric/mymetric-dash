@@ -1735,6 +1735,306 @@ def send_data_quality_alerts_to_all_groups(test_mode=False):
     except Exception as e:
         print(f"❌ Erro ao enviar alertas de qualidade de dados: {str(e)}")
 
+def load_daily_projection(tablename):
+    """
+    Carrega a projeção dos resultados do dia atual baseada no histórico pregresso.
+    """
+    try:
+        # Configurar credenciais do BigQuery
+        try:
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"]
+            )
+        except:
+            credentials = service_account.Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "gcp-credentials.json")
+            )
+            
+        client = bigquery.Client(credentials=credentials)
+        
+        # Define o project_id baseado na empresa
+        project_id = "bq-mktbr" if tablename == "havaianas" else "mymetric-hub-shopify"
+        
+        # Query específica para constance usando a lógica fornecida
+        if tablename == 'constance':
+            # 1. Primeiro, buscar o faturamento atual do dia
+            current_day_query = f"""
+            SELECT
+                max(DATETIME(TIMESTAMP(created_at), "America/Sao_Paulo")) as last_order_time,
+                SUM(value) AS total_value
+            FROM `{project_id}.dbt_granular.constance_orders_dedup`
+            WHERE
+                DATE(TIMESTAMP(created_at), "America/Sao_Paulo") = CURRENT_DATE("America/Sao_Paulo")
+                and status = "paid"
+            GROUP BY status
+            """
+            
+            # 2. Buscar o histórico de faturamento por hora dos últimos 30 dias
+            historical_query = f"""
+            WITH hourly_data AS (
+                SELECT
+                    DATE(TIMESTAMP(created_at), "America/Sao_Paulo") as order_date,
+                    EXTRACT(HOUR FROM DATETIME(TIMESTAMP(created_at), "America/Sao_Paulo")) as hour,
+                    SUM(value) as hourly_revenue
+                FROM `{project_id}.dbt_granular.constance_orders_dedup`
+                WHERE
+                    DATE(TIMESTAMP(created_at), "America/Sao_Paulo") >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 30 DAY)
+                    AND DATE(TIMESTAMP(created_at), "America/Sao_Paulo") < CURRENT_DATE("America/Sao_Paulo")
+                    AND status = "paid"
+                GROUP BY order_date, hour
+            )
+            SELECT
+                hour,
+                AVG(hourly_revenue) as avg_hourly_revenue,
+                COUNT(DISTINCT order_date) as days_with_data
+            FROM hourly_data
+            GROUP BY hour
+            ORDER BY hour
+            """
+            
+            # 3. Buscar o faturamento por hora do dia atual
+            current_hourly_query = f"""
+            SELECT
+                EXTRACT(HOUR FROM DATETIME(TIMESTAMP(created_at), "America/Sao_Paulo")) as hour,
+                SUM(value) as current_hourly_revenue
+            FROM `{project_id}.dbt_granular.constance_orders_dedup`
+            WHERE
+                DATE(TIMESTAMP(created_at), "America/Sao_Paulo") = CURRENT_DATE("America/Sao_Paulo")
+                AND status = "paid"
+            GROUP BY hour
+            ORDER BY hour
+            """
+            
+            # Executar as queries
+            current_day_result = client.query(current_day_query)
+            historical_result = client.query(historical_query)
+            current_hourly_result = client.query(current_hourly_query)
+            
+            # Processar resultados
+            current_day_data = [dict(row) for row in current_day_result.result()]
+            historical_data = [dict(row) for row in historical_result.result()]
+            current_hourly_data = [dict(row) for row in current_hourly_result.result()]
+            
+            # Calcular faturamento atual do dia
+            current_day_revenue = current_day_data[0]['total_value'] if current_day_data else 0
+            last_order_time = current_day_data[0]['last_order_time'] if current_day_data else None
+            
+            # Criar dicionário com histórico por hora
+            historical_by_hour = {}
+            for row in historical_data:
+                hour = row['hour']
+                historical_by_hour[hour] = {
+                    'avg_revenue': row['avg_hourly_revenue'],
+                    'days_with_data': row['days_with_data']
+                }
+            
+            # Criar dicionário com faturamento atual por hora
+            current_by_hour = {}
+            for row in current_hourly_data:
+                hour = row['hour']
+                current_by_hour[hour] = row['current_hourly_revenue']
+            
+            # Calcular projeção baseada no último pedido
+            if last_order_time:
+                # Usar a hora do último pedido como referência
+                projection_hour = last_order_time.hour
+                projection_minute = last_order_time.minute
+                remaining_hours = 24 - projection_hour
+                
+                # Calcular fração da hora atual (ex: 16:40 = 16.67)
+                hour_fraction = projection_hour + (projection_minute / 60)
+                
+                print(f"📊 Projeção baseada no último pedido: {last_order_time.strftime('%H:%M')}")
+                print(f"📊 Hora de referência: {projection_hour:02d}:{projection_minute:02d}")
+                print(f"📊 Fração da hora: {hour_fraction:.2f}")
+                print(f"📊 Horas restantes: {remaining_hours}")
+            else:
+                # Fallback para hora atual se não houver último pedido
+                projection_hour = datetime.now().hour
+                hour_fraction = projection_hour
+                remaining_hours = 24 - projection_hour
+                print(f"⚠️ Nenhum pedido encontrado hoje. Usando hora atual: {projection_hour:02d}:00")
+            
+            projected_revenue = current_day_revenue
+            
+            # Projetar apenas para as horas completas restantes (não incluir a hora parcial)
+            for hour in range(projection_hour + 1, 24):
+                if hour in historical_by_hour and historical_by_hour[hour]['days_with_data'] >= 5:  # Mínimo 5 dias com dados
+                    avg_revenue = historical_by_hour[hour]['avg_revenue']
+                    projected_revenue += avg_revenue
+                else:
+                    # Se não há dados históricos suficientes, usar média geral
+                    total_avg = sum([h['avg_revenue'] for h in historical_by_hour.values() if h['days_with_data'] >= 5])
+                    total_hours = len([h for h in historical_by_hour.values() if h['days_with_data'] >= 5])
+                    if total_hours > 0:
+                        projected_revenue += total_avg / total_hours
+            
+            return {
+                'current_revenue': current_day_revenue,
+                'projected_revenue': projected_revenue,
+                'last_order_time': last_order_time,
+                'current_hour': projection_hour,
+                'remaining_hours': remaining_hours,
+                'historical_by_hour': historical_by_hour,
+                'current_by_hour': current_by_hour,
+                'projection_hour': projection_hour,
+                'hour_fraction': hour_fraction
+            }
+        else:
+            # Para outras empresas, usar lógica genérica
+            query = f"""
+            SELECT
+                max(DATETIME(TIMESTAMP(created_at), "America/Sao_Paulo")) as last_order_time,
+                SUM(value) AS total_value
+            FROM `{project_id}.dbt_join.{tablename}_events_long`
+            WHERE
+                DATE(TIMESTAMP(created_at), "America/Sao_Paulo") = CURRENT_DATE("America/Sao_Paulo")
+                AND event_name = 'purchase'
+                AND status in ('paid', 'authorized')
+            GROUP BY status
+            """
+            
+            query_job = client.query(query)
+            rows_raw = query_job.result()
+            rows = [dict(row) for row in rows_raw]
+            
+            if rows:
+                current_revenue = rows[0]['total_value'] if rows[0]['total_value'] else 0
+                last_order_time = rows[0]['last_order_time']
+                
+                # Projeção simples baseada na média diária dos últimos 7 dias
+                projection_query = f"""
+                SELECT AVG(daily_revenue) as avg_daily_revenue
+                FROM (
+                    SELECT 
+                        DATE(TIMESTAMP(created_at), "America/Sao_Paulo") as order_date,
+                        SUM(value) as daily_revenue
+                    FROM `{project_id}.dbt_join.{tablename}_events_long`
+                    WHERE
+                        DATE(TIMESTAMP(created_at), "America/Sao_Paulo") >= DATE_SUB(CURRENT_DATE("America/Sao_Paulo"), INTERVAL 7 DAY)
+                        AND DATE(TIMESTAMP(created_at), "America/Sao_Paulo") < CURRENT_DATE("America/Sao_Paulo")
+                        AND event_name = 'purchase'
+                        AND status in ('paid', 'authorized')
+                    GROUP BY order_date
+                )
+                """
+                
+                projection_result = client.query(projection_query)
+                projection_data = [dict(row) for row in projection_result.result()]
+                
+                avg_daily_revenue = projection_data[0]['avg_daily_revenue'] if projection_data and projection_data[0]['avg_daily_revenue'] else 0
+                
+                # Calcular projeção baseada no progresso do dia
+                current_hour = datetime.now().hour
+                progress_ratio = current_hour / 24
+                projected_revenue = current_revenue + (avg_daily_revenue * (1 - progress_ratio))
+                
+                return {
+                    'current_revenue': current_revenue,
+                    'projected_revenue': projected_revenue,
+                    'last_order_time': last_order_time,
+                    'current_hour': current_hour,
+                    'remaining_hours': 24 - current_hour,
+                    'avg_daily_revenue': avg_daily_revenue
+                }
+            else:
+                return {
+                    'current_revenue': 0,
+                    'projected_revenue': 0,
+                    'last_order_time': None,
+                    'current_hour': datetime.now().hour,
+                    'remaining_hours': 24 - datetime.now().hour
+                }
+                
+    except Exception as e:
+        print(f"Erro ao carregar projeção diária: {str(e)}")
+        return {
+            'current_revenue': 0,
+            'projected_revenue': 0,
+            'last_order_time': None,
+            'current_hour': datetime.now().hour,
+            'remaining_hours': 24 - datetime.now().hour,
+            'error': str(e)
+        }
+
+def send_daily_projection_alert(tablename, phone, testing_mode=False):
+    """
+    Envia um alerta com a projeção dos resultados do dia via WhatsApp.
+    
+    Args:
+        tablename (str): Nome da tabela para verificar a projeção
+        phone (str): Número do telefone ou ID do grupo
+        testing_mode (bool): Se True, envia mensagem de teste
+    """
+    try:
+        if testing_mode:
+            print(f"\n📊 TESTE - Verificando projeção diária para {tablename}...")
+        else:
+            print(f"\nVerificando projeção diária para {tablename}...")
+
+        # Carregar projeção diária
+        print("Carregando projeção diária...")
+        projection_data = load_daily_projection(tablename)
+        print(f"Dados de projeção: {projection_data}")
+        
+        if 'error' in projection_data:
+            error_msg = f"*{tablename.upper()}*\n\n❌ *Erro ao carregar projeção diária*\n{projection_data['error']}"
+            send_whatsapp_message(error_msg, phone)
+            return
+        
+        current_revenue = projection_data['current_revenue']
+        projected_revenue = projection_data['projected_revenue']
+        last_order_time = projection_data['last_order_time']
+        current_hour = projection_data['current_hour']
+        remaining_hours = projection_data['remaining_hours']
+        
+        # Criar mensagem de projeção
+        test_header = " - TESTE" if testing_mode else ""
+        message = f"""
+*{tablename.upper()}*{test_header}
+
+🎯 Projeção do dia: R$ {projected_revenue:,.2f}
+
+💰 Faturamento até agora: R$ {current_revenue:,.2f}
+🕒 Último pedido: {last_order_time.strftime('%H:%M') if last_order_time else 'N/A'}
+"""
+        
+        # Enviar mensagem
+        send_whatsapp_message(message, phone)
+        
+    except Exception as e:
+        print(f"❌ Erro ao verificar projeção diária para {tablename}: {str(e)}")
+        error_msg = f"*{tablename.upper()}*\n\n❌ *Erro ao verificar projeção diária*\n{str(e)}"
+        send_whatsapp_message(error_msg, phone)
+
+def send_daily_projection_alerts_to_all_groups(test_mode=False):
+    """
+    Envia alertas de projeção diária para todos os grupos de WhatsApp cadastrados.
+    
+    Args:
+        test_mode (bool): Se True, envia para o grupo de teste
+    """
+    try:
+        # Carregar usuários
+        users = load_users()
+        
+        # Grupo de teste para modo teste
+        test_group = "120363322379870288-group"
+        
+        print(f"📊 Enviando alertas de projeção diária para {len(users)} clientes...")
+        
+        # Enviar alerta para cada usuário que tem grupo de WhatsApp
+        for user in users:
+            if user.get('slug'):
+                print(f"\nEnviando alerta de projeção diária para {user.get('slug')}...")
+                if test_mode:
+                    send_daily_projection_alert(user.get('slug'), test_group, testing_mode=True)
+                elif user.get('wpp_group'):
+                    send_daily_projection_alert(user.get('slug'), user.get('wpp_group'))
+                
+    except Exception as e:
+        print(f"❌ Erro ao enviar alertas de projeção diária: {str(e)}")
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "all":
         if len(sys.argv) > 2 and sys.argv[2] == "test":
@@ -1751,6 +2051,11 @@ if __name__ == "__main__":
             send_data_quality_alerts_to_all_groups(test_mode=True)
         else:
             send_data_quality_alerts_to_all_groups(test_mode=False)
+    elif len(sys.argv) > 1 and sys.argv[1] == "projection":
+        if len(sys.argv) > 2 and sys.argv[2] == "test":
+            send_daily_projection_alerts_to_all_groups(test_mode=True)
+        else:
+            send_daily_projection_alerts_to_all_groups(test_mode=False)
     elif len(sys.argv) > 1 and sys.argv[1] == "cookies":
         if len(sys.argv) > 2 and sys.argv[2] == "test":
             send_cookie_alerts_to_test_group()
@@ -1769,6 +2074,8 @@ if __name__ == "__main__":
                 send_performance_alert(company, test_group, testing_mode=True)
             elif alert_type == "quality":
                 send_data_quality_alert(company, test_group, testing_mode=True)
+            elif alert_type == "projection":
+                send_daily_projection_alert(company, test_group, testing_mode=True)
             else:
                 send_goal_alert(company, test_group, testing_mode=True)
         else:
@@ -1787,6 +2094,8 @@ if __name__ == "__main__":
                     send_performance_alert(company, client_group)
                 elif alert_type == "quality":
                     send_data_quality_alert(company, client_group)
+                elif alert_type == "projection":
+                    send_daily_projection_alert(company, client_group)
                 else:
                     send_goal_alert(company, client_group)
             else:
@@ -1817,9 +2126,10 @@ if __name__ == "__main__":
     else:
         print("❌ Uso incorreto do script")
         print("Para enviar para um cliente específico: python3 alerts/whatsapp.py [slug] [test]")
-        print("Para enviar alerta específico: python3 alerts/whatsapp.py [slug] [performance|quality] [test]")
+        print("Para enviar alerta específico: python3 alerts/whatsapp.py [slug] [performance|quality|projection] [test]")
         print("Para enviar para todos os grupos: python3 alerts/whatsapp.py all")
         print("Para enviar para todos os clientes em modo teste: python3 alerts/whatsapp.py all test")
         print("Para alertas de performance: python3 alerts/whatsapp.py performance [test]")
         print("Para alertas de qualidade: python3 alerts/whatsapp.py quality [test]")
+        print("Para alertas de projeção diária: python3 alerts/whatsapp.py projection [test]")
         print("Para verificar perda de cookies: python3 alerts/whatsapp.py cookies test") 
