@@ -2038,9 +2038,9 @@ def send_daily_projection_alerts_to_all_groups(test_mode=False):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "all":
         if len(sys.argv) > 2 and sys.argv[2] == "test":
-            send_alerts_to_all_groups(test_mode=True)
+            send_goal_alert("all", "test_group", test_mode=True)
         else:
-            send_alerts_to_all_groups(test_mode=False)
+            print("❌ Para enviar para todos os clientes, use: python3 alerts/whatsapp.py projection [test]")
     elif len(sys.argv) > 1 and sys.argv[1] == "performance":
         if len(sys.argv) > 2 and sys.argv[2] == "test":
             send_performance_alerts_to_all_groups(test_mode=True)
@@ -2102,23 +2102,31 @@ if __name__ == "__main__":
                 print(f"❌ Grupo de WhatsApp não encontrado para o cliente {company}")
     elif len(sys.argv) > 2:
         company = sys.argv[1]
-        is_test = sys.argv[2] == "test"
-        
-        if is_test:
+        arg2 = sys.argv[2]
+        if arg2 == "test":
             # Send test message to the specified group
             test_group = "120363322379870288-group"
             send_goal_alert(company, test_group)
-        else:
-            # Get the client's WhatsApp group from configuration
+        elif arg2 == "projection":
+            # Enviar projeção diária para o grupo real
             users = load_users()
             client_group = None
-            
-            # Find the WhatsApp group for the specified client
             for user in users:
                 if user.get('slug') == company and user.get('wpp_group'):
                     client_group = user.get('wpp_group')
                     break
-            
+            if client_group:
+                send_daily_projection_alert(company, client_group)
+            else:
+                print(f"❌ Grupo de WhatsApp não encontrado para o cliente {company}")
+        else:
+            # Get the client's WhatsApp group from configuration
+            users = load_users()
+            client_group = None
+            for user in users:
+                if user.get('slug') == company and user.get('wpp_group'):
+                    client_group = user.get('wpp_group')
+                    break
             if client_group:
                 send_goal_alert(company, client_group)
             else:
