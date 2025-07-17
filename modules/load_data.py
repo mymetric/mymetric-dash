@@ -2265,3 +2265,58 @@ def load_constance_errors():
     except Exception as e:
         st.error(f"Erro ao carregar dados de erros: {str(e)}")
         return pd.DataFrame()
+
+@background_cache(ttl_hours=1)
+def load_havaianas_daily_scores():
+    """
+    Carrega dados de scores diários da Havaianas.
+    """
+    if toast_alerts():
+        st.toast("Carregando scores diários...")
+
+    start_date = st.session_state.get('start_date')
+    end_date = st.session_state.get('end_date')
+
+    if not start_date or not end_date:
+        print("Erro: start_date ou end_date não estão definidos na sessão")
+        return pd.DataFrame()
+
+    try:
+        query = f"""
+        SELECT
+            event_date as Data,
+            COALESCE(promo_label, 0) as Promo_Label,
+            COALESCE(size_score, 0) as Size_Score,
+            COALESCE(revenue, 0) as Revenue
+        FROM `bq-mktbr.dbt_aggregated.havaianas_daily_scores`
+        WHERE event_date >= @start_date
+        AND event_date <= @end_date
+        ORDER BY event_date
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("start_date", "DATE", start_date),
+                bigquery.ScalarQueryParameter("end_date", "DATE", end_date),
+            ]
+        )
+        
+        print(f"Executando query de scores diários com datas: {start_date} a {end_date}")
+        query_job = client.query(query, job_config=job_config)
+        rows = query_job.result()
+        
+        # Converter para DataFrame
+        df = pd.DataFrame([dict(row) for row in rows])
+        
+        if not df.empty:
+            print(f"Dados de scores carregados: {len(df)} registros")
+            return df
+        else:
+            print("Nenhum dado de scores encontrado")
+            return pd.DataFrame()
+        
+    except Exception as e:
+        print(f"Erro ao carregar dados de scores diários: {str(e)}")
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}")
+        return pd.DataFrame()

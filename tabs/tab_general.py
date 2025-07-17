@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 from datetime import datetime, date
 
-from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup, load_costs, load_revenue_by_traffic_category, save_costs, load_traffic_categories
+from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup, load_costs, load_revenue_by_traffic_category, save_costs, load_traffic_categories, load_havaianas_daily_scores
 from modules.components import big_number_box
 from partials.run_rate import display_run_rate
 from partials.pendings import display_pendings
@@ -418,6 +418,268 @@ def tables(df):
     
     # Exibir a tabela
     st.dataframe(styled_df, hide_index=True, use_container_width=True)
+
+    st.markdown("---")
+
+    # Gráfico de Scores Diários (apenas para Havaianas)
+    if st.session_state.get('tablename') == 'havaianas':
+        with st.spinner("🔄 Carregando scores diários..."):
+            scores_df = load_havaianas_daily_scores()
+            
+            if scores_df is not None and not scores_df.empty:
+                st.header("Timeline: Receita vs Size Score")
+                
+                # Converter Size Score para porcentagem (multiplicar por 100)
+                scores_df['Size_Score_Pct'] = scores_df['Size_Score'] * 100
+                
+                # Calcular médias móveis de 7 dias
+                scores_df['Revenue_MA7'] = scores_df['Revenue'].rolling(window=7, min_periods=1).mean()
+                scores_df['Size_Score_MA7'] = scores_df['Size_Score_Pct'].rolling(window=7, min_periods=1).mean()
+                
+                # Formatar os valores para o tooltip
+                scores_df['Revenue_fmt'] = scores_df['Revenue'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                scores_df['Revenue_MA7_fmt'] = scores_df['Revenue_MA7'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                scores_df['Size_Score_fmt'] = scores_df['Size_Score_Pct'].apply(lambda x: f"{x:.2f}%")
+                scores_df['Size_Score_MA7_fmt'] = scores_df['Size_Score_MA7'].apply(lambda x: f"{x:.2f}%")
+
+                # Criar gráfico de linha para Size Score (dados originais)
+                line_size = alt.Chart(scores_df).mark_line(color='#3B82F6', strokeWidth=1.5, opacity=0.7).encode(
+                    x=alt.X('Data:T', 
+                            title='Data',
+                            axis=alt.Axis(format='%d/%m', labelAngle=0)),
+                    y=alt.Y('Size_Score_Pct:Q', 
+                            axis=alt.Axis(title='Size Score (%)',
+                                         format='.1f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Size_Score_fmt:N', title='Size Score'),
+                        alt.Tooltip('Size_Score_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Criar gráfico de linha para Size Score (média móvel)
+                line_size_ma = alt.Chart(scores_df).mark_line(color='#1E40AF', strokeWidth=3).encode(
+                    x=alt.X('Data:T', title='Data'),
+                    y=alt.Y('Size_Score_MA7:Q', 
+                            axis=alt.Axis(title='Size Score (%)',
+                                         format='.1f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Size_Score_fmt:N', title='Size Score'),
+                        alt.Tooltip('Size_Score_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Criar gráfico de barras para Revenue (dados originais)
+                bar_revenue = alt.Chart(scores_df).mark_bar(color='#F59E0B', size=20, opacity=0.7).encode(
+                    x=alt.X('Data:T', title='Data'),
+                    y=alt.Y('Revenue:Q', 
+                            axis=alt.Axis(title='Receita (R$)',
+                                         format='$,.0f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Revenue_fmt:N', title='Receita'),
+                        alt.Tooltip('Revenue_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Criar gráfico de linha para Revenue (média móvel)
+                line_revenue_ma = alt.Chart(scores_df).mark_line(color='#D97706', strokeWidth=3).encode(
+                    x=alt.X('Data:T', title='Data'),
+                    y=alt.Y('Revenue_MA7:Q', 
+                            axis=alt.Axis(title='Receita (R$)',
+                                         format='$,.0f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Revenue_fmt:N', title='Receita'),
+                        alt.Tooltip('Revenue_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Combine os gráficos com escalas independentes
+                timeline_chart = alt.layer(
+                    bar_revenue,
+                    line_revenue_ma,
+                    line_size,
+                    line_size_ma
+                ).resolve_scale(
+                    y='independent'
+                ).properties(
+                    width=700,
+                    height=400,
+                    title=alt.TitleParams(
+                        text='Timeline: Receita vs Size Score',
+                        fontSize=16,
+                        font='DM Sans',
+                        anchor='start',
+                        dy=-10
+                    )
+                ).configure_axis(
+                    grid=True,
+                    gridOpacity=0.1,
+                    labelFontSize=12,
+                    titleFontSize=13,
+                    labelFont='DM Sans',
+                    titleFont='DM Sans'
+                ).configure_view(
+                    strokeWidth=0
+                )
+
+                st.altair_chart(timeline_chart, use_container_width=True)
+
+                # Adiciona legenda centralizada
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.markdown("""
+                        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 12px; background-color: #F59E0B;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Receita</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 2px; background-color: #3B82F6;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Size Score</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("---")
+
+                # Segundo gráfico: Receita vs Promo Label
+                st.header("Timeline: Receita vs Promo Label")
+                
+                # Verificar se Promo Label já vem como porcentagem ou decimal
+                # Se os valores são menores que 1, multiplicar por 100
+                if scores_df['Promo_Label'].max() < 1:
+                    scores_df['Promo_Label_Pct'] = scores_df['Promo_Label'] * 100
+                else:
+                    scores_df['Promo_Label_Pct'] = scores_df['Promo_Label']
+                
+                # Calcular média móvel de 7 dias para Promo Label
+                scores_df['Promo_Label_MA7'] = scores_df['Promo_Label_Pct'].rolling(window=7, min_periods=1).mean()
+                
+                # Formatar os valores para o tooltip
+                scores_df['Promo_Label_fmt'] = scores_df['Promo_Label_Pct'].apply(lambda x: f"{x:.2f}%")
+                scores_df['Promo_Label_MA7_fmt'] = scores_df['Promo_Label_MA7'].apply(lambda x: f"{x:.2f}%")
+
+                # Criar gráfico de linha para Promo Label (dados originais)
+                line_promo = alt.Chart(scores_df).mark_line(color='#10B981', strokeWidth=1.5, opacity=0.7).encode(
+                    x=alt.X('Data:T', 
+                            title='Data',
+                            axis=alt.Axis(format='%d/%m', labelAngle=0)),
+                    y=alt.Y('Promo_Label_Pct:Q', 
+                            axis=alt.Axis(title='Promo Label (%)',
+                                         format='.1f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Promo_Label_fmt:N', title='Promo Label'),
+                        alt.Tooltip('Promo_Label_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Criar gráfico de linha para Promo Label (média móvel)
+                line_promo_ma = alt.Chart(scores_df).mark_line(color='#047857', strokeWidth=3).encode(
+                    x=alt.X('Data:T', title='Data'),
+                    y=alt.Y('Promo_Label_MA7:Q', 
+                            axis=alt.Axis(title='Promo Label (%)',
+                                         format='.1f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Promo_Label_fmt:N', title='Promo Label'),
+                        alt.Tooltip('Promo_Label_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Criar gráfico de barras para Revenue (reutilizar o mesmo)
+                bar_revenue_promo = alt.Chart(scores_df).mark_bar(color='#F59E0B', size=20, opacity=0.7).encode(
+                    x=alt.X('Data:T', title='Data'),
+                    y=alt.Y('Revenue:Q', 
+                            axis=alt.Axis(title='Receita (R$)',
+                                         format='$,.0f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Revenue_fmt:N', title='Receita'),
+                        alt.Tooltip('Revenue_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Criar gráfico de linha para Revenue (média móvel) - reutilizar do primeiro gráfico
+                line_revenue_promo_ma = alt.Chart(scores_df).mark_line(color='#D97706', strokeWidth=3).encode(
+                    x=alt.X('Data:T', title='Data'),
+                    y=alt.Y('Revenue_MA7:Q', 
+                            axis=alt.Axis(title='Receita (R$)',
+                                         format='$,.0f',
+                                         titlePadding=10),
+                            scale=alt.Scale(zero=False)),
+                    tooltip=[
+                        alt.Tooltip('Data:T', title='Data', format='%d/%m/%Y'),
+                        alt.Tooltip('Revenue_fmt:N', title='Receita'),
+                        alt.Tooltip('Revenue_MA7_fmt:N', title='Média Móvel 7d')
+                    ]
+                )
+
+                # Combine os gráficos com escalas independentes
+                timeline_promo_chart = alt.layer(
+                    bar_revenue_promo,
+                    line_revenue_promo_ma,
+                    line_promo,
+                    line_promo_ma
+                ).resolve_scale(
+                    y='independent'
+                ).properties(
+                    width=700,
+                    height=400,
+                    title=alt.TitleParams(
+                        text='Timeline: Receita vs Promo Label',
+                        fontSize=16,
+                        font='DM Sans',
+                        anchor='start',
+                        dy=-10
+                    )
+                ).configure_axis(
+                    grid=True,
+                    gridOpacity=0.1,
+                    labelFontSize=12,
+                    titleFontSize=13,
+                    labelFont='DM Sans',
+                    titleFont='DM Sans'
+                ).configure_view(
+                    strokeWidth=0
+                )
+
+                st.altair_chart(timeline_promo_chart, use_container_width=True)
+
+                # Adiciona legenda centralizada
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.markdown("""
+                        <div style="display: flex; justify-content: center; gap: 30px; margin-top: -20px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 12px; background-color: #F59E0B;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Receita</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 2px; background-color: #10B981;"></div>
+                                <span style="color: #4B5563; font-size: 14px;">Promo Label</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("---")
 
     st.markdown("---")
 
