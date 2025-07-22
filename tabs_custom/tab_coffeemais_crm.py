@@ -6,7 +6,9 @@ import pandas as pd
 def display_tab_coffeemais_crm():
     # Load the data
     df = load_coffeemais_crm()
-    
+    st.write(df)
+
+    # Remover verificação de colunas 'read' e 'failed', e não calcular métricas que dependem delas
     # Load notification to segment mapping
     with open('mappings/coffeemais_notification_segment_mapping.txt', 'r') as f:
         mapping_lines = f.readlines()
@@ -316,9 +318,9 @@ def display_tab_coffeemais_crm():
         # Calculate conversion rate for each row
         filtered_df['conversion_rate'] = (filtered_df['orders'] / filtered_df['sent'] * 100).round(2)
         
-        # Calculate open rate and failure rate
-        filtered_df['open_rate'] = (filtered_df['read'] / filtered_df['sent'] * 100).round(2)
-        filtered_df['failure_rate'] = (filtered_df['failed'] / filtered_df['sent'] * 100).round(2)
+        # Remover cálculo de open_rate e failure_rate
+        # filtered_df['open_rate'] = (filtered_df['read'] / filtered_df['sent'] * 100).round(2)
+        # filtered_df['failure_rate'] = (filtered_df['failed'] / filtered_df['sent'] * 100).round(2)
         
         # Format the dates
         filtered_df['date_first_sent'] = pd.to_datetime(filtered_df['date_first_sent']).dt.strftime('%d/%m/%Y %H:%M')
@@ -337,12 +339,11 @@ def display_tab_coffeemais_crm():
             'sent': 'Mensagens Enviadas',
             'orders': 'Pedidos',
             'revenue': 'Receita',
-            'conversion_rate': 'Taxa de Conversão (%)',
-            'open_rate': 'Taxa de Abertura (%)',
-            'failure_rate': 'Taxa de Falha (%)'
+            'conversion_rate': 'Taxa de Conversão (%)'
+            # Remover 'open_rate' e 'failure_rate'
         })
         
-        # Reorder columns
+        # Reorder columns (remover as taxas de abertura e falha)
         columns_order = [
             'Canal',
             'Tipo de Disparo',
@@ -354,8 +355,6 @@ def display_tab_coffeemais_crm():
             'Mensagens Enviadas',
             'Pedidos',
             'Taxa de Conversão (%)',
-            'Taxa de Abertura (%)',
-            'Taxa de Falha (%)',
             'Receita'
         ]
         filtered_df = filtered_df[columns_order]
@@ -375,16 +374,6 @@ def display_tab_coffeemais_crm():
                     'Taxa de Conversão (%)',
                     format="%.2f%%",
                     help="Percentual de mensagens que geraram pedidos"
-                ),
-                'Taxa de Abertura (%)': st.column_config.NumberColumn(
-                    'Taxa de Abertura (%)',
-                    format="%.2f%%",
-                    help="Percentual de mensagens que foram abertas"
-                ),
-                'Taxa de Falha (%)': st.column_config.NumberColumn(
-                    'Taxa de Falha (%)',
-                    format="%.2f%%",
-                    help="Percentual de mensagens que falharam no envio"
                 ),
                 'Mensagens Enviadas': st.column_config.NumberColumn(
                     'Mensagens Enviadas',
@@ -426,16 +415,13 @@ def display_tab_coffeemais_crm():
                 'date_first_sent': 'Data do Envio',
                 'name': 'Nome da Notificação',
                 'sent': 'Mensagens Enviadas',
-                'delivered': 'Mensagens Entregues',
-                'failed': 'Mensagens com Falha',
-                'read': 'Mensagens Lidas',
                 'order_id': 'ID Pedido',
                 'orders': 'Pedidos',
                 'revenue': 'Receita',
                 'hours_between': 'Horas até a Compra'
             })
             
-            # Reorder columns
+            # Reorder columns (remover as colunas que não existem)
             columns_order = [
                 'Canal',
                 'ID da Notificação',
@@ -445,13 +431,12 @@ def display_tab_coffeemais_crm():
                 'Data do Envio',
                 'Horas até a Compra',
                 'Mensagens Enviadas',
-                'Mensagens Entregues',
-                'Mensagens com Falha',
-                'Mensagens Lidas',
                 'ID Pedido',
                 'Pedidos',
                 'Receita'
             ]
+            # Filtrar apenas colunas que existem
+            columns_order = [col for col in columns_order if col in df_detailed.columns]
             df_detailed = df_detailed[columns_order]
             
             # Display the dataframe with sorting enabled
@@ -474,21 +459,6 @@ def display_tab_coffeemais_crm():
                         'Mensagens Enviadas',
                         format="%.0f",
                         help="Número total de mensagens enviadas"
-                    ),
-                    'Mensagens Entregues': st.column_config.NumberColumn(
-                        'Mensagens Entregues',
-                        format="%.0f",
-                        help="Número de mensagens entregues com sucesso"
-                    ),
-                    'Mensagens com Falha': st.column_config.NumberColumn(
-                        'Mensagens com Falha',
-                        format="%.0f",
-                        help="Número de mensagens que falharam no envio"
-                    ),
-                    'Mensagens Lidas': st.column_config.NumberColumn(
-                        'Mensagens Lidas',
-                        format="%.0f",
-                        help="Número de mensagens que foram lidas"
                     ),
                     'Pedidos': st.column_config.NumberColumn(
                         'Pedidos',
