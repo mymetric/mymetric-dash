@@ -1994,9 +1994,6 @@ def send_daily_projection_alert(tablename, phone, testing_mode=False):
 *{tablename.upper()}*{test_header}
 
 🎯 Projeção do dia: R$ {projected_revenue:,.2f}
-
-💰 Faturamento até agora: R$ {current_revenue:,.2f}
-🕒 Último pedido: {last_order_time.strftime('%H:%M') if last_order_time else 'N/A'}
 """
         
         # Enviar mensagem
