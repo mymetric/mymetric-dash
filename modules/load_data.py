@@ -1970,11 +1970,11 @@ def load_purchase_items_sessions():
             campaign `Campanha`,
             content `Conteúdo`,
             term `Termo`,
-            landing_page `Página de Entrada`,
-            CASE 
-                WHEN total_discounts > 0 THEN 'Com Cupom'
-                ELSE 'Sem Cupom'
-            END `Cupom`
+            landing_page `Página de Entrada`
+            # CASE 
+            #     WHEN total_discounts > 0 THEN 'Com Cupom'
+            #     ELSE 'Sem Cupom'
+            # END `Cupom`
         FROM `{project_name}.dbt_join.{tablename}_enhanced_ecommerce_sessions`, 
         UNNEST(items) as item
         WHERE event_name = "purchase"
