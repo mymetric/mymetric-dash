@@ -4,6 +4,8 @@ import altair as alt
 from modules.load_data import load_purchase_items
 from modules.components import big_number_box
 
+# Nota: Este módulo utiliza o fuso horário de São Paulo (America/Sao_Paulo) para todos os cálculos de tempo
+
 def format_currency(value):
     """Formata valor para o padrão de moeda BR."""
     return f"R$ {value:,.2f}".replace(",", "*").replace(".", ",").replace("*", ".")
@@ -196,7 +198,7 @@ def display_tab_today():
     # Projeção do Dia
     st.header("Projeção do Dia")
     
-    # Calcular progresso do dia
+    # Calcular progresso do dia (usando horário de São Paulo)
     hora_atual = pd.Timestamp.now(tz='America/Sao_Paulo').hour
     progresso_dia = hora_atual / 24
     
@@ -250,7 +252,7 @@ def display_tab_today():
     # Adicionar texto explicativo
     st.markdown(f"""
     <div style='text-align: center; color: #666; font-size: 0.9em; margin-top: 20px;'>
-        Projeção baseada no progresso atual do dia ({hora_atual}h) - {progresso_dia*100:.1f}% do dia
+        Projeção baseada no progresso atual do dia ({hora_atual}h - Horário de São Paulo) - {progresso_dia*100:.1f}% do dia
     </div>
     """, unsafe_allow_html=True)
     
@@ -260,7 +262,19 @@ def display_tab_today():
     st.header("Análise por Hora")
     
     # Converter event_timestamp para datetime e ajustar para São Paulo
-    df_filtrado['hora'] = pd.to_datetime(df_filtrado['event_timestamp']).dt.tz_localize('UTC').dt.tz_convert('America/Sao_Paulo').dt.hour
+    # event_timestamp é um timestamp em microssegundos UTC (mesmo formato usado no BigQuery)
+    df_filtrado['datetime_sp'] = pd.to_datetime(df_filtrado['event_timestamp'], unit='us', utc=True).dt.tz_convert('America/Sao_Paulo')
+    df_filtrado['hora'] = df_filtrado['datetime_sp'].dt.hour
+    df_filtrado['data_sp'] = df_filtrado['datetime_sp'].dt.date
+    
+    # Filtrar apenas dados do dia atual em São Paulo
+    data_atual_sp = pd.Timestamp.now(tz='America/Sao_Paulo').date()
+    df_filtrado = df_filtrado[df_filtrado['data_sp'] == data_atual_sp]
+    
+    # Filtrar horas válidas (0-23) para remover valores negativos
+    df_filtrado = df_filtrado[df_filtrado['hora'].between(0, 23)]
+    
+
     
     # Agrupar por hora
     df_hora = df_filtrado.groupby('hora').agg({
@@ -283,9 +297,10 @@ def display_tab_today():
     df_hora['Taxa de Conversão'] = (df_hora['Pedidos'] / df_hora['Sessões'] * 100).round(2)
     
     # Gráfico de barras para receita por hora
-    chart_hora = alt.Chart(df_hora).mark_bar(color='#3B82F6', size=20).encode(
+    chart_hora = alt.Chart(df_hora).transform_filter(alt.datum.Hora >= 0).mark_bar(color='#3B82F6', size=20).encode(
         x=alt.X('Hora:Q', 
                 title='Hora do Dia',
+                scale=alt.Scale(domain=[0, 23]),
                 axis=alt.Axis(format='d', labelAngle=0)),
         y=alt.Y('Receita:Q', 
                 title='Receita',
@@ -323,9 +338,10 @@ def display_tab_today():
     st.altair_chart(chart_hora, use_container_width=True)
     
     # Gráfico de linha para sessões e taxa de conversão
-    base = alt.Chart(df_hora).encode(
+    base = alt.Chart(df_hora).transform_filter(alt.datum.Hora >= 0).encode(
         x=alt.X('Hora:Q', 
                 title='Hora do Dia',
+                scale=alt.Scale(domain=[0, 23]),
                 axis=alt.Axis(format='d', labelAngle=0))
     )
     
@@ -511,7 +527,7 @@ def display_tab_today():
     
     st.markdown("""---""")
     
-    # Seção 7: Análise por Termo
+    # Seção 11: Análise por Termo
     st.header("Termo")
     
     # Análise por Termo
@@ -585,4 +601,83 @@ def display_tab_today():
         }),
         use_container_width=True,
         hide_index=True
-    ) 
+    )
+    
+    st.markdown("""---""")
+    
+    # Seção 9: Análise por Categoria
+    st.header("Categoria")
+    
+    # Análise por Categoria
+    df_categoria = df_filtrado.groupby('item_category').agg({
+        'quantity': 'sum',
+        'item_revenue': 'sum',
+        'transaction_id': 'nunique',
+        'session_id': 'nunique'
+    }).reset_index()
+    
+    df_categoria = df_categoria.rename(columns={
+        'item_category': 'Categoria',
+        'quantity': 'Itens Vendidos',
+        'item_revenue': 'Receita',
+        'transaction_id': 'Pedidos',
+        'session_id': 'Sessões'
+    })
+    
+    # Calcular ticket médio e taxa de conversão por categoria
+    df_categoria['Ticket Médio'] = df_categoria['Receita'] / df_categoria['Pedidos']
+    df_categoria['Taxa de Conversão'] = (df_categoria['Pedidos'] / df_categoria['Sessões'] * 100).round(2)
+    
+    # Ordenar por receita
+    df_categoria = df_categoria.sort_values('Receita', ascending=False)
+    
+    # Exibir tabela de categorias
+    st.dataframe(
+        df_categoria.style.format({
+            'Receita': lambda x: format_currency(x),
+            'Ticket Médio': lambda x: format_currency(x),
+            'Taxa de Conversão': lambda x: f"{x:.2f}%"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    st.markdown("""---""")
+    
+    # Seção 10: Análise por Produto
+    st.header("Produto")
+    
+    # Análise por Produto
+    df_produto = df_filtrado.groupby('item_name').agg({
+        'quantity': 'sum',
+        'item_revenue': 'sum',
+        'transaction_id': 'nunique',
+        'session_id': 'nunique'
+    }).reset_index()
+    
+    df_produto = df_produto.rename(columns={
+        'item_name': 'Produto',
+        'quantity': 'Itens Vendidos',
+        'item_revenue': 'Receita',
+        'transaction_id': 'Pedidos',
+        'session_id': 'Sessões'
+    })
+    
+    # Calcular ticket médio e taxa de conversão por produto
+    df_produto['Ticket Médio'] = df_produto['Receita'] / df_produto['Pedidos']
+    df_produto['Taxa de Conversão'] = (df_produto['Pedidos'] / df_produto['Sessões'] * 100).round(2)
+    
+    # Ordenar por receita
+    df_produto = df_produto.sort_values('Receita', ascending=False)
+    
+    # Exibir tabela de produtos
+    st.dataframe(
+        df_produto.style.format({
+            'Receita': lambda x: format_currency(x),
+            'Ticket Médio': lambda x: format_currency(x),
+            'Taxa de Conversão': lambda x: f"{x:.2f}%"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+    
