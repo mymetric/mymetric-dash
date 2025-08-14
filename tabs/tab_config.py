@@ -3,7 +3,7 @@ import streamlit as st
 from partials.run_rate import load_table_metas
 from datetime import datetime
 import pandas as pd
-from modules.load_data import save_goals, load_users, save_users, delete_user, save_event_name, save_traffic_categories, load_traffic_categories, delete_traffic_category, load_costs, save_costs
+from modules.load_data import save_goals, load_users, save_users, delete_user, save_event_name, save_traffic_categories, load_traffic_categories, delete_traffic_category
 import random
 import string
 import time
@@ -291,130 +291,15 @@ def traffic_categories_config():
     else:
         st.info("Nenhuma categoria cadastrada ainda.")
 
-def costs_config():
-    st.subheader("Configuração de Custos")
-    
-    # Carregar categorias de tráfego
-    categories_df = load_traffic_categories()
-    if categories_df.empty:
-        st.warning("Nenhuma categoria de tráfego cadastrada. Por favor, cadastre categorias na aba 'Categorias de Tráfego' primeiro.")
-        return
-    
-    # Carregar custos existentes
-    costs_df = load_costs()
-    
-    # Formulário para adicionar/editar custos
-    with st.form("custo_form"):
-        # Lista dos últimos 12 meses para seleção
-        months = []
-        for i in range(12):
-            month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
-            months.append(month)
-        
-        selected_month = st.selectbox(
-            "Mês de Referência",
-            options=months,
-            format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize()
-        )
-        
-        # Selecionar categoria
-        selected_category = st.selectbox(
-            "Categoria de Tráfego",
-            options=categories_df['Nome'].tolist()
-        )
-        
-        # Campos para custos
-        col1, col2, col3, col4, col5 = st.columns(5)
-        
-        with col1:
-            cost_of_product_percentage = st.number_input(
-                "Custo do Produto (%)",
-                min_value=0.0,
-                max_value=100.0,
-                step=0.1,
-                format="%.1f",
-                help="Porcentagem do custo do produto em relação à receita"
-            )
-        
-        with col2:
-            total_cost = st.number_input(
-                "Custo Total (R$)",
-                min_value=0.0,
-                step=100.0,
-                format="%.2f",
-                help="Custo total da categoria no mês"
-            )
-        
-        with col3:
-            tax_percentage = st.number_input(
-                "Imposto (%)",
-                min_value=0.0,
-                max_value=100.0,
-                step=0.1,
-                format="%.1f",
-                help="Percentual de imposto sobre a receita"
-            )
-        
-        with col4:
-            shipping_percentage = st.number_input(
-                "Frete Empresa (%)",
-                min_value=0.0,
-                max_value=100.0,
-                step=0.1,
-                format="%.1f",
-                help="Percentual de frete pago pela empresa"
-            )
-        
-        with col5:
-            commission_percentage = st.number_input(
-                "Comissão (%)",
-                min_value=0.0,
-                max_value=100.0,
-                step=0.1,
-                format="%.1f",
-                help="Percentual de comissão de vendas"
-            )
-        
-        submitted = st.form_submit_button("Salvar")
-        
-        if submitted:
-            if save_costs(selected_month, selected_category, cost_of_product_percentage, total_cost, tax_percentage, shipping_percentage, commission_percentage):
-                st.success("Custos salvos com sucesso!")
-                st.rerun()
-            else:
-                st.error("Erro ao salvar custos.")
-    
-    # Exibir custos existentes
-    if not costs_df.empty:
-        st.markdown("### Custos Cadastrados")
-        
-        # Campo de busca
-        search_term = st.text_input("Buscar custos", key="costs_search")
-        
-        # Filtrar custos baseado no termo de busca
-        if search_term:
-            costs_df = costs_df[
-                costs_df['Categoria'].str.contains(search_term, case=False, na=False) |
-                costs_df['Mês'].str.contains(search_term, case=False, na=False)
-            ]
-        
-        # Exibir custos em uma tabela
-        st.data_editor(
-            costs_df,
-            hide_index=True,
-            use_container_width=True
-        )
-    else:
-        st.info("Nenhum custo cadastrado ainda.")
+
 
 def display_tab_config():
     st.title("Configurações")
     
-    tab_users, tab_goals, tab_traffic, tab_costs = st.tabs([
+    tab_users, tab_goals, tab_traffic = st.tabs([
         "👥 Usuários",
         "🎯 Metas",
-        "🚦 Categorias de Tráfego",
-        "💰 Custos"
+        "🚦 Categorias de Tráfego"
     ])
     
     with tab_users:
@@ -425,8 +310,5 @@ def display_tab_config():
     
     with tab_traffic:
         traffic_categories_config()
-        
-    with tab_costs:
-        costs_config()
     
     

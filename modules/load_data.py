@@ -1694,9 +1694,11 @@ def load_costs():
                     # Criar registros para cada mês e categoria
                     for month, month_data in configs.items():
                         for category, category_data in month_data.items():
+                            # Converter "null" de volta para None para "🍪 Perda de Cookies"
+                            category_display = None if category == "null" else category
                             records.append({
                                 'Mês': month,
-                                'Categoria': category,
+                                'Categoria': category_display,
                                 'Custo do Produto (%)': category_data.get('cost_of_product_percentage', 0),
                                 'Custo Total': category_data.get('total_cost', 0),
                                 'Imposto (%)': category_data.get('tax_percentage', 0),
@@ -1800,7 +1802,9 @@ def save_costs(month, category, cost_of_product_percentage, total_cost, tax_perc
             print(f"Novo mês adicionado: {month}")
         
         # Atualizar ou criar categoria
-        configs[month][category] = {
+        # Usar "null" como chave quando category for None (para "🍪 Perda de Cookies")
+        category_key = "null" if category is None else category
+        configs[month][category_key] = {
             "cost_of_product_percentage": float(cost_of_product_percentage),
             "total_cost": float(total_cost),
             "tax_percentage": float(tax_percentage),

@@ -688,7 +688,6 @@ def tables(df):
     if st.session_state.get('tablename') == 'endogen':
         costs_df = load_costs()
         revenue_df = load_revenue_by_traffic_category()
-        st.write(revenue_df)
         
         if not costs_df.empty and not revenue_df.empty:
             st.header("Análise de Custos e Receita por Categoria")
@@ -724,14 +723,26 @@ def tables(df):
                     if col not in month_costs.columns:
                         month_costs[col] = 0.0
                 
+                # Preparar dados para merge - tratar None como "🍪 Perda de Cookies"
+                month_costs_for_merge = month_costs.copy()
+                month_costs_for_merge['Categoria'] = month_costs_for_merge['Categoria'].fillna("🍪 Perda de Cookies")
+                
+                # Preparar dados de receita - tratar None como "🍪 Perda de Cookies"
+                revenue_df_for_merge = revenue_df.copy()
+                revenue_df_for_merge['categoria_de_trafego'] = revenue_df_for_merge['categoria_de_trafego'].fillna("🍪 Perda de Cookies")
+                
+
+                
                 # Fazer o merge entre receita e custos
                 merged_df = pd.merge(
-                    revenue_df,
-                    month_costs[['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)']],
+                    revenue_df_for_merge,
+                    month_costs_for_merge[['Categoria', 'Custo do Produto (%)', 'Custo Total', 'Imposto (%)', 'Frete Empresa (%)', 'Comissão (%)']],
                     left_on='categoria_de_trafego',
                     right_on='Categoria',
                     how='left'
                 )
+                
+
                 
                 # Remover a coluna Categoria duplicada
                 if 'Categoria' in merged_df.columns:
@@ -753,17 +764,17 @@ def tables(df):
                 # Renomear Custo Total para Custo Fixo para consistência
                 merged_df = merged_df.rename(columns={'Custo Total': 'Custo Fixo'})
                 
-                # Calcular Custo do Produto Absoluto
-                merged_df['Custo do Produto Absoluto'] = merged_df['Receita'] * (merged_df['Custo do Produto (%)'] / 100)
+                # Calcular Custo do Produto Absoluto (sobre Receita Líquida)
+                merged_df['Custo do Produto Absoluto'] = merged_df['Receita Líquida'] * (merged_df['Custo do Produto (%)'] / 100)
                 
-                # Calcular Imposto Absoluto
-                merged_df['Imposto Absoluto'] = merged_df['Receita'] * (merged_df['Imposto (%)'] / 100)
+                # Calcular Imposto Absoluto (sobre Receita Líquida)
+                merged_df['Imposto Absoluto'] = merged_df['Receita Líquida'] * (merged_df['Imposto (%)'] / 100)
                 
-                # Calcular Frete Empresa Absoluto
-                merged_df['Frete Empresa Absoluto'] = merged_df['Receita'] * (merged_df['Frete Empresa (%)'] / 100)
+                # Calcular Frete Empresa Absoluto (sobre Receita Líquida)
+                merged_df['Frete Empresa Absoluto'] = merged_df['Receita Líquida'] * (merged_df['Frete Empresa (%)'] / 100)
                 
-                # Calcular Comissão Absoluta
-                merged_df['Comissão Absoluta'] = merged_df['Receita'] * (merged_df['Comissão (%)'] / 100)
+                # Calcular Comissão Absoluta (sobre Receita Líquida)
+                merged_df['Comissão Absoluta'] = merged_df['Receita Líquida'] * (merged_df['Comissão (%)'] / 100)
                 
                 # Calcular Custo Geral
                 merged_df['Custo Geral'] = merged_df['Custo do Produto Absoluto'] + merged_df['Imposto Absoluto'] + merged_df['Frete Empresa Absoluto'] + merged_df['Comissão Absoluta'] + merged_df['Custo Fixo']
@@ -870,21 +881,21 @@ def tables(df):
                     
                     #### 💰 **Indicadores de Custo**
                     
-                    **Custo Produto (%)**: Percentual do custo do produto em relação à receita bruta. Quando não configurado, usa 50% como padrão.
+                    **Custo Produto (%)**: Percentual do custo do produto em relação à receita líquida. Quando não configurado, usa 50% como padrão.
                     
-                    **Custo Produto (R$)**: Valor absoluto do custo do produto calculado sobre a receita bruta.
+                    **Custo Produto (R$)**: Valor absoluto do custo do produto calculado sobre a receita líquida.
                     
-                    **Imposto (%)**: Percentual de impostos (ICMS, PIS, COFINS, etc.) configurado sobre a receita bruta.
+                    **Imposto (%)**: Percentual de impostos (ICMS, PIS, COFINS, etc.) configurado sobre a receita líquida.
                     
-                    **Imposto (R$)**: Valor absoluto dos impostos calculado sobre a receita bruta.
+                    **Imposto (R$)**: Valor absoluto dos impostos calculado sobre a receita líquida.
                     
-                    **Frete Empresa (%)**: Percentual de frete pago pela empresa (frete grátis) em relação à receita bruta.
+                    **Frete Empresa (%)**: Percentual de frete pago pela empresa (frete grátis) em relação à receita líquida.
                     
-                    **Frete Empresa (R$)**: Valor absoluto do frete pago pela empresa calculado sobre a receita bruta.
+                    **Frete Empresa (R$)**: Valor absoluto do frete pago pela empresa calculado sobre a receita líquida.
                     
-                    **Comissão (%)**: Percentual de comissão de vendas pago a vendedores ou afiliados sobre a receita bruta.
+                    **Comissão (%)**: Percentual de comissão de vendas pago a vendedores ou afiliados sobre a receita líquida.
                     
-                    **Comissão (R$)**: Valor absoluto da comissão de vendas calculado sobre a receita bruta.
+                    **Comissão (R$)**: Valor absoluto da comissão de vendas calculado sobre a receita líquida.
                     
                     **Custo Fixo**: Custos operacionais mensais configurados por categoria (mídia paga, operação, infraestrutura, etc.).
                     
@@ -904,6 +915,56 @@ def tables(df):
                     """)
                 
                 st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs_enhanced")
+                
+                # Calcular e exibir totais
+                st.markdown("### 📊 Totais")
+                
+                # Calcular totais dos valores numéricos (antes da formatação)
+                totals = merged_df.agg({
+                    'Receita': 'sum',
+                    'frete': 'sum',
+                    'taxas_pagamento': 'sum',
+                    'cupom': 'sum',
+                    'Receita Líquida': 'sum',
+                    'Custo do Produto Absoluto': 'sum',
+                    'Imposto Absoluto': 'sum',
+                    'Frete Empresa Absoluto': 'sum',
+                    'Comissão Absoluta': 'sum',
+                    'Custo Fixo': 'sum',
+                    'Custo Geral': 'sum',
+                    'Retorno Absoluto': 'sum'
+                }).round(2)
+                
+                # Criar layout em colunas para os totais
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("💰 Receita Bruta", f"R$ {totals['Receita']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("🚚 Frete", f"R$ {totals['frete']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("💳 Taxas", f"R$ {totals['taxas_pagamento']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("🎫 Cupons", f"R$ {totals['cupom']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                
+                with col2:
+                    st.metric("💵 Receita Líquida", f"R$ {totals['Receita Líquida']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("📦 Custo Produto", f"R$ {totals['Custo do Produto Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("🏛️ Imposto", f"R$ {totals['Imposto Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("🚛 Frete Empresa", f"R$ {totals['Frete Empresa Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                
+                with col3:
+                    st.metric("👥 Comissão", f"R$ {totals['Comissão Absoluta']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("🔧 Custo Fixo", f"R$ {totals['Custo Fixo']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("💼 Custo Geral", f"R$ {totals['Custo Geral']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    
+                    # Calcular ROI geral
+                    roi_geral = (totals['Retorno Absoluto'] / totals['Custo Geral'] * 100) if totals['Custo Geral'] > 0 else 0
+                    st.metric("📈 ROI Geral", f"{roi_geral:.1f}%")
+                
+                with col4:
+                    st.metric("💎 Retorno", f"R$ {totals['Retorno Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    
+                    # Calcular margem geral
+                    margem_geral = (totals['Retorno Absoluto'] / totals['Receita Líquida'] * 100) if totals['Receita Líquida'] > 0 else 0
+                    st.metric("📊 Margem Geral", f"{margem_geral:.1f}%")
             
             with tab_config:
                 # Formulário para adicionar/editar custos
@@ -914,9 +975,17 @@ def tables(df):
                         month = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y-%m")
                         months.append(month)
                     
+                    # Usar o mês do filtro da aba lateral como padrão
+                    start_date = st.session_state.get('start_date')
+                    default_month = start_date.strftime("%Y-%m") if start_date and hasattr(start_date, 'strftime') else months[0]
+                    
+                    # Verificar se está editando um custo
+                    editing_cost = st.session_state.get('editing_cost', None)
+                    
                     selected_month = st.selectbox(
                         "Mês de Referência",
                         options=months,
+                        index=months.index(editing_cost['month']) if editing_cost and editing_cost['month'] in months else months.index(default_month) if default_month in months else 0,
                         format_func=lambda x: pd.to_datetime(x).strftime("%B/%Y").capitalize(),
                         key="custo_month"
                     )
@@ -931,6 +1000,7 @@ def tables(df):
                     selected_category = st.selectbox(
                         "Categoria de Tráfego",
                         options=available_clusters,
+                        index=available_clusters.index(editing_cost['category']) if editing_cost and editing_cost['category'] in available_clusters else 0,
                         key="custo_category"
                     )
                     
@@ -944,6 +1014,7 @@ def tables(df):
                             max_value=100.0,
                             step=0.1,
                             format="%.1f",
+                            value=editing_cost['cost_of_product_percentage'] if editing_cost else 0.0,
                             help="Porcentagem do custo do produto em relação à receita",
                             key="custo_percentage"
                         )
@@ -954,6 +1025,7 @@ def tables(df):
                             min_value=0.0,
                             step=100.0,
                             format="%.2f",
+                            value=editing_cost['total_cost'] if editing_cost else 0.0,
                             help="Custo total da categoria no mês",
                             key="custo_total"
                         )
@@ -965,6 +1037,7 @@ def tables(df):
                             max_value=100.0,
                             step=0.1,
                             format="%.1f",
+                            value=editing_cost['tax_percentage'] if editing_cost else 0.0,
                             help="Percentual de imposto sobre a receita",
                             key="custo_tax"
                         )
@@ -976,6 +1049,7 @@ def tables(df):
                             max_value=100.0,
                             step=0.1,
                             format="%.1f",
+                            value=editing_cost['shipping_percentage'] if editing_cost else 0.0,
                             help="Percentual de frete pago pela empresa",
                             key="custo_shipping"
                         )
@@ -987,18 +1061,29 @@ def tables(df):
                             max_value=100.0,
                             step=0.1,
                             format="%.1f",
+                            value=editing_cost['commission_percentage'] if editing_cost else 0.0,
                             help="Percentual de comissão de vendas",
                             key="custo_commission"
                         )
                     
-                    submitted = st.form_submit_button("Salvar Custos")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        submitted = st.form_submit_button("Atualizar Custos" if editing_cost else "Salvar Custos")
+                    with col2:
+                        if editing_cost and st.form_submit_button("❌ Cancelar"):
+                            if 'editing_cost' in st.session_state:
+                                del st.session_state.editing_cost
+                            st.rerun()
                     
                     if submitted:
                         # Tratar "🍪 Perda de Cookies" como None para salvar no banco
                         category_to_save = None if selected_category == "🍪 Perda de Cookies" else selected_category
                         
                         if save_costs(selected_month, category_to_save, cost_of_product_percentage, total_cost, tax_percentage, shipping_percentage, commission_percentage):
-                            st.success("Custos salvos com sucesso!")
+                            # Limpar estado de edição
+                            if 'editing_cost' in st.session_state:
+                                del st.session_state.editing_cost
+                            st.success("Custos salvos com sucesso!" if not editing_cost else "Custos atualizados com sucesso!")
                             st.rerun()
                         else:
                             st.error("Erro ao salvar custos.")
@@ -1007,11 +1092,11 @@ def tables(df):
                 if not costs_df.empty:
                     st.markdown("### Custos Cadastrados")
                     
+                    # Filtrar custos pelo mês selecionado
+                    display_costs_df = costs_df[costs_df['Mês'] == selected_month].copy()
+                    
                     # Campo de busca
                     search_term = st.text_input("Buscar custos", key="costs_search_geral")
-                    
-                    # Filtrar custos baseado no termo de busca
-                    display_costs_df = costs_df.copy()
                     
                     # Tratar None como "🍪 Perda de Cookies" na exibição
                     display_costs_df['Categoria'] = display_costs_df['Categoria'].fillna("🍪 Perda de Cookies")
@@ -1032,13 +1117,47 @@ def tables(df):
                     # Renomear coluna para exibição
                     display_costs_df = display_costs_df.rename(columns={'Custo Total': 'Custo Fixo'})
                     
-                    # Exibir custos em uma tabela
-                    st.data_editor(
-                        display_costs_df,
-                        hide_index=True,
-                        use_container_width=True,
-                        key="costs_table_geral"
-                    )
+                    # Exibir custos em uma tabela com botões de edição
+                    for index, row in display_costs_df.iterrows():
+                        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([3, 1, 1, 1, 1, 1, 1, 1])
+                        
+                        with col1:
+                            st.write(f"**{row['Categoria']}**")
+                        
+                        with col2:
+                            st.write(row['Custo do Produto (%)'])
+                        
+                        with col3:
+                            st.write(row['Custo Fixo'])
+                        
+                        with col4:
+                            st.write(row['Imposto (%)'])
+                        
+                        with col5:
+                            st.write(row['Frete Empresa (%)'])
+                        
+                        with col6:
+                            st.write(row['Comissão (%)'])
+                        
+                        with col7:
+                            if st.button("✏️ Editar", key=f"edit_{index}"):
+                                st.session_state.editing_cost = {
+                                    'month': row['Mês'],
+                                    'category': row['Categoria'],
+                                    'cost_of_product_percentage': float(row['Custo do Produto (%)'].replace('%', '')),
+                                    'total_cost': float(row['Custo Fixo'].replace('R$ ', '').replace('.', '').replace(',', '.')),
+                                    'tax_percentage': float(row['Imposto (%)'].replace('%', '')),
+                                    'shipping_percentage': float(row['Frete Empresa (%)'].replace('%', '')),
+                                    'commission_percentage': float(row['Comissão (%)'].replace('%', ''))
+                                }
+                                st.rerun()
+                        
+                        with col8:
+                            if st.button("🗑️ Excluir", key=f"delete_{index}"):
+                                # Implementar exclusão aqui
+                                st.warning("Funcionalidade de exclusão será implementada em breve")
+                        
+                        st.markdown("---")
                 else:
                     st.info("Nenhum custo cadastrado ainda.")
 
