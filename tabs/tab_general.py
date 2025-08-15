@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 from datetime import datetime, date
 
-from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup, load_costs, load_revenue_by_traffic_category, save_costs, load_traffic_categories, load_havaianas_daily_scores
+from modules.load_data import load_basic_data, apply_filters, load_paid_media, load_leads_popup, load_costs, load_revenue_by_traffic_category, save_costs, delete_cost, load_traffic_categories, load_havaianas_daily_scores
 from modules.components import big_number_box
 from partials.run_rate import display_run_rate
 from partials.pendings import display_pendings
@@ -748,8 +748,8 @@ def tables(df):
                 if 'Categoria' in merged_df.columns:
                     merged_df = merged_df.drop('Categoria', axis=1)
                 
-                # Calcular Receita Líquida (receita_com_descontos + frete - taxas_pagamento - cupom)
-                merged_df['Receita Líquida'] = merged_df['receita_venda'] + merged_df['frete'] - merged_df['taxas_pagamento'] - merged_df['cupom']
+                # Calcular Receita Líquida (receita_venda - cupom)
+                merged_df['Receita Líquida'] = merged_df['receita_venda'] - merged_df['cupom']
                 
                 # Usar receita_venda como Receita (receita bruta)
                 merged_df['Receita'] = merged_df['receita_venda']
@@ -761,8 +761,8 @@ def tables(df):
                 merged_df['Frete Empresa (%)'] = merged_df['Frete Empresa (%)'].fillna(0.0)  # Frete empresa padrão 0%
                 merged_df['Comissão (%)'] = merged_df['Comissão (%)'].fillna(0.0)  # Comissão padrão 0%
                 
-                # Renomear Custo Total para Custo Fixo para consistência
-                merged_df = merged_df.rename(columns={'Custo Total': 'Custo Fixo'})
+                # Renomear Custo Total para Investimento para consistência
+                merged_df = merged_df.rename(columns={'Custo Total': 'Investimento'})
                 
                 # Calcular Custo do Produto Absoluto (sobre Receita Líquida)
                 merged_df['Custo do Produto Absoluto'] = merged_df['Receita Líquida'] * (merged_df['Custo do Produto (%)'] / 100)
@@ -776,17 +776,29 @@ def tables(df):
                 # Calcular Comissão Absoluta (sobre Receita Líquida)
                 merged_df['Comissão Absoluta'] = merged_df['Receita Líquida'] * (merged_df['Comissão (%)'] / 100)
                 
-                # Calcular Custo Geral
-                merged_df['Custo Geral'] = merged_df['Custo do Produto Absoluto'] + merged_df['Imposto Absoluto'] + merged_df['Frete Empresa Absoluto'] + merged_df['Comissão Absoluta'] + merged_df['Custo Fixo']
+                # Calcular Total de Frete (Frete Empresa + Frete)
+                merged_df['Total de Frete'] = merged_df['Frete Empresa Absoluto'] + merged_df['frete']
                 
-                # Calcular Retorno Absoluto (considerando todos os custos)
-                merged_df['Retorno Absoluto'] = merged_df['Receita Líquida'] - merged_df['Custo Geral']
+                # Calcular Despesas Comerciais Variáveis (Custos Variáveis + Taxas + Investimento)
+                merged_df['Despesas Comerciais Variáveis'] = merged_df['Custo do Produto Absoluto'] + merged_df['Imposto Absoluto'] + merged_df['Frete Empresa Absoluto'] + merged_df['Comissão Absoluta'] + merged_df['taxas_pagamento']
+                
+                # Calcular Margem de Contribuição (sem custos fixos)
+                merged_df['Margem de Contribuição'] = merged_df['Receita Líquida'] - merged_df['Custo do Produto Absoluto']
+                
+                # Calcular Margem de Contribuição Líquida (Margem de Contribuição Bruta - Imposto - Comissão - Frete Empresa - Taxas)
+                merged_df['Retorno Absoluto'] = merged_df['Margem de Contribuição'] - merged_df['Imposto Absoluto'] - merged_df['Comissão Absoluta'] - merged_df['Frete Empresa Absoluto'] - merged_df['taxas_pagamento']
                 
                 # Calcular ROI considerando todos os custos
-                merged_df['ROI'] = merged_df['Retorno Absoluto'] / merged_df['Custo Geral'] * 100
+                merged_df['ROI'] = merged_df['Retorno Absoluto'] / merged_df['Despesas Comerciais Variáveis'] * 100
                 
-                # Calcular Margem de Contribuição (considerando todos os custos)
-                merged_df['Margem de Contribuição'] = merged_df['Retorno Absoluto'] / merged_df['Receita Líquida'] * 100
+                # Calcular Margem de Contribuição Percentual
+                merged_df['Margem de Contribuição %'] = merged_df['Margem de Contribuição'] / merged_df['Receita Líquida'] * 100
+                
+                # Calcular ROI 1: (Receita Líquida / Investimento) - 1
+                merged_df['ROI 1'] = ((merged_df['Receita Líquida'] / merged_df['Investimento']) - 1) * 100
+                
+                # Calcular ROI 2: (Margem de Contribuição Líquida / Investimento) - 1
+                merged_df['ROI 2'] = ((merged_df['Margem de Contribuição'] / merged_df['Investimento']) - 1) * 100
                 
                 # Formatar os números antes de exibir
                 display_df = merged_df.copy()
@@ -797,12 +809,14 @@ def tables(df):
                 display_df['taxas_pagamento'] = display_df['taxas_pagamento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['cupom'] = display_df['cupom'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Receita Líquida'] = display_df['Receita Líquida'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Custo Fixo'] = display_df['Custo Fixo'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Investimento'] = display_df['Investimento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Custo do Produto Absoluto'] = display_df['Custo do Produto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Imposto Absoluto'] = display_df['Imposto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Frete Empresa Absoluto'] = display_df['Frete Empresa Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Total de Frete'] = display_df['Total de Frete'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Comissão Absoluta'] = display_df['Comissão Absoluta'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Custo Geral'] = display_df['Custo Geral'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Despesas Comerciais Variáveis'] = display_df['Despesas Comerciais Variáveis'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                display_df['Margem de Contribuição'] = display_df['Margem de Contribuição'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Retorno Absoluto'] = display_df['Retorno Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 display_df['Custo do Produto (%)'] = display_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
                 display_df['Imposto (%)'] = display_df['Imposto (%)'].apply(lambda x: f"{x:.1f}%")
@@ -811,7 +825,9 @@ def tables(df):
                 
                 # Formatar ROI e Margem substituindo inf% por "-" ou "0"
                 display_df['ROI'] = display_df['ROI'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
-                display_df['Margem de Contribuição'] = display_df['Margem de Contribuição'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+                display_df['Margem de Contribuição %'] = display_df['Margem de Contribuição %'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+                display_df['ROI 1'] = display_df['ROI 1'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+                display_df['ROI 2'] = display_df['ROI 2'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
                 
                 # Reordenar as colunas
                 display_df = display_df[[
@@ -827,19 +843,23 @@ def tables(df):
                     'Imposto Absoluto',
                     'Frete Empresa (%)',
                     'Frete Empresa Absoluto',
+                    'Total de Frete',
                     'Comissão (%)',
                     'Comissão Absoluta',
-                    'Custo Fixo', 
-                    'Custo Geral', 
+                    'Investimento', 
+                    'Despesas Comerciais Variáveis', 
+                    'Margem de Contribuição',
                     'Retorno Absoluto', 
                     'ROI',
-                    'Margem de Contribuição'
+                    'Margem de Contribuição %',
+                    'ROI 1',
+                    'ROI 2'
                 ]]
                 
                 # Renomear colunas para melhor visualização
                 display_df = display_df.rename(columns={
                     'categoria_de_trafego': 'Categoria de Tráfego',
-                    'Receita': 'Receita Bruta',
+                    'Receita': 'Receita Bruta Produtos',
                     'frete': 'Frete',
                     'taxas_pagamento': 'Taxas',
                     'cupom': 'Cupons',
@@ -850,13 +870,17 @@ def tables(df):
                     'Imposto Absoluto': 'Imposto (R$)',
                     'Frete Empresa (%)': 'Frete Empresa (%)',
                     'Frete Empresa Absoluto': 'Frete Empresa (R$)',
+                    'Total de Frete': 'Total de Frete (R$)',
                     'Comissão (%)': 'Comissão (%)',
                     'Comissão Absoluta': 'Comissão (R$)',
-                    'Custo Fixo': 'Custo Fixo',
-                    'Custo Geral': 'Custo Geral',
+                    'Investimento': 'Investimento',
+                    'Despesas Comerciais Variáveis': 'Despesas Comerciais Variáveis',
+                    'Margem de Contribuição': 'Margem de Contribuição Bruta (R$)',
                     'Retorno Absoluto': 'Retorno (R$)',
                     'ROI': 'ROI (%)',
-                    'Margem de Contribuição': 'Margem (%)'
+                    'Margem de Contribuição %': 'Margem de Contribuição Líquida (%)',
+                    'ROI 1': 'ROI 1',
+                    'ROI 2': 'ROI 2 (%)'
                 })
                 
                 # Tratar None como "🍪 Perda de Cookies" na coluna Categoria de Tráfego
@@ -877,7 +901,7 @@ def tables(df):
                     
                     **Cupons**: Valor total dos cupons de desconto aplicados pelos clientes. Representa descontos diretos na receita.
                     
-                    **Receita Líquida**: Receita final calculada como: Receita Bruta + Frete - Taxas - Cupons. É o valor real que entra no caixa da empresa.
+                    **Receita Líquida**: Receita final calculada como: Receita Bruta - Taxas - Cupons. É o valor real que entra no caixa da empresa (sem considerar o frete).
                     
                     #### 💰 **Indicadores de Custo**
                     
@@ -893,21 +917,29 @@ def tables(df):
                     
                     **Frete Empresa (R$)**: Valor absoluto do frete pago pela empresa calculado sobre a receita líquida.
                     
+                    **Total de Frete (R$)**: Soma do frete pago pela empresa + frete pago pelo cliente. Representa o total de custos de frete.
+                    
                     **Comissão (%)**: Percentual de comissão de vendas pago a vendedores ou afiliados sobre a receita líquida.
                     
                     **Comissão (R$)**: Valor absoluto da comissão de vendas calculado sobre a receita líquida.
                     
-                    **Custo Fixo**: Custos operacionais mensais configurados por categoria (mídia paga, operação, infraestrutura, etc.).
+                    **Investimento**: Custos operacionais mensais configurados por categoria (mídia paga, operação, infraestrutura, etc.).
                     
-                    **Custo Geral**: Soma total de todos os custos: Custo do Produto + Custo Fixo + Imposto + Frete Empresa + Comissão.
+                    **Despesas Comerciais Variáveis**: Soma total de todos os custos: Custo do Produto + Investimento + Imposto + Frete Empresa + Comissão.
                     
                     #### 📊 **Indicadores de Performance**
                     
-                    **Retorno (R$)**: Lucro operacional calculado como: Receita Bruta - Custo Geral. Representa o resultado financeiro antes de impostos sobre o lucro.
+                    **Margem de Contribuição (R$)**: Margem calculada como: Receita Líquida - Custos Variáveis (Custo do Produto + Imposto + Frete Empresa + Comissão). Representa a contribuição para cobrir custos fixos e gerar lucro.
                     
-                    **ROI (%)**: Retorno sobre o investimento calculado como: (Retorno / Custo Geral) × 100. Mostra a eficiência do investimento em custos.
+                    **Retorno (R$)**: Lucro operacional calculado como: Receita Líquida - Despesas Comerciais Variáveis (incluindo investimentos). Representa o resultado financeiro final.
                     
-                    **Margem (%)**: Margem de lucro calculada como: (Retorno / Receita Líquida) × 100. Indica a porcentagem de lucro sobre a receita líquida.
+                    **ROI (%)**: Retorno sobre o investimento calculado como: (Retorno / Despesas Comerciais Variáveis) × 100. Mostra a eficiência do investimento em custos.
+                    
+                    **Margem de Contribuição (%)**: Margem de contribuição calculada como: (Margem de Contribuição / Receita Líquida) × 100. Indica a porcentagem de contribuição sobre a receita líquida.
+                    
+                    **ROI 1**: ROI do investimento calculado como: (Receita Líquida / Investimento) - 1. Mostra quantas vezes a receita líquida cobre o investimento.
+                    
+                    **ROI 2 (%)**: ROI do investimento sobre margem de contribuição calculado como: (Investimento / Margem de Contribuição) × 100. Mostra o peso do investimento no lucro.
                     
                     ---
                     
@@ -929,42 +961,86 @@ def tables(df):
                     'Custo do Produto Absoluto': 'sum',
                     'Imposto Absoluto': 'sum',
                     'Frete Empresa Absoluto': 'sum',
+                    'Total de Frete': 'sum',
                     'Comissão Absoluta': 'sum',
-                    'Custo Fixo': 'sum',
-                    'Custo Geral': 'sum',
+                    'Investimento': 'sum',
+                    'Despesas Comerciais Variáveis': 'sum',
+                    'Margem de Contribuição': 'sum',
                     'Retorno Absoluto': 'sum'
                 }).round(2)
                 
-                # Criar layout em colunas para os totais
+                # Linha 1: Receita e Deduções
                 col1, col2, col3, col4 = st.columns(4)
-                
                 with col1:
-                    st.metric("💰 Receita Bruta", f"R$ {totals['Receita']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("🚚 Frete", f"R$ {totals['frete']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("💳 Taxas", f"R$ {totals['taxas_pagamento']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("🎫 Cupons", f"R$ {totals['cupom']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                
+                    receita_bruta_total = totals['Receita'] + totals['frete']
+                    st.metric("💰 Receita Bruta", f"R$ {receita_bruta_total:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 with col2:
+                    st.metric("🚚 Frete Pago pelo Cliente", f"R$ {totals['frete']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col3:
+                    st.metric("🎫 Cupons", f"R$ {totals['cupom']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col4:
                     st.metric("💵 Receita Líquida", f"R$ {totals['Receita Líquida']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("📦 Custo Produto", f"R$ {totals['Custo do Produto Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("🏛️ Imposto", f"R$ {totals['Imposto Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("🚛 Frete Empresa", f"R$ {totals['Frete Empresa Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 
+                # Linha 2: Impostos e Custos Variáveis
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("📦 Custo Produto", f"R$ {totals['Custo do Produto Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col2:
+                    st.metric("🏛️ Imposto", f"R$ {totals['Imposto Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 with col3:
                     st.metric("👥 Comissão", f"R$ {totals['Comissão Absoluta']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("🔧 Custo Fixo", f"R$ {totals['Custo Fixo']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    st.metric("💼 Custo Geral", f"R$ {totals['Custo Geral']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                    
-                    # Calcular ROI geral
-                    roi_geral = (totals['Retorno Absoluto'] / totals['Custo Geral'] * 100) if totals['Custo Geral'] > 0 else 0
-                    st.metric("📈 ROI Geral", f"{roi_geral:.1f}%")
-                
                 with col4:
-                    st.metric("💎 Retorno", f"R$ {totals['Retorno Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                    st.metric("🚛 Frete Empresa", f"R$ {totals['Frete Empresa Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                
+                # Linha 3: Taxas, Comissão, Fretes e Margem de Contribuição
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("💳 Taxas", f"R$ {totals['taxas_pagamento']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col2:
+                    st.metric("💰 Despesas Comerciais Variáveis", f"R$ {totals['Despesas Comerciais Variáveis']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col3:
+                    st.metric("💎 Margem de Contribuição Bruta (R$)", f"R$ {totals['Margem de Contribuição']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col4:
+                    margem_bruta_geral = (1 - (totals['Custo do Produto Absoluto'] / totals['Receita Líquida'])) * 100 if totals['Receita Líquida'] > 0 else 0
+                    st.metric("📊 Margem de Contribuição Bruta (%)", f"{margem_bruta_geral:.1f}%")
+                
+                # Linha 4: Frete Empresa, Total de Frete, Investimento e Despesas Comerciais
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("💎 Margem de Contribuição Líquida (R$)", f"R$ {totals['Retorno Absoluto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col2:
+                    margem_liquida_geral = (totals['Retorno Absoluto'] / totals['Receita Líquida'] * 100) if totals['Receita Líquida'] > 0 else 0
+                    st.metric("📊 Margem de Contribuição Líquida (%)", f"{margem_liquida_geral:.1f}%")
+                with col3:
+                    st.metric("🔧 Investimento", f"R$ {totals['Investimento']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col4:
+                    st.metric("", "")  # Espaço vazio para manter layout
+                
+                # Linha 5: ROI 1 e ROI 2
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    roi1_geral = ((totals['Receita Líquida'] / totals['Investimento']) - 1) * 100 if totals['Investimento'] > 0 else 0
+                    st.metric("📈 ROI 1 (%) - Sobre RL", f"{roi1_geral:.1f}%")
+                with col2:
+                    roi2_geral = ((totals['Retorno Absoluto'] / totals['Investimento']) - 1) * 100
+                    st.metric("📈 ROI 2 (%) - Sobre MCL", f"{roi2_geral:.1f}%")
+                    # st.metric("📦 Total de Frete", f"R$ {totals['Total de Frete']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
+                with col3:
+                    st.metric("", "")  # Espaço vazio para manter layout
+                with col4:
+                    st.metric("", "")  # Espaço vazio para manter layout
+                
+                # Linha 6: Margem de Contribuição Líquida
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.write("")
+                with col2:
+                    st.write("")
                     
-                    # Calcular margem geral
-                    margem_geral = (totals['Retorno Absoluto'] / totals['Receita Líquida'] * 100) if totals['Receita Líquida'] > 0 else 0
-                    st.metric("📊 Margem Geral", f"{margem_geral:.1f}%")
+                with col3:
+                    st.metric("", "")  # Espaço vazio para manter layout
+                with col4:
+                    st.metric("", "")  # Espaço vazio para manter layout
             
             with tab_config:
                 # Formulário para adicionar/editar custos
@@ -1021,7 +1097,7 @@ def tables(df):
                     
                     with col2:
                         total_cost = st.number_input(
-                            "Custo Fixo (R$)",
+                            "Investimento (R$)",
                             min_value=0.0,
                             step=100.0,
                             format="%.2f",
@@ -1115,7 +1191,7 @@ def tables(df):
                     display_costs_df['Comissão (%)'] = display_costs_df['Comissão (%)'].apply(lambda x: f"{x:.1f}%")
                     
                     # Renomear coluna para exibição
-                    display_costs_df = display_costs_df.rename(columns={'Custo Total': 'Custo Fixo'})
+                    display_costs_df = display_costs_df.rename(columns={'Custo Total': 'Investimento'})
                     
                     # Exibir custos em uma tabela com botões de edição
                     for index, row in display_costs_df.iterrows():
@@ -1128,7 +1204,7 @@ def tables(df):
                             st.write(row['Custo do Produto (%)'])
                         
                         with col3:
-                            st.write(row['Custo Fixo'])
+                            st.write(row['Investimento'])
                         
                         with col4:
                             st.write(row['Imposto (%)'])
@@ -1145,7 +1221,7 @@ def tables(df):
                                     'month': row['Mês'],
                                     'category': row['Categoria'],
                                     'cost_of_product_percentage': float(row['Custo do Produto (%)'].replace('%', '')),
-                                    'total_cost': float(row['Custo Fixo'].replace('R$ ', '').replace('.', '').replace(',', '.')),
+                                    'total_cost': float(row['Investimento'].replace('R$ ', '').replace('.', '').replace(',', '.')),
                                     'tax_percentage': float(row['Imposto (%)'].replace('%', '')),
                                     'shipping_percentage': float(row['Frete Empresa (%)'].replace('%', '')),
                                     'commission_percentage': float(row['Comissão (%)'].replace('%', ''))
@@ -1154,8 +1230,14 @@ def tables(df):
                         
                         with col8:
                             if st.button("🗑️ Excluir", key=f"delete_{index}"):
-                                # Implementar exclusão aqui
-                                st.warning("Funcionalidade de exclusão será implementada em breve")
+                                # Tratar "🍪 Perda de Cookies" como None para exclusão
+                                category_to_delete = None if row['Categoria'] == "🍪 Perda de Cookies" else row['Categoria']
+                                
+                                if delete_cost(row['Mês'], category_to_delete):
+                                    st.success("Custo excluído com sucesso!")
+                                    st.rerun()
+                                else:
+                                    st.error("Erro ao excluir custo.")
                         
                         st.markdown("---")
                 else:

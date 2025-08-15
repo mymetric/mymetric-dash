@@ -1857,6 +1857,116 @@ def save_costs(month, category, cost_of_product_percentage, total_cost, tax_perc
         return False
 
 
+def delete_cost(month, category):
+    """
+    Exclui um custo específico do BigQuery.
+    
+    Args:
+        month (str): Mês de referência (formato YYYY-MM)
+        category (str): Categoria de tráfego
+    
+    Returns:
+        bool: True se excluído com sucesso, False caso contrário
+    """
+    if toast_alerts():
+        st.toast("Excluindo custo...")
+
+    tablename = st.session_state.tablename
+    print(f"Excluindo custo para tablename: {tablename}")
+    print(f"Dados recebidos: month={month}, category={category}")
+
+    try:
+        # Carregar configurações existentes
+        query = """
+            SELECT configs
+            FROM `mymetric-hub-shopify.dbt_config.costs`
+            WHERE tablename = @tablename
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+            ]
+        )
+        
+        query_job = client.query(query, job_config=job_config)
+        rows = query_job.result()
+        
+        # Carregar configs existentes
+        configs = {}
+        for row in rows:
+            if row.configs:
+                try:
+                    configs = json.loads(row.configs)
+                    print(f"Configs carregadas: {configs}")
+                    break
+                except json.JSONDecodeError as e:
+                    print(f"Erro ao decodificar JSON existente: {e}")
+                    configs = {}
+                    break
+        
+        # Verificar se o mês existe
+        if month not in configs:
+            print(f"Mês {month} não encontrado")
+            return False
+        
+        # Converter categoria para chave (None -> "null")
+        category_key = "null" if category is None else category
+        
+        # Verificar se a categoria existe
+        if category_key not in configs[month]:
+            print(f"Categoria {category} não encontrada no mês {month}")
+            return False
+        
+        # Remover a categoria
+        del configs[month][category_key]
+        print(f"Categoria {category} removida do mês {month}")
+        
+        # Se o mês ficou vazio, removê-lo também
+        if not configs[month]:
+            del configs[month]
+            print(f"Mês {month} removido por estar vazio")
+        
+        # Converter configs para JSON
+        configs_json = json.dumps(configs)
+        print(f"JSON atualizado: {configs_json}")
+        
+        # Atualizar no BigQuery
+        merge_query = """
+            MERGE `mymetric-hub-shopify.dbt_config.costs` AS target
+            USING (SELECT @tablename as tablename, @configs as configs) AS source
+            ON target.tablename = source.tablename
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    configs = source.configs,
+                    updated_at = CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN
+                INSERT (tablename, configs, created_at, updated_at)
+                VALUES (source.tablename, source.configs, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+        """
+        
+        merge_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("tablename", "STRING", tablename),
+                bigquery.ScalarQueryParameter("configs", "STRING", configs_json),
+            ]
+        )
+        
+        merge_job = client.query(merge_query, job_config=merge_config)
+        merge_job.result()  # Aguardar conclusão
+        
+        # Verificar se houve erros
+        if merge_job.errors:
+            print(f"Erros na query MERGE: {merge_job.errors}")
+            return False
+            
+        print(f"Custo excluído com sucesso")
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao excluir custo: {e}")
+        return False
+
 
 def load_kaisan_erp_orders():
 
