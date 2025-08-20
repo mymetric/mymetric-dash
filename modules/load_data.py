@@ -369,6 +369,7 @@ def load_detailed_data():
             campaign Campanha,
             page_location `Página de Entrada`,
             content `Conteúdo`,
+            page_params `Parâmetros de URL`,
             coalesce(discount_code, 'Sem Cupom') `Cupom`,
             traffic_category `Cluster`,
 
@@ -421,7 +422,8 @@ def load_detailed_data():
                         'midia': 'Mídia',
                         'campanha': 'Campanha',
                         'conteudo': 'Conteúdo',
-                        'pagina_de_entrada': 'Página de Entrada'
+                        'pagina_de_entrada': 'Página de Entrada',
+                        'parametros_url': 'Parâmetros de URL'
                     }
                     
                     mapped_field = field_mapping.get(field)
@@ -656,6 +658,7 @@ def load_today_data():
             campaign Campanha,
             page_location `Página de Entrada`,
             content `Conteúdo`,
+            page_params `Parâmetros de URL`,
             COUNTIF(event_name = 'session') `Sessões`,
             COUNT(DISTINCT CASE WHEN event_name = 'purchase' then transaction_id end) `Pedidos`,
             SUM(CASE WHEN event_name = 'purchase' then value end) `Receita`,
@@ -732,6 +735,7 @@ def load_gringa_product_submited():
         campaign `Campanha`,
         content `Conteúdo`,
         page_location `Página de Entrada`,
+        page_params `Parâmetros de URL`,
         count(*) `Sessões`,
         sum(product_submited) `Cadastros`
 

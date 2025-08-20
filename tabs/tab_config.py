@@ -219,6 +219,7 @@ def traffic_categories_config():
                 "campanha": st.text_input("Campanha (regex)", value=default_rules.get('campanha', '')),
                 "conteudo": st.text_input("Conteúdo (regex)", value=default_rules.get('conteudo', '')),
                 "pagina_de_entrada": st.text_input("Página de Entrada (regex)", value=default_rules.get('pagina_de_entrada', '')),
+                "parametros_url": st.text_input("Parâmetro de URL (regex)", value=default_rules.get('parametros_url', '')),
                 "termo": st.text_input("Termo (regex)", value=default_rules.get('termo', '')),
                 "cupom": st.text_input("Cupom (regex)", value=default_rules.get('cupom', ''))
             }
