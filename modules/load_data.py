@@ -2354,10 +2354,10 @@ def load_revenue_by_traffic_category():
 @background_cache(ttl_hours=0.1)  # Cache reduzido para forçar atualização
 def load_constance_errors():
     """
-    Carrega dados de erros da tabela constance-421122.views.error
+    Carrega dados de inconsistências da tabela constance-421122.views.error
     """
     try:
-        # Query para buscar dados de erros
+        # Query para buscar dados de inconsistências
         query = """
         SELECT 
             error_message,
@@ -2381,7 +2381,7 @@ def load_constance_errors():
             return pd.DataFrame()
             
     except Exception as e:
-        st.error(f"Erro ao carregar dados de erros: {str(e)}")
+        st.error(f"Erro ao carregar dados de inconsistências: {str(e)}")
         return pd.DataFrame()
 
 @background_cache(ttl_hours=1)

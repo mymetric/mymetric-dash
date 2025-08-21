@@ -68,7 +68,7 @@ def load_app():
             is_admin = st.session_state.get('admin', False)
 
             # Definir quais filtros devem ser carregados para cada aba
-            pages_without_filters = ["Leads", "Master", "Configurações", "Tempo Real", "Usuários", "ERP", "Erros"]
+            pages_without_filters = ["Leads", "Master", "Configurações", "Tempo Real", "Usuários", "ERP", "Inconsistências"]
             pages_with_only_date = ["Mídia Paga", "Funil de Conversão"]
             pages_with_basic_filters = ["Visão Geral", "Visão Detalhada", "Pedidos"]
             pages_with_detailed_filters = ["Visão Detalhada", "Pedidos"]
@@ -124,7 +124,7 @@ def load_app():
                 nav_options.extend(["ERP"])
 
             if st.session_state.tablename == 'constance':
-                nav_options.extend(["Erros"])
+                nav_options.extend(["Inconsistências"])
 
             if is_admin:
                 nav_options.extend(["Configurações"])
@@ -202,7 +202,7 @@ def load_app():
                 save_event_name(event_name="tab_view", event_params={"tab": "items_sold"})
                 display_tab_items_sold()
             
-            elif selected_page == "Erros" and st.session_state.tablename == 'constance':
+            elif selected_page == "Inconsistências" and st.session_state.tablename == 'constance':
                 save_event_name(event_name="tab_view", event_params={"tab": "constance_errors"})
                 display_tab_constance_errors()
             

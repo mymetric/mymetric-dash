@@ -34,18 +34,18 @@ def calculate_lost_revenue(df):
 
 def display_tab_constance_errors():
     """
-    Função principal para exibir a aba de erros do cliente constance
+    Função principal para exibir a aba de inconsistências do cliente constance
     """
-    st.title("Análise de Erros")
-    st.markdown("<span style='font-size:16px;'>Erros que ocorrem no checkout e afetam a experiência do usuário. Dados de hoje.</span>", unsafe_allow_html=True)
+    st.title("Análise de Inconsistências")
+    st.markdown("<span style='font-size:16px;'>Inconsistências que ocorrem no checkout e afetam a experiência do usuário. Dados de hoje.</span>", unsafe_allow_html=True)
     
     # Verificar se é o cliente correto
     if st.session_state.get('tablename') != 'constance':
         st.error("Esta aba está disponível apenas para o cliente Constance.")
         return
     
-    # Carregar dados de erros
-    with st.spinner("Carregando dados de erros..."):
+    # Carregar dados de inconsistências
+    with st.spinner("Carregando dados de inconsistências..."):
         df = load_constance_errors()
     
     if df is not None and not df.empty:
@@ -61,14 +61,14 @@ def display_tab_constance_errors():
         # Exibir tabela
         display_error_table(df)
     else:
-        st.warning("Não foi possível carregar dados de erros. Verifique se a tabela `constance-421122.views.error` existe e contém dados.")
+        st.warning("Não foi possível carregar dados de inconsistências. Verifique se a tabela `constance-421122.views.error` existe e contém dados.")
 
 def display_error_summary(df, lost_revenue, projection_30_days):
     """
-    Exibe resumo dos erros com métricas principais
+    Exibe resumo das inconsistências com métricas principais
     """
     if df.empty:
-        st.warning("Nenhum dado de erro encontrado.")
+        st.warning("Nenhum dado de inconsistência encontrado.")
         return
     
     # Calcular métricas principais
@@ -77,7 +77,7 @@ def display_error_summary(df, lost_revenue, projection_30_days):
     avg_ticket = df['purchase_revenue'].mean()
     unique_errors = len(df)
     
-    st.header("Resumo de Erros")
+    st.header("Resumo de Inconsistências")
     
     # Métricas principais
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -85,29 +85,29 @@ def display_error_summary(df, lost_revenue, projection_30_days):
     with col1:
         big_number_box(
             f"{total_errors:,.0f}".replace(",", "."),
-            "Total de Erros",
-            hint="Soma total de todos os erros registrados"
+            "Total de Inconsistências",
+            hint="Soma total de todas as inconsistências registradas"
         )
     
     with col2:
         big_number_box(
             f"{unique_errors:,.0f}".replace(",", "."),
-            "Tipos de Erro Únicos",
-            hint="Número de tipos diferentes de erro"
+            "Tipos de Inconsistência Únicos",
+            hint="Número de tipos diferentes de inconsistência"
         )
     
     with col3:
         big_number_box(
             f"{avg_dropoff_rate:.2f}%".replace(".", ","),
             "Taxa de Abandono Média",
-            hint="Taxa de abandono média entre todos os erros"
+            hint="Taxa de abandono média entre todas as inconsistências"
         )
     
     with col4:
         big_number_box(
             f"R$ {lost_revenue:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."),
             "Perdas Projetadas Hoje",
-            hint="Valor estimado de vendas perdidas devido aos erros de hoje"
+            hint="Valor estimado de vendas perdidas devido às inconsistências de hoje"
         )
     
     with col5:
@@ -121,18 +121,18 @@ def display_error_summary(df, lost_revenue, projection_30_days):
 
 def display_error_table(df):
     """
-    Exibe tabela detalhada dos erros
+    Exibe tabela detalhada das inconsistências
     """
     if df.empty:
         return
     
-    st.subheader("Tabela Detalhada de Erros")
+    st.subheader("Tabela Detalhada de Inconsistências")
     
     # Calcular vendas perdidas por linha
     df_with_lost = df.copy()
     df_with_lost['lost_revenue'] = df_with_lost['errors'] * (df_with_lost['dropoff_rate'] / 100) * df_with_lost['purchase_revenue']
     
-    # Calcular projeção de 30 dias para cada erro
+    # Calcular projeção de 30 dias para cada inconsistência
     df_with_lost['projection_30_days'] = df_with_lost['lost_revenue'] * 30
     
     # Preparar dados para exibição mantendo valores numéricos para sorting
@@ -140,7 +140,7 @@ def display_error_table(df):
     
     # Renomear colunas para português
     display_df = display_df.rename(columns={
-        'error_message': 'Mensagem de Erro',
+        'error_message': 'Mensagem de Inconsistência',
         'errors': 'Quantidade',
         'dropoff_rate': 'Taxa de Abandono',
         'purchase_revenue': 'Ticket Médio',
@@ -150,7 +150,7 @@ def display_error_table(df):
     
     # Reordenar as colunas
     display_df = display_df[[
-        'Mensagem de Erro',
+        'Mensagem de Inconsistência',
         'Quantidade',
         'Taxa de Abandono',
         'Ticket Médio',
