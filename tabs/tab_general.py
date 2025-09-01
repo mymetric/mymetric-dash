@@ -318,7 +318,7 @@ def tables(df):
             - Pedidos criados manualmente na Shopify
             - Identificado por: origem=shopify_draft_order
             
-            🍪 **Perda de Cookies**
+            🌳 **Orgânico**
             - Sessões sem identificação de origem
             - Identificado por: origem=not captured
             
@@ -723,13 +723,42 @@ def tables(df):
                     if col not in month_costs.columns:
                         month_costs[col] = 0.0
                 
-                # Preparar dados para merge - tratar None como "🍪 Perda de Cookies"
+                # Preparar dados para merge - tratar None como "🌳 Orgânico"
                 month_costs_for_merge = month_costs.copy()
-                month_costs_for_merge['Categoria'] = month_costs_for_merge['Categoria'].fillna("🍪 Perda de Cookies")
+                month_costs_for_merge['Categoria'] = month_costs_for_merge['Categoria'].fillna("Orgânico")
                 
-                # Preparar dados de receita - tratar None como "🍪 Perda de Cookies"
+                # Preparar dados de receita - tratar None como "🌳 Orgânico"
                 revenue_df_for_merge = revenue_df.copy()
-                revenue_df_for_merge['categoria_de_trafego'] = revenue_df_for_merge['categoria_de_trafego'].fillna("🍪 Perda de Cookies")
+                revenue_df_for_merge['categoria_de_trafego'] = revenue_df_for_merge['categoria_de_trafego'].fillna("Orgânico")
+                
+                # Agrupar todas as variações de "Orgânico" em uma única categoria
+                if st.session_state.get('tablename') == 'endogen':
+                    # Primeiro, agrupar por soma todas as linhas que contêm variações de "Orgânico"
+                    organic_variations = revenue_df_for_merge[
+                        revenue_df_for_merge['categoria_de_trafego'].str.contains('Orgânico|Outros', case=False, na=False) |
+                        revenue_df_for_merge['categoria_de_trafego'].str.contains('🌳|◻️', case=False, na=False)
+                    ]
+                    
+                    # Se há dados orgânicos para agrupar
+                    if not organic_variations.empty:
+                        # Somar todos os valores das variações orgânicas
+                        organic_grouped = organic_variations.groupby(lambda x: 'Orgânico').agg({
+                            'receita_venda': 'sum',
+                            'frete': 'sum', 
+                            'taxas_pagamento': 'sum',
+                            'cupom': 'sum',
+                            'receita_com_descontos': 'sum'
+                        }).reset_index()
+                        organic_grouped.columns = ['categoria_de_trafego', 'receita_venda', 'frete', 'taxas_pagamento', 'cupom', 'receita_com_descontos']
+                        
+                        # Remover as linhas originais das variações orgânicas
+                        revenue_df_for_merge = revenue_df_for_merge[
+                            ~(revenue_df_for_merge['categoria_de_trafego'].str.contains('Orgânico|Outros', case=False, na=False) |
+                              revenue_df_for_merge['categoria_de_trafego'].str.contains('🌳|◻️', case=False, na=False))
+                        ]
+                        
+                        # Adicionar a linha agrupada
+                        revenue_df_for_merge = pd.concat([revenue_df_for_merge, organic_grouped], ignore_index=True)
                 
 
                 
@@ -800,34 +829,14 @@ def tables(df):
                 # Calcular ROI 2: (Margem de Contribuição Líquida / Investimento) - 1
                 merged_df['ROI 2'] = ((merged_df['Margem de Contribuição'] / merged_df['Investimento']) - 1) * 100
                 
-                # Formatar os números antes de exibir
+                # Preparar DataFrame para exibição (manter valores numéricos para classificação)
                 display_df = merged_df.copy()
                 
-                # Aplicar formatação
-                display_df['Receita'] = display_df['Receita'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['frete'] = display_df['frete'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['taxas_pagamento'] = display_df['taxas_pagamento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['cupom'] = display_df['cupom'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Receita Líquida'] = display_df['Receita Líquida'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Investimento'] = display_df['Investimento'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Custo do Produto Absoluto'] = display_df['Custo do Produto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Imposto Absoluto'] = display_df['Imposto Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Frete Empresa Absoluto'] = display_df['Frete Empresa Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Total de Frete'] = display_df['Total de Frete'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Comissão Absoluta'] = display_df['Comissão Absoluta'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Despesas Comerciais Variáveis'] = display_df['Despesas Comerciais Variáveis'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Margem de Contribuição'] = display_df['Margem de Contribuição'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Retorno Absoluto'] = display_df['Retorno Absoluto'].apply(lambda x: f"R$ {x:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
-                display_df['Custo do Produto (%)'] = display_df['Custo do Produto (%)'].apply(lambda x: f"{x:.1f}%")
-                display_df['Imposto (%)'] = display_df['Imposto (%)'].apply(lambda x: f"{x:.1f}%")
-                display_df['Frete Empresa (%)'] = display_df['Frete Empresa (%)'].apply(lambda x: f"{x:.1f}%")
-                display_df['Comissão (%)'] = display_df['Comissão (%)'].apply(lambda x: f"{x:.1f}%")
-                
-                # Formatar ROI e Margem substituindo inf% por "-" ou "0"
-                display_df['ROI'] = display_df['ROI'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
-                display_df['Margem de Contribuição %'] = display_df['Margem de Contribuição %'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
-                display_df['ROI 1'] = display_df['ROI 1'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
-                display_df['ROI 2'] = display_df['ROI 2'].apply(lambda x: "-" if pd.isna(x) or x == float('inf') else f"{x:.1f}%")
+                # Tratar valores infinitos e NaN nas colunas de ROI e percentuais
+                display_df['ROI'] = display_df['ROI'].replace([float('inf'), -float('inf')], 0).fillna(0)
+                display_df['Margem de Contribuição %'] = display_df['Margem de Contribuição %'].replace([float('inf'), -float('inf')], 0).fillna(0)
+                display_df['ROI 1'] = display_df['ROI 1'].replace([float('inf'), -float('inf')], 0).fillna(0)
+                display_df['ROI 2'] = display_df['ROI 2'].replace([float('inf'), -float('inf')], 0).fillna(0)
                 
                 # Reordenar as colunas
                 display_df = display_df[[
@@ -883,8 +892,8 @@ def tables(df):
                     'ROI 2': 'ROI 2 (%)'
                 })
                 
-                # Tratar None como "🍪 Perda de Cookies" na coluna Categoria de Tráfego
-                display_df['Categoria de Tráfego'] = display_df['Categoria de Tráfego'].fillna("🍪 Perda de Cookies")
+                # Tratar None como "🌳 Canal Orgânico" na coluna Categoria de Tráfego
+                display_df['Categoria de Tráfego'] = display_df['Categoria de Tráfego'].fillna("🌳 Canal Orgânico")
                 
                 # Adicionar expander com explicação
                 with st.expander("📊 Entenda os Indicadores", expanded=False):
@@ -946,7 +955,106 @@ def tables(df):
                     **💡 Dica**: Configure os percentuais de custo na aba "Configuração" para obter análises mais precisas por categoria de tráfego.
                     """)
                 
-                st.data_editor(display_df, hide_index=1, use_container_width=True, key="general_costs_enhanced")
+                # Configurar formatação das colunas para manter valores numéricos mas com visualização formatada
+                column_config = {
+                    'Categoria de Tráfego': st.column_config.TextColumn("Categoria de Tráfego"),
+                    'Receita Bruta Produtos': st.column_config.NumberColumn(
+                        "Receita Bruta Produtos",
+                        format="R$ %.2f"
+                    ),
+                    'Frete': st.column_config.NumberColumn(
+                        "Frete",
+                        format="R$ %.2f"
+                    ),
+                    'Taxas': st.column_config.NumberColumn(
+                        "Taxas",
+                        format="R$ %.2f"
+                    ),
+                    'Cupons': st.column_config.NumberColumn(
+                        "Cupons",
+                        format="R$ %.2f"
+                    ),
+                    'Receita Líquida': st.column_config.NumberColumn(
+                        "Receita Líquida",
+                        format="R$ %.2f"
+                    ),
+                    'Custo Produto (%)': st.column_config.NumberColumn(
+                        "Custo Produto (%)",
+                        format="%.1f%%"
+                    ),
+                    'Custo Produto (R$)': st.column_config.NumberColumn(
+                        "Custo Produto (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Imposto (%)': st.column_config.NumberColumn(
+                        "Imposto (%)",
+                        format="%.1f%%"
+                    ),
+                    'Imposto (R$)': st.column_config.NumberColumn(
+                        "Imposto (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Frete Empresa (%)': st.column_config.NumberColumn(
+                        "Frete Empresa (%)",
+                        format="%.1f%%"
+                    ),
+                    'Frete Empresa (R$)': st.column_config.NumberColumn(
+                        "Frete Empresa (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Total de Frete (R$)': st.column_config.NumberColumn(
+                        "Total de Frete (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Comissão (%)': st.column_config.NumberColumn(
+                        "Comissão (%)",
+                        format="%.1f%%"
+                    ),
+                    'Comissão (R$)': st.column_config.NumberColumn(
+                        "Comissão (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Investimento': st.column_config.NumberColumn(
+                        "Investimento",
+                        format="R$ %.2f"
+                    ),
+                    'Despesas Comerciais Variáveis': st.column_config.NumberColumn(
+                        "Despesas Comerciais Variáveis",
+                        format="R$ %.2f"
+                    ),
+                    'Margem de Contribuição Bruta (R$)': st.column_config.NumberColumn(
+                        "Margem de Contribuição Bruta (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Retorno (R$)': st.column_config.NumberColumn(
+                        "Retorno (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'ROI (%)': st.column_config.NumberColumn(
+                        "ROI (%)",
+                        format="%.1f%%"
+                    ),
+                    'Margem de Contribuição Líquida (%)': st.column_config.NumberColumn(
+                        "Margem de Contribuição Líquida (%)",
+                        format="%.1f%%"
+                    ),
+                    'ROI 1': st.column_config.NumberColumn(
+                        "ROI 1",
+                        format="%.1f%%"
+                    ),
+                    'ROI 2 (%)': st.column_config.NumberColumn(
+                        "ROI 2 (%)",
+                        format="%.1f%%"
+                    )
+                }
+                
+                st.data_editor(
+                    display_df, 
+                    hide_index=True, 
+                    use_container_width=True, 
+                    key="general_costs_enhanced",
+                    column_config=column_config
+                )
                 
                 # Calcular e exibir totais
                 st.markdown("### 📊 Totais")
@@ -1069,8 +1177,8 @@ def tables(df):
                     # Obter todos os clusters disponíveis na tabela de análise
                     available_clusters = revenue_df['categoria_de_trafego'].unique().tolist()
                     
-                    # Tratar None como "🍪 Perda de Cookies"
-                    available_clusters = ["🍪 Perda de Cookies" if cluster is None else cluster for cluster in available_clusters]
+                    # Tratar None como "🌳 Orgânico"
+                    available_clusters = ["Orgânico" if cluster is None else cluster for cluster in available_clusters]
                     
                     # Selecionar categoria/cluster
                     selected_category = st.selectbox(
@@ -1152,8 +1260,8 @@ def tables(df):
                             st.rerun()
                     
                     if submitted:
-                        # Tratar "🍪 Perda de Cookies" como None para salvar no banco
-                        category_to_save = None if selected_category == "🍪 Perda de Cookies" else selected_category
+                        # Tratar "🌳 Orgânico" como None para salvar no banco
+                        category_to_save = None if selected_category == "Orgânico" else selected_category
                         
                         if save_costs(selected_month, category_to_save, cost_of_product_percentage, total_cost, tax_percentage, shipping_percentage, commission_percentage):
                             # Limpar estado de edição
@@ -1174,8 +1282,8 @@ def tables(df):
                     # Campo de busca
                     search_term = st.text_input("Buscar custos", key="costs_search_geral")
                     
-                    # Tratar None como "🍪 Perda de Cookies" na exibição
-                    display_costs_df['Categoria'] = display_costs_df['Categoria'].fillna("🍪 Perda de Cookies")
+                    # Tratar None como "🌳 Orgânico" na exibição
+                    display_costs_df['Categoria'] = display_costs_df['Categoria'].fillna("Orgânico")
                     
                     if search_term:
                         display_costs_df = display_costs_df[
@@ -1230,8 +1338,8 @@ def tables(df):
                         
                         with col8:
                             if st.button("🗑️ Excluir", key=f"delete_{index}"):
-                                # Tratar "🍪 Perda de Cookies" como None para exclusão
-                                category_to_delete = None if row['Categoria'] == "🍪 Perda de Cookies" else row['Categoria']
+                                # Tratar "🌳 Orgânico" como None para exclusão
+                                category_to_delete = None if row['Categoria'] == "🌳 Orgânico" else row['Categoria']
                                 
                                 if delete_cost(row['Mês'], category_to_delete):
                                     st.success("Custo excluído com sucesso!")
