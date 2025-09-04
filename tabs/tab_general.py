@@ -817,8 +817,14 @@ def tables(df):
                 # Calcular Margem de Contribuição Líquida (Margem de Contribuição Bruta - Imposto - Comissão - Frete Empresa - Taxas)
                 merged_df['Retorno Absoluto'] = merged_df['Margem de Contribuição'] - merged_df['Imposto Absoluto'] - merged_df['Comissão Absoluta'] - merged_df['Frete Empresa Absoluto'] - merged_df['taxas_pagamento']
                 
+                # Calcular Lucro Bruto (Margem de Contribuição Líquida - Investimento)
+                merged_df['Lucro Bruto'] = merged_df['Retorno Absoluto'] - merged_df['Investimento']
+                
                 # Calcular ROI considerando todos os custos
                 merged_df['ROI'] = merged_df['Retorno Absoluto'] / merged_df['Despesas Comerciais Variáveis'] * 100
+                
+                # Calcular ROI 3 ((Lucro Bruto / Investimento) - 1) * 100
+                merged_df['ROI 3'] = ((merged_df['Lucro Bruto'] / merged_df['Investimento']) - 1) * 100
                 
                 # Calcular Margem de Contribuição Percentual
                 merged_df['Margem de Contribuição %'] = merged_df['Margem de Contribuição'] / merged_df['Receita Líquida'] * 100
@@ -859,10 +865,12 @@ def tables(df):
                     'Despesas Comerciais Variáveis', 
                     'Margem de Contribuição',
                     'Retorno Absoluto', 
+                    'Lucro Bruto',
                     'ROI',
                     'Margem de Contribuição %',
                     'ROI 1',
-                    'ROI 2'
+                    'ROI 2',
+                    'ROI 3'
                 ]]
                 
                 # Renomear colunas para melhor visualização
@@ -885,11 +893,13 @@ def tables(df):
                     'Investimento': 'Investimento',
                     'Despesas Comerciais Variáveis': 'Despesas Comerciais Variáveis',
                     'Margem de Contribuição': 'Margem de Contribuição Bruta (R$)',
-                    'Retorno Absoluto': 'Retorno (R$)',
+                    'Retorno Absoluto': 'Margem de Contribuição Líquida (R$)',
+                    'Lucro Bruto': 'Lucro Bruto (R$)',
                     'ROI': 'ROI (%)',
                     'Margem de Contribuição %': 'Margem de Contribuição Líquida (%)',
                     'ROI 1': 'ROI 1',
-                    'ROI 2': 'ROI 2 (%)'
+                    'ROI 2': 'ROI 2 (%)',
+                    'ROI 3': 'ROI 3 (%)'
                 })
                 
                 # Tratar None como "🌳 Canal Orgânico" na coluna Categoria de Tráfego
@@ -940,7 +950,9 @@ def tables(df):
                     
                     **Margem de Contribuição (R$)**: Margem calculada como: Receita Líquida - Custos Variáveis (Custo do Produto + Imposto + Frete Empresa + Comissão). Representa a contribuição para cobrir custos fixos e gerar lucro.
                     
-                    **Retorno (R$)**: Lucro operacional calculado como: Receita Líquida - Despesas Comerciais Variáveis (incluindo investimentos). Representa o resultado financeiro final.
+                    **Margem de Contribuição Líquida (R$)**: Lucro operacional calculado como: Receita Líquida - Despesas Comerciais Variáveis (incluindo investimentos). Representa o resultado financeiro final antes do investimento.
+                    
+                    **Lucro Bruto (R$)**: Lucro final calculado como: Margem de Contribuição Líquida - Investimento. Representa o resultado financeiro final após deduzir todos os custos e investimentos.
                     
                     **ROI (%)**: Retorno sobre o investimento calculado como: (Retorno / Despesas Comerciais Variáveis) × 100. Mostra a eficiência do investimento em custos.
                     
@@ -949,6 +961,8 @@ def tables(df):
                     **ROI 1**: ROI do investimento calculado como: (Receita Líquida / Investimento) - 1. Mostra quantas vezes a receita líquida cobre o investimento.
                     
                     **ROI 2 (%)**: ROI do investimento sobre margem de contribuição calculado como: (Investimento / Margem de Contribuição) × 100. Mostra o peso do investimento no lucro.
+                    
+                    **ROI 3 (%)**: ROI do investimento sobre lucro bruto calculado como: ((Lucro Bruto / Investimento) - 1) × 100. Mostra o retorno do investimento considerando o lucro final após todos os custos.
                     
                     ---
                     
@@ -1026,8 +1040,12 @@ def tables(df):
                         "Margem de Contribuição Bruta (R$)",
                         format="R$ %.2f"
                     ),
-                    'Retorno (R$)': st.column_config.NumberColumn(
-                        "Retorno (R$)",
+                    'Margem de Contribuição Líquida (R$)': st.column_config.NumberColumn(
+                        "Margem de Contribuição Líquida (R$)",
+                        format="R$ %.2f"
+                    ),
+                    'Lucro Bruto (R$)': st.column_config.NumberColumn(
+                        "Lucro Bruto (R$)",
                         format="R$ %.2f"
                     ),
                     'ROI (%)': st.column_config.NumberColumn(
@@ -1044,6 +1062,10 @@ def tables(df):
                     ),
                     'ROI 2 (%)': st.column_config.NumberColumn(
                         "ROI 2 (%)",
+                        format="%.1f%%"
+                    ),
+                    'ROI 3 (%)': st.column_config.NumberColumn(
+                        "ROI 3 (%)",
                         format="%.1f%%"
                     )
                 }
@@ -1074,7 +1096,8 @@ def tables(df):
                     'Investimento': 'sum',
                     'Despesas Comerciais Variáveis': 'sum',
                     'Margem de Contribuição': 'sum',
-                    'Retorno Absoluto': 'sum'
+                    'Retorno Absoluto': 'sum',
+                    'Lucro Bruto': 'sum'
                 }).round(2)
                 
                 # Linha 1: Receita e Deduções
@@ -1122,9 +1145,9 @@ def tables(df):
                 with col3:
                     st.metric("🔧 Investimento", f"R$ {totals['Investimento']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 with col4:
-                    st.metric("", "")  # Espaço vazio para manter layout
+                    st.metric("💰 Lucro Bruto (R$)", f"R$ {totals['Lucro Bruto']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 
-                # Linha 5: ROI 1 e ROI 2
+                # Linha 5: ROI 1, ROI 2 e ROI 3
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     roi1_geral = ((totals['Receita Líquida'] / totals['Investimento']) - 1) * 100 if totals['Investimento'] > 0 else 0
@@ -1132,9 +1155,9 @@ def tables(df):
                 with col2:
                     roi2_geral = ((totals['Retorno Absoluto'] / totals['Investimento']) - 1) * 100
                     st.metric("📈 ROI 2 (%) - Sobre MCL", f"{roi2_geral:.1f}%")
-                    # st.metric("📦 Total de Frete", f"R$ {totals['Total de Frete']:,.2f}".replace(",", "*").replace(".", ",").replace("*", "."))
                 with col3:
-                    st.metric("", "")  # Espaço vazio para manter layout
+                    roi3_geral = ((totals['Lucro Bruto'] / totals['Investimento']) - 1) * 100 if totals['Investimento'] > 0 else 0
+                    st.metric("📈 ROI 3 (%) - Sobre LB", f"{roi3_geral:.1f}%")
                 with col4:
                     st.metric("", "")  # Espaço vazio para manter layout
                 
