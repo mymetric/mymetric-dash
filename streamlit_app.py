@@ -237,6 +237,8 @@ def logout():
 
 # Executa a função de autenticação
 if check_password():
+    # Aviso de depreciação
+    st.warning("⚠️ **Essa versão será desativada em breve.** Por favor, acesse a nova versão: [beta.mymetric.app](https://beta.mymetric.app/)")
     # Verifica se o usuário é 'mymetric' (usuário mestre)
     if st.session_state.username == "mymetric" or st.session_state.username == "alvisi":
         # Gera um dropdown para escolher outros usuários
